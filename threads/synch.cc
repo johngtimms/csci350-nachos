@@ -1,21 +1,22 @@
 // synch.cc 
+// 
 //	Routines for synchronizing threads.  Three kinds of
 //	synchronization routines are defined here: semaphores, locks 
-//   	and condition variables (the implementation of the last two
+//  and condition variables (the implementation of the last two
 //	are left to the reader).
 //
-// Any implementation of a synchronization routine needs some
-// primitive atomic operation.  We assume Nachos is running on
-// a uniprocessor, and thus atomicity can be provided by
-// turning off interrupts.  While interrupts are disabled, no
-// context switch can occur, and thus the current thread is guaranteed
-// to hold the CPU throughout, until interrupts are reenabled.
+//  Any implementation of a synchronization routine needs some
+//  primitive atomic operation.  We assume Nachos is running on
+//  a uniprocessor, and thus atomicity can be provided by
+//  turning off interrupts.  While interrupts are disabled, no
+//  context switch can occur, and thus the current thread is guaranteed
+//  to hold the CPU throughout, until interrupts are reenabled.
 //
-// Because some of these routines might be called with interrupts
-// already disabled (Semaphore::V for one), instead of turning
-// on interrupts at the end of the atomic operation, we always simply
-// re-set the interrupt state back to its original value (whether
-// that be disabled or enabled).
+//  Because some of these routines might be called with interrupts
+//  already disabled (Semaphore::V for one), instead of turning
+//  on interrupts at the end of the atomic operation, we always simply
+//  re-set the interrupt state back to its original value (whether
+//  that be disabled or enabled).
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
@@ -27,86 +28,226 @@
 
 //----------------------------------------------------------------------
 // Semaphore::Semaphore
-// 	Initialize a semaphore, so that it can be used for synchronization.
 //
-//	"debugName" is an arbitrary name, useful for debugging.
-//	"initialValue" is the initial value of the semaphore.
+// Initialize a semaphore, so that it can be used for synchronization.
+//
+// "debugName" is an arbitrary name, useful for debugging.
+// "initialValue" is the initial value of the semaphore.
 //----------------------------------------------------------------------
 
-Semaphore::Semaphore(char* debugName, int initialValue)
-{
-    name = debugName;
-    value = initialValue;
-    queue = new List;
+Semaphore::Semaphore(char* debugName, int initialValue) {
+	name = debugName;
+	value = initialValue;
+	queue = new List;
 }
 
 //----------------------------------------------------------------------
 // Semaphore::Semaphore
-// 	De-allocate semaphore, when no longer needed.  Assume no one
-//	is still waiting on the semaphore!
+//
+// De-allocate semaphore, when no longer needed.  Assume no one
+// is still waiting on the semaphore!
 //----------------------------------------------------------------------
 
-Semaphore::~Semaphore()
-{
-    delete queue;
+Semaphore::~Semaphore() {
+	delete queue;
 }
 
 //----------------------------------------------------------------------
 // Semaphore::P
-// 	Wait until semaphore value > 0, then decrement.  Checking the
-//	value and decrementing must be done atomically, so we
-//	need to disable interrupts before checking the value.
+// 
+// Wait until semaphore value > 0, then decrement.  Checking the
+// value and decrementing must be done atomically, so we
+// need to disable interrupts before checking the value.
 //
-//	Note that Thread::Sleep assumes that interrupts are disabled
-//	when it is called.
+// Note that Thread::Sleep assumes that interrupts are disabled
+// when it is called.
 //----------------------------------------------------------------------
 
-void
-Semaphore::P()
-{
-    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
-    
-    while (value == 0) { 			// semaphore not available
-	queue->Append((void *)currentThread);	// so go to sleep
-	currentThread->Sleep();
-    } 
-    value--; 					// semaphore available, 
-						// consume its value
-    
-    (void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
+void Semaphore::P() {
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+
+	// Go to sleep if the semaphore is not available
+	while (value == 0) {
+		queue->Append((void *)currentThread);
+		currentThread->Sleep();
+	} 
+	
+	// Semaphore is available, consume its value.
+	value--; 
+
+	(void) interrupt->SetLevel(oldLevel);				// re-enable interrupts
 }
 
 //----------------------------------------------------------------------
 // Semaphore::V
-// 	Increment semaphore value, waking up a waiter if necessary.
-//	As with P(), this operation must be atomic, so we need to disable
-//	interrupts.  Scheduler::ReadyToRun() assumes that threads
-//	are disabled when it is called.
+// 
+// Increment semaphore value, waking up a waiter if necessary.
+// As with P(), this operation must be atomic, so we need to disable
+// interrupts.  Scheduler::ReadyToRun() assumes that threads
+// are disabled when it is called.
 //----------------------------------------------------------------------
 
-void
-Semaphore::V()
-{
+void Semaphore::V() {
     Thread *thread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
     thread = (Thread *)queue->Remove();
     if (thread != NULL)	   // make thread ready, consuming the V immediately
-	scheduler->ReadyToRun(thread);
+		scheduler->ReadyToRun(thread);
     value++;
     (void) interrupt->SetLevel(oldLevel);
 }
 
-// Dummy functions -- so we can compile our later assignments 
-// Note -- without a correct implementation of Condition::Wait(), 
-// the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+//----------------------------------------------------------------------
+// Lock::Lock
+// 
+// TODO
+//----------------------------------------------------------------------
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Lock::Lock(char* debugName) {
+	name = debugName;
+	holderName = NULL;
+	value = false;
+	queue = new List;
+}
+
+//----------------------------------------------------------------------
+// Lock::Lock
+// 
+// De-allocate lock, when no longer needed.  Assume no one
+// is still waiting on the lock!
+//----------------------------------------------------------------------
+
+Lock::~Lock() {
+	delete queue;
+}
+
+//----------------------------------------------------------------------
+// Lock::Acquire
+// 
+// TODO
+//----------------------------------------------------------------------
+
+void Lock::Acquire() {
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+	
+	if (value) {
+		queue->Append((void *)currentThread);
+		while (value)
+			currentThread->Sleep();
+	}
+	
+	value = true;
+	holderName = currentThread->getName();
+	
+	(void) interrupt->SetLevel(oldLevel);				// re-enable interrupts
+}
+
+//----------------------------------------------------------------------
+// Lock::Release
+// 
+// TODO
+//----------------------------------------------------------------------
+
+void Lock::Release() {
+	Thread *thread;
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+	
+	if (isHeldByCurrentThread()) {
+		thread = (Thread *)queue->Remove();
+		if (thread != NULL) {
+			scheduler->ReadyToRun(thread);
+		} else {
+			value = false;
+			holderName = NULL;
+		}
+	}
+	
+    (void) interrupt->SetLevel(oldLevel);				// re-enable interrupts
+}
+
+//----------------------------------------------------------------------
+// Lock::isHeldByCurrentThread
+// 
+// TODO
+//----------------------------------------------------------------------
+
+bool Lock::isHeldByCurrentThread() {
+	if (holderName == currentThread->getName())
+		return true;
+	return false;
+}
+
+//----------------------------------------------------------------------
+// Condition::Condition
+// 
+// TODO
+//----------------------------------------------------------------------
+
+Condition::Condition(char* debugName) { 
+	name = debugName;
+	queue = new List;
+}
+
+//----------------------------------------------------------------------
+// Condition::Condition
+// 
+// TODO
+//----------------------------------------------------------------------
+
+Condition::~Condition() { 
+	delete queue;
+}
+
+//----------------------------------------------------------------------
+// Condition::Wait
+// 
+// TODO
+//----------------------------------------------------------------------
+
+void Condition::Wait(Lock* conditionLock) { 
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+	
+	conditionLock->Release();
+	queue->Append((void *)currentThread);
+	currentThread->Sleep();
+	
+	(void) interrupt->SetLevel(oldLevel);				// re-enable interrupts
+	
+	conditionLock->Acquire();
+}
+
+//----------------------------------------------------------------------
+// Condition::Signal
+// 
+// TODO
+//----------------------------------------------------------------------
+
+void Condition::Signal(Lock* conditionLock) {
+	Thread *thread;
+	
+	if (conditionLock->isHeldByCurrentThread()) {	// This may not be correct- maybe just try to acquire the lock?
+		thread = (Thread *)queue->Remove();
+		if (thread != NULL) {
+			scheduler->ReadyToRun(thread);
+		}
+	}
+}
+
+//----------------------------------------------------------------------
+// Condition::Broadcast
+// 
+// TODO
+//----------------------------------------------------------------------
+
+void Condition::Broadcast(Lock* conditionLock) {
+	Thread *thread;
+	
+	if (conditionLock->isHeldByCurrentThread()) {	// This may not be correct- maybe just try to acquire the lock?
+		thread = (Thread *)queue->Remove();
+		while (thread != NULL) {
+			scheduler->ReadyToRun(thread);
+			thread = (Thread *)queue->Remove();
+		}
+	}
+}

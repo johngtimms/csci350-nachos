@@ -53,13 +53,16 @@
 #include "utility.h"
 #include "system.h"
 
-
 // External functions used by this file
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
+
+#ifdef THREADS
+extern void Part2(void), TestSuite(void);
+#endif
 
 //----------------------------------------------------------------------
 // main
@@ -85,13 +88,21 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
-    ThreadTest();
+   // ThreadTest();
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
         if (!strcmp(*argv, "-z"))               // print copyright
             printf (copyright);
+			
+#ifdef THREADS
+        if (!strcmp(*argv, "-T"))               // Test Suite
+            TestSuite();
+        //if (!strcmp(*argv, "-P2"))               // Problem 2
+        //    Problem2();
+#endif //THREADS
+			
 #ifdef USER_PROGRAM
         if (!strcmp(*argv, "-x")) {        	// run a user program
 	    ASSERT(argc > 1);
