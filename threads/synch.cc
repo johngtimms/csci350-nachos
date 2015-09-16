@@ -100,13 +100,106 @@ Semaphore::V()
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) {
+    name = debugName;
+    lockOwnerThread = NULL;
+    lockState = FREE;
+    waitQueue = new List();
+}
+Lock::~Lock() {
+    delete waitQueue;
+}
+void Lock::Acquire() {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(currentThread == lockOwnerThread) {
+        (void) interrupt->SetLevel(oldLevel);   // restore interrupts
+        return;
+    }
+    if(lockState == FREE) { //then i can have it
+        lockState = BUSY;
+        lockOwnerThread = currentThread;
+    } else { //lock is busy
+        waitQueue->Append((void *)currentThread); //add current thread to lock's wait queue
+        currentThread->Sleep(); //go to sleep
+    }
+    
+    (void) interrupt->SetLevel(oldLevel); //restore interrupts
+    
+}
+void Lock::Release() {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(lockOwnerThread != currentThread) { // if current thread is not lock owner
+        //print something here
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    if(waitQueue->IsEmpty() == false) { // if wait queue is not empty
+        lockOwnerThread = (Thread *)waitQueue->Remove(); //remove 1 waiting thread and make it lock owner
+        scheduler->ReadyToRun(lockOwnerThread);
+    } else {
+        lockState = FREE;
+        lockOwnerThread = NULL;
+    }
+    
+    (void) interrupt->SetLevel(oldLevel); //restore interrupts
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Condition::Condition(char* debugName) {
+    name = debugName;
+    waitingLock = NULL;
+    waitQueue = new List();
+}
+Condition::~Condition() {
+}
+void Condition::Wait(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(conditionLock == NULL){
+        //print msg
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    if(waitingLock == NULL) { //no one is waiting
+        waitingLock = conditionLock;
+    }
+    if(waitingLock != conditionLock) {
+        //print msg
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    waitQueue->Append(currentThread); //add waitingLock to queue
+    conditionLock->Release();
+    currentThread->Sleep();
+    conditionLock->Acquire();
+    
+    (void) interrupt->SetLevel(oldLevel); //restore interrupts
+}
+void Condition::Signal(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(waitingLock == NULL) { //if no thread is waiting
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    if(waitingLock != conditionLock) {
+        //print msg
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    Thread *waitingThread = (Thread *)waitQueue->Remove(); //wakeup 1 waiting thread
+    scheduler->ReadyToRun(waitingThread); //put on ready queue
+    if(waitQueue->IsEmpty()) { //if wait queue is empty
+        waitingLock = NULL;
+    }
+    (void) interrupt->SetLevel(oldLevel); //restore interrupts
+    
+}
+void Condition::Broadcast(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(conditionLock == NULL) {
+        //print msg
+        (void) interrupt->SetLevel(oldLevel); //restore interrupts
+        return;
+    }
+    while(waitQueue->IsEmpty() == false) { //while wait queue is not empty
+        Signal(conditionLock);
+    }
+}
