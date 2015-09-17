@@ -413,9 +413,9 @@ void TestSuite() {
     t->Fork((VoidFunctionPtr)t5_t2,0);
 
 }
-Lock senatorOutsideLineLock("senator outside line lock");
+Lock senatorsOutsideLineLock("senator outside line lock");
 int senatorsOutside = 0;
-Lock senatorInsideLock("senator inside line lock");
+Lock senatorsInsideLock("senator inside line lock");
 bool senatorInside = false;
 Lock customersOutsideLineLock("customer outside line lock");
 Lock appBribeLineLock("app bribe line lock");
@@ -464,6 +464,52 @@ public:
 
         //do senator stuff
         //choose if senator here
+        chooseIfImASenator();
+        senatorsOutsideLineLock.Acquire();
+        senatorsInsideLock.Acquire();
+        if (isSenator) {
+            if (senatorsOutside > 0 || senatorInside) {
+                senatorsOutside += 1;
+                senatorsInsideLock.Release();
+                customer_cv->Wait(&senatorsOutsideLineLock);
+                senatorsInsideLock.Acquire();
+                senatorsOutside -= 1;
+            }
+
+            senatorInside = true;
+            senatorsOutsideLineLock.Release();
+            senatorsInsideLock.Release();
+            
+            appBribeLineLock.Acquire();
+            customer_cv->Broadcast(&appBribeLineLock);
+            appBribeLineLock.Release();
+
+            appPlebLineLock.Acquire();
+            customer_cv->Broadcast(&appPlebLineLock);
+            appPlebLineLock.Release();
+            
+            picBribeLineLock.Acquire();
+            customer_cv->Broadcast(&picBribeLineLock);
+            picBribeLineLock.Release();
+
+            picPlebLineLock.Acquire();
+            customer_cv->Broadcast(&picPlebLineLock);
+            picPlebLineLock.Release();
+            
+            // And so on, for each line INCLUDING PAID LINES
+            
+        } else {
+            if (senatorsOutside > 0 || senatorInside) {
+                senatorsOutsideLineLock.Release();
+                senatorsInsideLock.Release();
+                customersOutsideLineLock.Acquire();
+                customersOutside += 1;
+                customer_cv->Wait(&customersOutsideLineLock);
+                customersOutside -= 1;
+            }
+            senatorsOutsideLineLock.Release();
+            senatorsInsideLock.Release();
+        }
 
         //Ready to enter, choose a line
         int appLineLength;
@@ -503,6 +549,11 @@ public:
 
     }
 
+    void chooseIfImASenator() {
+        //for now customer is never senator until we implement a random generator
+        isSenator = false;
+    }
+
     void doApp() {
         bool senatord = false;
         senatord = enterAppLine();
@@ -529,7 +580,7 @@ public:
             appPlebLineLock.Release();
         }
         
-        senatorInsideLock.Acquire();
+        senatorsInsideLock.Acquire();
         if (senatorInside) {
             customersOutsideLineLock.Acquire();
             customersOutside += 1;
@@ -538,7 +589,7 @@ public:
             customersOutsideLineLock.Release();
             senatord = true;
         }
-        senatorInsideLock.Release();
+        senatorsInsideLock.Release();
         
         return senatord;
     }
