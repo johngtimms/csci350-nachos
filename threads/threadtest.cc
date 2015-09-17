@@ -5,17 +5,49 @@
 #include <stdlib.h>
 #include <iostream>
 #include <string>
-
 using namespace std;
- 
 
+struct ApplicationClerk 
+{
+    Thread* clerk;
+    List* queue;
+    List* bribeQueue;
+
+    ApplicationClerk(char* id) {
+        clerk = new Thread(id);
+    }
+};
+
+void customerRun()
+{
+
+}
+
+void applicationClerkRun()
+{
+
+}
+ 
 void PostOffice(int numCustomers, int numAppClerks, int numPicClerks, int numPassportClerks, int numCashiers) 
 {
-    cout << "Number of Customers: " <<  numCustomers << endl;
-    cout << "Number of Appication Clerks: " << numAppClerks << endl;
-    cout << "Number of Picture Clerks: " << numPicClerks << endl;
-    cout << "Number of Passport Clerks: " << numPassportClerks << endl;
-    cout << "Number of Cashiers: " << numCashiers << endl << endl;
+    // Create ApplicationClerk
+    for(int i = 0; i < numAppClerks; i++) {
+        id = new char[20];
+        sprintf(id, "%d", i);
+        customer = new Thread(id);
+        customer->Fork((VoidFunctionPtr)fileApplication, 0);
+    }
+
+
+    // Create Customers
+    Thread *customer;
+    char *ssn;
+    for(int i = 0; i < numCustomers; i++) {
+        ssn = new char[20];
+        sprintf(ssn, "%d", i);
+        customer = new Thread(ssn);
+        customer->Fork((VoidFunctionPtr)fileApplication, 0);
+    }
 }
 
 
@@ -29,7 +61,6 @@ void Problem2()
     int numPicClerks = 5;
     int numPassportClerks = 5;
     int numCashiers = 5;
-
     cout << "Welcome to the Passport Office." << endl;
     while(true) {
         cout << "Please enter an option:" << endl;
@@ -89,7 +120,7 @@ void Problem2()
             }
         } else if(input == "-b") {  // Run a test
             PostOffice(numCustomers, numAppClerks, numPicClerks, numPassportClerks, numCashiers);
-        } else if(input == "-c") {
+        } else if(input == "-c") {  // Exit
             cout << "Exiting Passport Office." << endl;
             break;
         } else {
