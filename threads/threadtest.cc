@@ -1,46 +1,23 @@
 #include "copyright.h"
 #include "system.h"
-//#include "stdio.h"
 
-//typedef enum {AVAILABLE, BUSY, BREAK} clerkState;
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <string>
 
-struct ApplicationClerk 
-{
-    // wallet
-    // queue
-    // bribeQueue
-    // state   
-
-};
-
-void fileApplication()
-{
-
-}
-void getPictureTaken() 
-
-{
-
-}
+using namespace std;
+ 
 
 void PostOffice(int numCustomers, int numAppClerks, int numPicClerks, int numPassportClerks, int numCashiers) 
 {
-    // Create Clerks first
-
-    /*
-    Thread *customer;
-    char *ssn;
-    for(int i = 0; i < 5; i++) {
-        ssn = new char[20];
-        sprintf(ssn,"%d", i);
-        customer = new Thread(ssn);
-        // Customer randomly decides whether to file application or get picture taken
-        customer->Fork((VoidFunctionPtr)fileApplication, 0);
-        // or
-        customer->Fork((VoidFunctionPtr)getPictureTaken, 0);
-    }
-    */
+    cout << "Number of Customers: " <<  numCustomers << endl;
+    cout << "Number of Appication Clerks: " << numAppClerks << endl;
+    cout << "Number of Picture Clerks: " << numPicClerks << endl;
+    cout << "Number of Passport Clerks: " << numPassportClerks << endl;
+    cout << "Number of Cashiers: " << numCashiers << endl << endl;
 }
+
 
 
 // Run menu for Part 2 of assignment
@@ -53,47 +30,72 @@ void Problem2()
     int numPassportClerks = 5;
     int numCashiers = 5;
 
-    printf("Welcome to the Passport Office.\n");
+    cout << "Welcome to the Passport Office." << endl;
     while(true) {
-        printf("Please enter an option:\n");
-        printf("'a' - View/Edit default values\n");
-        printf("'b' - Run a test\n");
-        printf("'c' - Exit\n");
-        char ch;    // User input
-        scanf(" %c", &ch);
-        if(ch == 'a') {     // Print default values
-            printf("Number of Customers: %d\n", numCustomers);
-            printf("Number of Appication Clerks: %d\n", numAppClerks);
-            printf("Number of Picture Clerks: %d\n", numPicClerks);
-            printf("Number of Passport Clerks: %d\n", numPassportClerks);
-            printf("Number of Cashiers: %d\n", numCashiers);
-            printf("Please enter new values:\n");
+        cout << "Please enter an option:" << endl;
+        cout << " -a  (View/Edit default values)" << endl;
+        cout << " -b  (Run a test)" << endl;
+        cout << " -c  (Exit)" << endl;
+        string input;
+        getline(cin, input);
+        if(input == "-a") {     // Print/Edit default values
+            cout << "Number of Customers: " <<  numCustomers << endl;
+            cout << "Number of Appication Clerks: " << numAppClerks << endl;
+            cout << "Number of Picture Clerks: " << numPicClerks << endl;
+            cout << "Number of Passport Clerks: " << numPassportClerks << endl;
+            cout << "Number of Cashiers: " << numCashiers << endl << endl;
+            cout << "Note: There can only be 20 - 50 Customers and 1 - 5 of each type of clerk." << endl;
+            cout << "Please enter new values: " << endl;
             int num;
-            printf("Number of Customers: ");
-            scanf("%d", &num);
-            numCustomers = num;
-            printf("Number of Application Clerks: ");
-            scanf("%d", &num);
-            numAppClerks = num;
-            printf("Number of Picture Clerks: ");
-            scanf("%d", &num);
-            numPicClerks = num;
-            printf("Number of Passport Clerks: ");
-            scanf("%d", &num);
-            numPassportClerks = num;
-            printf("Number of Cashiers: ");
-            scanf("%d", &num);
-            numCashiers = num;
-
-            // Edit default values
-        } else if(ch == 'b') {
-            // Run a test
-        } else if(ch == 'c') {
-            printf("Exiting Passport Office.")
+            cout << "Number of Customers: ";
+            if(cin >> num && num >= 20 && num <= 50 )
+                numCustomers = num;
+            else {
+                cout << "Invalid input. Number of Customers unchanged." << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+            }
+            cout << "Number of Application Clerks: ";
+            if(cin >> num && num >= 1 && num <= 5 )
+                numAppClerks = num;
+            else {
+                cout << "Invalid input. Number of Application Clerks unchanged." << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+            }
+            cout << "Number of Picture Clerks: ";
+            if(cin >> num && num >= 1 && num <= 5 )
+                numPicClerks = num;
+            else {
+                cout << "Invalid input. Number of Picture Clerks unchanged." << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+            }
+            cout << "Number of Passport Clerks: ";
+            if(cin >> num && num >= 1 && num <= 5 )
+                numPassportClerks = num;
+            else {
+                cout << "Invalid input. Number of Passport Clerks unchanged." << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+            }
+            cout << "Number of Cashiers: ";
+            if(cin >> num && num >= 1 && num <= 5 )
+                numCashiers = num;
+            else {
+                cout << "Invalid input. Number of Cashiers unchanged." << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+            }
+        } else if(input == "-b") {  // Run a test
+            PostOffice(numCustomers, numAppClerks, numPicClerks, numPassportClerks, numCashiers);
+        } else if(input == "-c") {
+            cout << "Exiting Passport Office." << endl;
             break;
-        } else
-            printf("Invalid input. Please try again.\n");
+        } else {
+            cout << "Invalid input. Please try again." << endl;
+        }
+        cin.clear();
+        cin.ignore(10000, '\n');
     }
-    
-    
 }
