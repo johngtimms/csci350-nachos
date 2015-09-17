@@ -19,8 +19,11 @@ void getPictureTaken()
 
 }
 
-void PostOffice(int num) 
+void PostOffice(int numCustomers, int numAppClerks, int numPicClerks, int numPassportClerks, int numCashiers) 
 {
+    // Create Clerks first
+
+    /*
     Thread *customer;
     char *ssn;
     for(int i = 0; i < 5; i++) {
@@ -32,11 +35,20 @@ void PostOffice(int num)
         // or
         customer->Fork((VoidFunctionPtr)getPictureTaken, 0);
     }
+    */
 }
 
 // Run menu for Part 2 of assignment
 void Problem2() 
 {
+    // Default values for Customers and Clerks
+    int numCustomers = 5;
+    int numAppClerks = 5;
+    int numPicClerks = 5;
+    int numPassportClerks = 5;
+    int numCashiers = 5;
+
+    
     
     
 }
