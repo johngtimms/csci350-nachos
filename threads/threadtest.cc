@@ -39,7 +39,7 @@ class ApplicationClerk : public Thread {
 public:
     int appClerkID, money, lineLength, bribeLineLength;
     ClerkState state;
-    Lock *clerkLock, *lineLock, *bribeLineLock;
+    Lock *clerkLock, *lineLock, *bribeLineLock, *moneyLock;
     Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
 
     ApplicationClerk(int id, char* debugName) : Thread(debugName) {
@@ -51,6 +51,7 @@ public:
         clerkLock = new Lock("appClerkLock");
         lineLock = new Lock("appClerkLineLock");
         bribeLineLock = new Lock("appClerkBribeLineLock");
+        moneyLock = new Lock("moneyLock");
         clerkCV = new Condition("appClerkCV");
         lineCV = new Condition("appClerkLineCV");
         bribeLineCV = new Condition("appClerkBribeLineCV");
@@ -58,8 +59,21 @@ public:
     }
 };
 
+class Manager : public Thread {
+public:
+    int totalMoneyMade;
+    Manager(char* debugName) : Thread(debugName) {
+        totalMoneyMade = 0;
+    }
+
+    void managerMain();
+
+   
+};
+
 Customer** customers;
 ApplicationClerk** applicationClerks;
+Manager *theManager;
 //PictureClerk** pictureClerks;
 //PassportClerk** passportClerks;
 //Cashier** cashiers;
@@ -95,9 +109,6 @@ void runApplicationClerk(int id) {
             applicationClerks[id]->clerkLock->Release();
             applicationClerks[id]->state = FREE;
         } else {
-            breakCounter++;
-        }
-        if(breakCounter == 1000) {
             applicationClerks[id]->clerkLock->Acquire();
             applicationClerks[id]->state = BREAK;
             cout << currentThread->getName() << " taking a break." << endl;
@@ -105,7 +116,9 @@ void runApplicationClerk(int id) {
             cout << currentThread->getName() << " back from break." << endl;
             applicationClerks[id]->clerkLock->Release();
             applicationClerks[id]->state = FREE;
+        	
         }
+        
     }
 }
 
@@ -125,18 +138,20 @@ void Customer::getApplicationFiled() {
     //int myClerk;
     int minLength = 50;
     for(int i = 0; i < numAppClerks; i++) {
-        if(applicationClerks[i]->lineLength < minLength && applicationClerks[i]->state != BREAK) {
+        if(applicationClerks[i]->lineLength < minLength) {
             myClerk = i;
             minLength = applicationClerks[i]->lineLength; 
         }
     }
     //ApplicationClerk* appClerk = applicationClerks[myClerk];
-    if(applicationClerks[myClerk]->state == BUSY) {    // Stand in line if ApplicationClerk is busy
+    if(applicationClerks[myClerk]->state != FREE) {    // Stand in line if ApplicationClerk is busy or on break
         if(applicationClerks[myClerk]->lineLength > 0 && money > 500) {
             applicationClerks[myClerk]->bribeLineLock->Acquire();
             money = money - 500;
             //clerkMoney[APPLICATION_CLERK] += 500;
+            applicationClerks[myClerk]->moneyLock->Acquire();
             applicationClerks[myClerk]->money = applicationClerks[myClerk]->money + 500;
+            applicationClerks[myClerk]->moneyLock->Release();
             applicationClerks[myClerk]->bribeLineLength++;
             cout << "Customer " << currentThread->getName() << " bribed " << applicationClerks[myClerk]->getName();
             cout << ", currently waiting in bribeLine" << endl;
@@ -166,6 +181,55 @@ void Customer::getApplicationFiled() {
     applicationClerks[myClerk]->clerkLock->Release();
 }
 
+
+
+void Manager::managerMain() {
+    	while(true) {
+    		//delay
+    		bool allClerksOnBreak = true; 
+    		int appClerkMoneyTotal = 0;
+    		for(int k = 0; k < numAppClerks; k ++) { //loop through all app clerks
+    			ApplicationClerk *thisClerk = applicationClerks[k];
+    			thisClerk->moneyLock->Acquire();
+    			appClerkMoneyTotal += thisClerk->money;  //get this clerks money total
+    			thisClerk->moneyLock->Release();
+    			if(thisClerk->state != BREAK) { //check if not on break 
+    				allClerksOnBreak = false; 
+    			} else { //if on break
+    				thisClerk->bribeLineLock->Acquire();
+    				thisClerk->lineLock->Acquire();
+    				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+    					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+    					allClerksOnBreak = false; //all clerks are no longer are on break
+    				}
+    				thisClerk->bribeLineLock->Release();
+    				thisClerk->lineLock->Release();
+    			}
+
+    		}
+
+    		if(allClerksOnBreak) //if all clerks are on break
+    			continue;
+
+    		//output money statements
+
+    		for(int k = 0 ; k < 100 ; k ++ ) {
+    			currentThread->Yield();
+    		}
+    		
+
+    		cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
+
+    		int picClerkMoneyTotal = 0;
+    		int passportClerkMoneyTotal = 0;
+    		
+    		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
+    		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+
+
+    	}
+    }
+
 void runCustomer(int ssn) {
     cout << "Customer" << currentThread->getName() << " currently running." << endl;
     customers[ssn]->getApplicationFiled();
@@ -182,6 +246,10 @@ void runCustomer(int ssn) {
     // Get verified by PassportClerk
     // Pay for Passport at Cashier
     */
+}
+
+void runManager() {
+	theManager->managerMain();
 }
 
 void PassportOffice() {
@@ -225,11 +293,16 @@ void PassportOffice() {
         customers[i] = new Customer(i, name);
     }
 
+for(int i = 0; i < numAppClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
     for(int i = 0; i < numCustomers; i++)
         customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
 
-    for(int i = 0; i < numAppClerks; i++)
-        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+    
+
+    theManager = new Manager("manager 1");
+    theManager->Fork((VoidFunctionPtr)runManager, 0);
+
 }
 
 void Problem2() {
