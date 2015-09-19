@@ -10,26 +10,41 @@ using namespace std;
 
 enum ClerkState {FREE, BUSY, BREAK};
 enum ClerkType {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER};
+int amounts[] = {100, 600, 1100, 1600};
+
 
 int numCustomers, numAppClerks, numPicClerks, numPassportClerks, numCashiers;
-int* customerMoney;
-int clerkMoney[] = {0, 0, 0, 0};
-bool** doneWithClerk;
+//int* customerMoney;
+//int clerkMoney[] = {0, 0, 0, 0};
+//bool** doneWithClerk;
 
 void PassportOffice();
-void runApplicationClerk();
-void runCustomer();
+void runApplicationClerk(int id);
+void runCustomer(int ssn);
 void printMenu();
 
+class Customer : public Thread {
+public:
+    int ssn, money, myClerk;
+    //Lock access;
+    bool hasApp, hasPic, hasPassport, seenApp, seenPic;
+
+    Customer(int _ssn, char* debugName);
+    void getApplicationFiled();
+    //void getPictureTaken();
+};
+
+// class Clerk ??
 class ApplicationClerk : public Thread {
 public:
-    int appClerkID, lineLength, bribeLineLength;
+    int appClerkID, money, lineLength, bribeLineLength;
     ClerkState state;
     Lock *clerkLock, *lineLock, *bribeLineLock;
     Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
 
     ApplicationClerk(int id, char* debugName) : Thread(debugName) {
         appClerkID = id;
+        money = 0;
         state = BUSY;
         lineLength = 0;
         bribeLineLength = 0;
@@ -43,6 +58,7 @@ public:
     }
 };
 
+Customer** customers;
 ApplicationClerk** applicationClerks;
 //PictureClerk** pictureClerks;
 //PassportClerk** passportClerks;
@@ -93,9 +109,20 @@ void runApplicationClerk(int id) {
     }
 }
 
-void getApplicationFiled() {
+Customer::Customer(int _ssn, char* debugName) : Thread(debugName) {
+    ssn = _ssn;
+    myClerk = -1;
+    money = amounts[(int)(rand() % NUM_CLERKS)];
+    hasApp = false;
+    hasPic = false;
+    hasPassport = false;
+    seenApp = false;
+    seenPic = false;
+}
+
+void Customer::getApplicationFiled() {
     // Choose ApplictionClerk with shortest line
-    int myClerk = -1;
+    //int myClerk;
     int minLength = 50;
     for(int i = 0; i < numAppClerks; i++) {
         if(applicationClerks[i]->lineLength < minLength && applicationClerks[i]->state != BREAK) {
@@ -103,13 +130,13 @@ void getApplicationFiled() {
             minLength = applicationClerks[i]->lineLength; 
         }
     }
-    
-
+    //ApplicationClerk* appClerk = applicationClerks[myClerk];
     if(applicationClerks[myClerk]->state == BUSY) {    // Stand in line if ApplicationClerk is busy
-        if(applicationClerks[myClerk]->lineLength > 0 && customerMoney[atoi(currentThread->getName())] > 500) {
+        if(applicationClerks[myClerk]->lineLength > 0 && money > 500) {
             applicationClerks[myClerk]->bribeLineLock->Acquire();
-            customerMoney[atoi(currentThread->getName())] = customerMoney[atoi(currentThread->getName())] - 500;
-            clerkMoney[APPLICATION_CLERK] += 500;
+            money = money - 500;
+            //clerkMoney[APPLICATION_CLERK] += 500;
+            applicationClerks[myClerk]->money = applicationClerks[myClerk]->money + 500;
             applicationClerks[myClerk]->bribeLineLength++;
             cout << "Customer " << currentThread->getName() << " bribed " << applicationClerks[myClerk]->getName();
             cout << ", currently waiting in bribeLine" << endl;
@@ -135,13 +162,13 @@ void getApplicationFiled() {
     applicationClerks[myClerk]->clerkCV->Wait(applicationClerks[myClerk]->clerkLock);   // Wait for Application Clerk
     applicationClerks[myClerk]->clerkCV->Signal(applicationClerks[myClerk]->clerkLock); // Accept completed application
     cout << "Customer " << currentThread->getName() << " finished with " << applicationClerks[myClerk]->getName() << endl;
-    doneWithClerk[atoi(currentThread->getName())][APPLICATION_CLERK] = true;
+    //doneWithClerk[atoi(currentThread->getName())][APPLICATION_CLERK] = true;
     applicationClerks[myClerk]->clerkLock->Release();
 }
 
-void runCustomer() {
+void runCustomer(int ssn) {
     cout << "Customer" << currentThread->getName() << " currently running." << endl;
-    getApplicationFiled();
+    customers[ssn]->getApplicationFiled();
     /*
     // Decide whether this Customer is a senator
     // Randomly decide whether to go to AppClerk or PicClerk first
@@ -159,10 +186,13 @@ void runCustomer() {
 
 void PassportOffice() {
     // Create dyanmic array containing Customer money amounts
+    /*
     customerMoney = new int[numCustomers];
     int amounts[] = {100, 600, 1100, 1600};
     for(int i = 0; i < numCustomers; i++) 
         customerMoney[i] = amounts[(int)(rand() % NUM_CLERKS)];
+    */
+    /*
 
     // Create dynamic 2D array containg information concering whether a Customer is done with a type of Clerk
     doneWithClerk = new bool*[numCustomers];
@@ -171,16 +201,15 @@ void PassportOffice() {
     for(int i = 0; i < numCustomers; i++)
         for(int j = 0; j < NUM_CLERKS; j++)
             doneWithClerk[i][j] = false;
-    
+    */
+
     // Create ApplicationClerks
-    Thread* appClerk;
     char* name; 
     applicationClerks = new ApplicationClerk*[numAppClerks];
     for(int i = 0; i < numAppClerks; i++) {
         name = new char[20];
         sprintf(name, "ApplicationClerk%d", i);
         applicationClerks[i] = new ApplicationClerk(i, name);
-        //applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
     }
 
     // Create PictureClerks
@@ -188,19 +217,19 @@ void PassportOffice() {
     // Create Cashiers
     
     // Create Customers
-    Thread* customer;
-    char* ssn;
+    //char* name; 
+    customers = new Customer*[numCustomers];
     for(int i = 0; i < numCustomers; i++) {
-        ssn = new char[20];
-        //sprintf(ssn, "Customer%d", i);
-        sprintf(ssn, "%d", i);
-        customer = new Thread(ssn);
-        customer->Fork((VoidFunctionPtr)runCustomer, 0);
+        name = new char[20];
+        sprintf(name, "Customer%d", i);
+        customers[i] = new Customer(i, name);
     }
+
+    for(int i = 0; i < numCustomers; i++)
+        customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
 
     for(int i = 0; i < numAppClerks; i++)
         applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
-
 }
 
 void Problem2() {
