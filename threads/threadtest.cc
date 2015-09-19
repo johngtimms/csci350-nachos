@@ -514,7 +514,7 @@ public:
         //Ready to enter, choose a line
         int appLineLength;
         int picLineLength;
-
+        cout<<"deciding which line"<<endl;
         if (willBribeApp) {
                 appBribeLineLock.Acquire();
                 appLineLength = appBribeLineLength;
@@ -536,7 +536,7 @@ public:
         picPlebLineLock.Release();
 
         access->Release();
-
+        cout<<"about to enter first line chosen"<<endl;
         // Enter the first line chosen
         if (appLineLength <= picLineLength) {
           doApp();
@@ -575,7 +575,9 @@ public:
         } else {
             appPlebLineLock.Acquire();
             appPlebLineLength += 1;
+            cout<<"waiting for pleb line"<<endl;
             customer_cv->Wait(&appPlebLineLock);
+            cout<<"done waiting for pleb line"<<endl;
             appPlebLineLength -= 1;
             appPlebLineLock.Release();
         }
@@ -595,7 +597,7 @@ public:
     }
 
     void enterPicLine() {
-
+    	cout<<"ENERED PICLINE"<<endl;
     }
 
     void interactWithAppClerk() {
