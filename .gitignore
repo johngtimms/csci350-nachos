@@ -33,3 +33,4 @@ nachos
 threads/Makefile
 userprog/Makefile
 vm/Makefile
+*core

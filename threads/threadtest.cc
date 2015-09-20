@@ -29,8 +29,6 @@
 
 using namespace std;
 
-#define NUM_CLERKS 4
-
 //
 // Forward declarations
 //
@@ -48,11 +46,12 @@ enum ClerkType {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER};
 int amounts[] = {100, 600, 1100, 1600};
 int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
 Customer** customers;
+Customer** senators;
 Clerk** applicationClerks;
 Clerk** pictureClerks;
 Clerk** passportClerks;
 Clerk** cashiers;
-Manager *theManager;
+Manager *manager;
 Lock *senatorOutsideLineLock;
 Condition *senatorOutsideLineCV;
 int senatorsOutside = 0;
@@ -61,15 +60,6 @@ bool senatorInside = false;
 Lock *customerOutsideLineLock;
 Condition *customerOutsideLineCV;
 int customersOutside = 0;
-
-//
-// Function declarations
-//
-
-void PassportOffice();
-void runApplicationClerk(int id);
-void runCustomer(int ssn);
-void printMenu();
 
 //
 // Customer class header
@@ -90,9 +80,11 @@ class Customer : public Thread {
 		bool seenPic;
 		bool likedPic;
 
-		Customer(char* _name, bool _isSenator = false);
+		Customer(char* _name, bool _isSenator);
 		void doApplication();
 		void doPicture();
+		void doPassport();
+		void doCashier();
 		void waitInLine(Clerk** clerks, int numClerks);
 		void chooseLine(Clerk** clerks, int numClerks);
 		bool enterLine(Clerk* clerk);
@@ -140,7 +132,7 @@ Customer::Customer(char* _name, bool _isSenator) : Thread(_name) {
     name = _name;
 	isSenator = _isSenator;
     clerkID = -1;
-    money = amounts[(int)(rand() % NUM_CLERKS)];
+    money = amounts[(int)(rand() % 4)];
     hasApp = false;
     hasPic = false;
     hasPassport = false;
@@ -155,11 +147,10 @@ void Customer::doApplication() {
 
     // Interaction with clerk
     clerk->clerkLock->Acquire();
-    cout << "Customer " << currentThread->getName() << " currently with " << clerk->getName() << endl;
     clerk->clerkCV->Signal(clerk->clerkLock); // Give incomplete application to Application Clerk
+    printf("%s has given SSN to %s.\n", name, clerk->name);
     clerk->clerkCV->Wait(clerk->clerkLock);   // Wait for Application Clerk
     clerk->clerkCV->Signal(clerk->clerkLock); // Accept completed application
-    cout << "Customer " << currentThread->getName() << " finished with " << clerk->getName() << endl;
     hasApp = true;
     clerk->clerkLock->Release();
 }
@@ -173,24 +164,31 @@ void Customer::doPicture() {
     seenPic = false;
     clerk->clerkLock->Acquire();
     clerk->customer = this;
-    cout << currentThread->getName() << " currently with " << clerk->getName() << endl;
     clerk->clerkCV->Signal(clerk->clerkLock); // Customer with Clerk
+    printf("%s has given SSN to %s.\n", name, clerk->name);
     clerk->clerkCV->Wait(clerk->clerkLock);   // Wait for Picture Clerk
     seenPic = true;
     if(((double) rand() / RAND_MAX) < .25) {// Customer decides whether they don't like picture
         likedPic = false;
-        cout << currentThread->getName() <<  " didn't like picture." << endl;
+    	printf("%s does not like their picture from %s.\n", name, clerk->name);
         clerk->clerkCV->Signal(clerk->clerkLock);
         clerk->clerkLock->Release();
         doPicture();
     } else {
         likedPic = true;
-        cout << currentThread->getName() << " liked picture." << endl;
+        printf("%s does like their picture from %s.\n", name, clerk->name);
         clerk->clerkCV->Signal(clerk->clerkLock);
-        cout << currentThread->getName() << " finished with " << clerk->getName() << endl;
         hasPic = true;
         clerk->clerkLock->Release();
     }
+}
+
+void Customer::doPassport() {
+	// TODO
+}
+
+void Customer::doCashier() {
+	// TODO
 }
 
 // Changes clerkID and didBribe through chooseLine. Changes money.
@@ -258,7 +256,7 @@ bool Customer::enterLine(Clerk* clerk) {
 
 	// Called out of line, make sure it wasn't because of a senator
 	senatorInsideLock->Acquire();
-	if (senatorInside) {
+	if (senatorInside && !isSenator) {
 		senatorInsideLock->Release();
 		clerk->bribeLineLock->Release();
 		clerk->lineLock->Release();
@@ -366,12 +364,11 @@ void Manager::managerMain() {
 			currentThread->Yield();
 		}
 		
-
-		cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
-		cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
+		//cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
+		//cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
 		
 		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
-		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+		//cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
 	}
 }
 
@@ -379,103 +376,121 @@ void Manager::managerMain() {
 // Thread behavior runners
 // 
 
-void runCustomer(int ssn) {
-	// Setup
-    Customer *thisCustomer = customers[ssn];
-    cout << thisCustomer->getName() << " currently running." << endl;  
+void runCustomer(int id) {
+    Customer *customer = customers[id];
 
-	// Determine money and bribes
-	
-	// Senator stuff
-	senatorOutsideLineLock->Acquire();
-	senatorInsideLock->Acquire();
-	if (thisCustomer->isSenator) {
-		// Senators wait on other senators outside
-		if (senatorsOutside > 0 || senatorInside) {
-			senatorsOutside += 1;
-			senatorInsideLock->Release();
-			senatorOutsideLineCV->Wait(senatorOutsideLineLock);
-			senatorInsideLock->Acquire();
-			senatorsOutside -= 1;
-		}
-		
-		// Don't Signal() senatorOutsideLineCV except for when a senator leaves.
-		senatorInside = true;
+    senatorOutsideLineLock->Acquire();
+    senatorInsideLock->Acquire();
+
+	if (senatorsOutside > 0 || senatorInside) {
 		senatorInsideLock->Release();
 		senatorOutsideLineLock->Release();
-		
-		// Senator entering, alert all lines to empty
-		for(int i = 0; i < numApplicationClerks; i++) {
-			Clerk *clerk = applicationClerks[i];
-			clerk->lineLock->Acquire();
-			clerk->lineCV->Broadcast(clerk->lineLock);
-			clerk->lineLock->Release();
-			clerk->bribeLineLock->Acquire();
-			clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
-			clerk->bribeLineLock->Release();
-		}
-		
-		for(int i = 0; i < numPictureClerks; i++) {
-			Clerk *clerk = pictureClerks[i];
-			clerk->lineLock->Acquire();
-			clerk->lineCV->Broadcast(clerk->lineLock);
-			clerk->lineLock->Release();
-			clerk->bribeLineLock->Acquire();
-			clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
-			clerk->bribeLineLock->Release();
-		}
-		
-		/* for(int i = 0; i < numPassportClerks; i++) {
-			Clerk *clerk = passportClerks[i];
-			clerk->lineLock->Acquire();
-			clerk->lineCV->Broadcast(clerk->lineLock);
-			clerk->lineLock->Release();
-			clerk->bribeLineLock->Acquire();
-			clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
-			clerk->bribeLineLock->Release();
-		}
-		
-		for(int i = 0; i < numCashiers; i++) {
-			Clerk *clerk = cashiers[i];
-			clerk->lineLock->Acquire();
-			clerk->lineCV->Broadcast(clerk->lineLock);
-			clerk->lineLock->Release();
-			clerk->bribeLineLock->Acquire();
-			clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
-			clerk->bribeLineLock->Release();
-		} */
-	} else {
-		if (senatorsOutside > 0 || senatorInside) {
-			senatorOutsideLineLock->Release();
-			senatorInsideLock->Release();
-			customerOutsideLineLock->Acquire();
-			customersOutside += 1;
-			customerOutsideLineCV->Wait(customerOutsideLineLock);
-			customersOutside -= 1;
-			customerOutsideLineLock->Release();
-		}
-		senatorInsideLock->Release();
-		senatorOutsideLineLock->Release();
+		customerOutsideLineLock->Acquire();
+		customersOutside += 1;
+		customerOutsideLineCV->Wait(customerOutsideLineLock);
+		customersOutside -= 1;
+		customerOutsideLineLock->Release();
 	}
 
-    // Randomly decide whether to go to AppClerk or PicClerk first
-    if(rand() % 2 == 1) {				// ApplicationClerk first
-        cout << thisCustomer->getName() << " going to complete application before taking picture." << endl;
-        thisCustomer->doApplication();
-        cout << thisCustomer->getName() << " going to take picture." << endl;
-        thisCustomer->doPicture();
+	senatorInsideLock->Release();
+	senatorOutsideLineLock->Release();
 
-    } else {							// PictureClerk first
-        cout << thisCustomer->getName() << " going to take picture before completing application." << endl;
-        customers[ssn]->doPicture();
-        cout << thisCustomer->getName() << " going to complete application." << endl;
-        customers[ssn]->doApplication();
+    // Randomly decide whether to go to AppClerk or PicClerk first
+    if(rand() % 2 == 1) {
+        customer->doApplication();
+        customer->doPicture();
+    } else {
+        customer->doPicture();
+        customer->doApplication();
     }
 	
-    /*
-    // Get verified by PassportClerk
-    // Pay for Passport at Cashier
-    */
+    customer->doPassport();
+    customer->doCashier();
+}
+
+void runSenator(int id) {
+    Customer *senator = senators[id];
+	
+	senatorOutsideLineLock->Acquire();
+	senatorInsideLock->Acquire();
+
+	// Senators wait on other senators outside
+	if (senatorsOutside > 0 || senatorInside) {
+		senatorsOutside += 1;
+		senatorInsideLock->Release();
+		senatorOutsideLineCV->Wait(senatorOutsideLineLock);
+		senatorInsideLock->Acquire();
+		senatorsOutside -= 1;
+	}
+		
+	// NOTICE: Don't Signal() senatorOutsideLineCV except for when a senator leaves.
+	senatorInside = true;
+	senatorInsideLock->Release();
+	senatorOutsideLineLock->Release();
+		
+	// Senator entering, alert all lines to empty
+	for(int i = 0; i < numApplicationClerks; i++) {
+		Clerk *clerk = applicationClerks[i];
+		clerk->lineLock->Acquire();
+		clerk->lineCV->Broadcast(clerk->lineLock);
+		clerk->lineLock->Release();
+		clerk->bribeLineLock->Acquire();
+		clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
+		clerk->bribeLineLock->Release();
+	}
+		
+	for(int i = 0; i < numPictureClerks; i++) {
+		Clerk *clerk = pictureClerks[i];
+		clerk->lineLock->Acquire();
+		clerk->lineCV->Broadcast(clerk->lineLock);
+		clerk->lineLock->Release();
+		clerk->bribeLineLock->Acquire();
+		clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
+		clerk->bribeLineLock->Release();
+	}
+		
+	/* for(int i = 0; i < numPassportClerks; i++) {
+		Clerk *clerk = passportClerks[i];
+		clerk->lineLock->Acquire();
+		clerk->lineCV->Broadcast(clerk->lineLock);
+		clerk->lineLock->Release();
+		clerk->bribeLineLock->Acquire();
+		clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
+		clerk->bribeLineLock->Release();
+	}
+	
+	for(int i = 0; i < numCashiers; i++) {
+		Clerk *clerk = cashiers[i];
+		clerk->lineLock->Acquire();
+		clerk->lineCV->Broadcast(clerk->lineLock);
+		clerk->lineLock->Release();
+		clerk->bribeLineLock->Acquire();
+		clerk->bribeLineCV->Broadcast(clerk->bribeLineLock);
+		clerk->bribeLineLock->Release();
+	} */
+	
+    // Randomly decide whether to go to AppClerk or PicClerk first
+    if(rand() % 2 == 1) {
+        senator->doApplication();
+        senator->doPicture();
+    } else {
+        senator->doPicture();
+        senator->doApplication();
+    }
+	
+    senator->doPassport();
+    senator->doCashier();
+
+    // Add code here to Broadcast() when a senator leaves
+    senatorOutsideLineLock->Acquire();
+    senatorInsideLock->Acquire();
+    customerOutsideLineLock->Acquire();
+	senatorInside = false;
+	senatorOutsideLineCV->Broadcast(senatorOutsideLineLock);
+	senatorInsideLock->Release();
+	senatorOutsideLineLock->Release();
+	customerOutsideLineCV->Broadcast(customerOutsideLineLock);
+	customerOutsideLineLock->Release();
 }
 
 void runApplicationClerk(int id) {
@@ -574,7 +589,7 @@ void runPictureClerk(int id) {
 }
 
 void runManager() {
-	theManager->managerMain();
+	manager->managerMain();
 }
 
 //
@@ -595,7 +610,15 @@ void PassportOffice() {
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
         sprintf(name, "Customer %d", i);
-        customers[i] = new Customer(name);
+        customers[i] = new Customer(name, false);
+    }
+
+    // Create Senators
+    senators = new Customer*[numSenators];
+    for(int i = 0; i < numSenators; i++) {
+        name = new char[20];
+        sprintf(name, "Senator %d", i);
+        senators[i] = new Customer(name, true);
     }
 
     // Create ApplicationClerks
@@ -642,6 +665,11 @@ void PassportOffice() {
     // Run Customers
     for(int i = 0; i < numCustomers; i++)
         customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
+
+    // Run Senators
+    for(int i = 0; i < numSenators; i++) {
+    	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
+    }
     
     /*
     // Run PassportClerks
@@ -652,8 +680,8 @@ void PassportOffice() {
         cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
     */
 
-    theManager = new Manager("manager 1");
-    theManager->Fork((VoidFunctionPtr)runManager, 0);
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
 
 }
 
@@ -664,6 +692,7 @@ void Problem2() {
     numPictureClerks = 1;
     numPassportClerks = 5;
     numCashiers = 5;
+    numSenators = 2;
     cout << "Welcome to the Passport Office." << endl;
     //printMenu();
     PassportOffice();
