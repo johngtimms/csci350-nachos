@@ -30,3 +30,6 @@
 # NACHOS
 swtch.s
 nachos
+threads/Makefile
+userprog/Makefile
+vm/Makefile
