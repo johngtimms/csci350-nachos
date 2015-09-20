@@ -1,102 +1,169 @@
+///////////////////////////////////////////////////////////////////////
+// CSCI 350 - Fall 2015
+// Assignment 1 Part 2
+// 
+// Developers: nroubal@usc.edu sisay@usc.edu timms@usc.edu
+//
+// Contents:
+// 	- Passport Office declarations and variables
+//	- Passport Office classes (headers and source)
+//		- Customer
+//		- ApplicationClerk
+//		- PictureClerk
+//		- PassportClerk
+//		- Cashier
+//		- Manager
+//	- Thread behavior runners
+//	- Passport Office code and menu
+//
+///////////////////////////////////////////////////////////////////////
+
 #include "copyright.h"
 #include "system.h"
 #include "synch.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <string>
+
 using namespace std;
+
 #define NUM_CLERKS 4
+
+//
+// Forward declarations
+//
+
+class Customer;
+class ApplicationClerk;
+class PictureClerk;
+class PassportClerk;
+class Cashier;
+class Manager;
+
+//
+// Variables
+//
 
 enum ClerkState {FREE, BUSY, BREAK};
 enum ClerkType {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER};
 int amounts[] = {100, 600, 1100, 1600};
 int numCustomers, numAppClerks, numPicClerks, numPassportClerks, numCashiers;
+Customer** customers;
+ApplicationClerk** applicationClerks;
+PictureClerk** pictureClerks;
+PassportClerk** passportClerks;
+Cashier** cashiers;
+Manager *theManager;
+
+//
+// Function declarations
+//
 
 void PassportOffice();
 void runApplicationClerk(int id);
 void runCustomer(int ssn);
 void printMenu();
 
+//
+// Customer class header
+//
+
 class Customer : public Thread {
-public:
-    int ssn, money, myClerk;
-    //Lock access;
-    bool hasApp, hasPic, hasPassport, seenApp, seenPic, likedPic;
+	
+	public:
+		int ssn;
+		int money;
+		int myClerk;
+		
+		bool hasApp;
+		bool hasPic;
+		bool hasPassport;
+		bool seenApp;
+		bool seenPic;
+		bool likedPic;
 
-    Customer(int _ssn, char* debugName);
-    void getApplicationFiled();
-    void getPictureTaken();
+		Customer(int _ssn, char* debugName);
+		void getApplicationFiled();
+		void getPictureTaken();
 };
 
-// class Clerk ??
+//
+// ApplicationClerk class header
+//
+
 class ApplicationClerk : public Thread {
-public:
-    int appClerkID, money, lineLength, bribeLineLength;
-    ClerkState state;
-    Lock *clerkLock, *lineLock, *bribeLineLock, *moneyLock;
-    Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
+	
+	public:
+		int appClerkID;
+		int money;
+		int lineLength;
+		int bribeLineLength;
+		
+		ClerkState state;
+		
+		Lock *clerkLock, *lineLock, *bribeLineLock, *moneyLock;
+		Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
 
-    ApplicationClerk(int id, char* debugName) : Thread(debugName) {
-        appClerkID = id;
-        money = 0;
-        state = BUSY;
-        lineLength = 0;
-        bribeLineLength = 0;
-        clerkLock = new Lock("appClerkLock");
-        lineLock = new Lock("appClerkLineLock");
-        bribeLineLock = new Lock("appClerkBribeLineLock");
-        moneyLock = new Lock("appmoneyLock");
-        clerkCV = new Condition("appClerkCV");
-        lineCV = new Condition("appClerkLineCV");
-        bribeLineCV = new Condition("appClerkBribeLineCV");
-        breakCV = new Condition("appClerkBreakCV");
-    }
+		ApplicationClerk(int id, char* debugName);
 };
+
+//
+// PictureClerk class header
+//
 
 class PictureClerk : public Thread {
-public:
-    int picClerkID, money, lineLength, bribeLineLength;
-    ClerkState state;
-    Lock *clerkLock, *lineLock, *bribeLineLock, *moneyLock;
-    Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
-    Customer *myCustomer;
+	
+	public:
+		int picClerkID;
+		int money; 
+		int lineLength; 
+		int bribeLineLength;
+		
+		ClerkState state;
+		Customer *myCustomer;
+		
+		Lock *clerkLock, *lineLock, *bribeLineLock, *moneyLock;
+		Condition *clerkCV, *lineCV, *bribeLineCV, *breakCV;
 
-    PictureClerk(int id, char* debugName) : Thread(debugName) {
-        picClerkID = id;
-        money = 0;
-        state = BUSY;
-        lineLength = 0;
-        bribeLineLength = 0;
-        clerkLock = new Lock("appClerkLock");
-        lineLock = new Lock("appClerkLineLock");
-        bribeLineLock = new Lock("appClerkBribeLineLock");
-        moneyLock = new Lock("picmoneyLock");
-        clerkCV = new Condition("appClerkCV");
-        lineCV = new Condition("appClerkLineCV");
-        bribeLineCV = new Condition("appClerkBribeLineCV");
-        breakCV = new Condition("appClerkBreakCV");
-    }
+		PictureClerk(int id, char* debugName);
 };
+
+//
+// PassportClerk class header
+//
+
+
+
+//
+// Cashier class header
+//
+
+
+
+//
+// Cashier class source
+//
+
+
+
+//
+// Manager class header
+//
 
 class Manager : public Thread {
-public:
-    int totalMoneyMade;
-    Manager(char* debugName) : Thread(debugName) {
-        totalMoneyMade = 0;
-    }
-
-    void managerMain();
-
-   
+	
+	public:
+		int totalMoneyMade;
+		
+		Manager(char* debugName);
+		void managerMain();
 };
 
-Customer** customers;
-ApplicationClerk** applicationClerks;
-PictureClerk** pictureClerks;
-Manager *theManager;
-//PassportClerk** passportClerks;
-//Cashier** cashiers;
+//
+// Customer class source
+//
 
 Customer::Customer(int _ssn, char* debugName) : Thread(debugName) {
     ssn = _ssn;
@@ -216,72 +283,134 @@ void Customer::getPictureTaken() {
     }
 }
 
+//
+// ApplicationClerk class source
+//
+
+ApplicationClerk::ApplicationClerk(int id, char* debugName) : Thread(debugName) {
+	appClerkID = id;
+	money = 0;
+	state = BUSY;
+	lineLength = 0;
+	bribeLineLength = 0;
+	clerkLock = new Lock("appClerkLock");
+	lineLock = new Lock("appClerkLineLock");
+	bribeLineLock = new Lock("appClerkBribeLineLock");
+	moneyLock = new Lock("appmoneyLock");
+	clerkCV = new Condition("appClerkCV");
+	lineCV = new Condition("appClerkLineCV");
+	bribeLineCV = new Condition("appClerkBribeLineCV");
+	breakCV = new Condition("appClerkBreakCV");
+}
+
+//
+// PictureClerk class source
+//
+
+PictureClerk::PictureClerk(int id, char* debugName) : Thread(debugName) {
+	picClerkID = id;
+	money = 0;
+	state = BUSY;
+	lineLength = 0;
+	bribeLineLength = 0;
+	clerkLock = new Lock("appClerkLock");
+	lineLock = new Lock("appClerkLineLock");
+	bribeLineLock = new Lock("appClerkBribeLineLock");
+	moneyLock = new Lock("picmoneyLock");
+	clerkCV = new Condition("appClerkCV");
+	lineCV = new Condition("appClerkLineCV");
+	bribeLineCV = new Condition("appClerkBribeLineCV");
+	breakCV = new Condition("appClerkBreakCV");
+}
+
+//
+// PassportClerk class source
+//
+
+
+
+//
+// Cashier class source
+//
+
+
+
+//
+// Manager class source
+//
+
+Manager::Manager(char* debugName) : Thread(debugName) {
+	totalMoneyMade = 0;
+}
+
 void Manager::managerMain() {
-    	while(true) {
-    		//delay
-    		bool allClerksOnBreak = true; 
-    		int appClerkMoneyTotal = 0;
-    		int picClerkMoneyTotal = 0;
-    		int passportClerkMoneyTotal = 0;
+	while(true) {
+		//delay
+		bool allClerksOnBreak = true; 
+		int appClerkMoneyTotal = 0;
+		int picClerkMoneyTotal = 0;
+		int passportClerkMoneyTotal = 0;
 
-    		for(int k = 0; k < numAppClerks; k ++) { //loop through all app clerks
-    			ApplicationClerk *thisClerk = applicationClerks[k];
-    			thisClerk->moneyLock->Acquire();
-    			appClerkMoneyTotal += thisClerk->money;  //get this clerks money total
-    			thisClerk->moneyLock->Release();
-    			if(thisClerk->state != BREAK) { //check if not on break 
-    				allClerksOnBreak = false; 
-    			} else { //if on break
-    				thisClerk->bribeLineLock->Acquire();
-    				thisClerk->lineLock->Acquire();
-    				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
-    					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
-    					allClerksOnBreak = false; //all clerks are no longer are on break
-    				}
-    				thisClerk->bribeLineLock->Release();
-    				thisClerk->lineLock->Release();
-    			}
+		for(int k = 0; k < numAppClerks; k ++) { //loop through all app clerks
+			ApplicationClerk *thisClerk = applicationClerks[k];
+			thisClerk->moneyLock->Acquire();
+			appClerkMoneyTotal += thisClerk->money;  //get this clerks money total
+			thisClerk->moneyLock->Release();
+			if(thisClerk->state != BREAK) { //check if not on break 
+				allClerksOnBreak = false; 
+			} else { //if on break
+				thisClerk->bribeLineLock->Acquire();
+				thisClerk->lineLock->Acquire();
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					allClerksOnBreak = false; //all clerks are no longer are on break
+				}
+				thisClerk->bribeLineLock->Release();
+				thisClerk->lineLock->Release();
+			}
 
-    		}
-    		for(int k = 0; k < numPicClerks; k ++) { //loop through all pic clerks
-    			PictureClerk *thisClerk = pictureClerks[k];
-    			thisClerk->moneyLock->Acquire();
-    			picClerkMoneyTotal += thisClerk->money;  //get this clerks money total
-    			thisClerk->moneyLock->Release();
-    			if(thisClerk->state != BREAK) { //check if not on break 
-    				allClerksOnBreak = false; 
-    			} else { //if on break
-    				thisClerk->bribeLineLock->Acquire();
-    				thisClerk->lineLock->Acquire();
-    				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
-    					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
-    					allClerksOnBreak = false; //all clerks are no longer are on break
-    				}
-    				thisClerk->bribeLineLock->Release();
-    				thisClerk->lineLock->Release();
-    			}
+		}
+		for(int k = 0; k < numPicClerks; k ++) { //loop through all pic clerks
+			PictureClerk *thisClerk = pictureClerks[k];
+			thisClerk->moneyLock->Acquire();
+			picClerkMoneyTotal += thisClerk->money;  //get this clerks money total
+			thisClerk->moneyLock->Release();
+			if(thisClerk->state != BREAK) { //check if not on break 
+				allClerksOnBreak = false; 
+			} else { //if on break
+				thisClerk->bribeLineLock->Acquire();
+				thisClerk->lineLock->Acquire();
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					allClerksOnBreak = false; //all clerks are no longer are on break
+				}
+				thisClerk->bribeLineLock->Release();
+				thisClerk->lineLock->Release();
+			}
 
-    		}
+		}
 
-    		if(allClerksOnBreak) //if all clerks are on break
-    			continue;
+		if(allClerksOnBreak) //if all clerks are on break
+			continue;
 
-    		//output money statements
+		//output money statements
 
-    		for(int k = 0 ; k < 100 ; k ++ ) {
-    			currentThread->Yield();
-    		}
-    		
+		for(int k = 0 ; k < 100 ; k ++ ) {
+			currentThread->Yield();
+		}
+		
 
-    		cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
-    		cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
-    		
-    		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
-    		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+		cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
+		cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
+		
+		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
+		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+	}
+}
 
-
-    	}
-    }
+//
+// Thread behavior runners
+// 
 
 void runCustomer(int ssn) {
     Customer* thisCustomer = customers[ssn];
@@ -404,6 +533,10 @@ void runPictureClerk(int id) {
 void runManager() {
 	theManager->managerMain();
 }
+
+//
+// Passport Office code and menu
+//
 
 void PassportOffice() {
     char* name;
