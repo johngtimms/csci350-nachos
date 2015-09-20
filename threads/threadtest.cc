@@ -368,7 +368,9 @@ void Manager::managerMain() {
 				thisClerk->bribeLineLock->Acquire();
 				thisClerk->lineLock->Acquire();
 				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+					cout<<"Manager about to wake up: "<<thisClerk->getName()<<endl;
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					cout<<"Manager signalled "<<thisClerk->getName()<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -413,7 +415,7 @@ void Manager::managerMain() {
 			}
 		}
 		for(int k = 0; k < numCashiers; k ++) { //loop through all pic clerks
-			Clerk *thisClerk = pictureClerks[k];
+			Clerk *thisClerk = cashiers[k];
 			thisClerk->moneyLock->Acquire();
 			cashierMoneyTotal += thisClerk->money;  //get this clerks money total
 			thisClerk->moneyLock->Release();
@@ -608,7 +610,7 @@ void runApplicationClerk(int id) {
             thisClerk->clerkLock->Acquire();
             thisClerk->state = BREAK;
             cout << thisClerk->getName() << " taking a break." << endl;
-            thisClerk->breakCV->Wait(applicationClerks[id]->clerkLock);
+            thisClerk->breakCV->Wait(thisClerk->clerkLock);
             cout << thisClerk->getName() << " back from break." << endl;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
@@ -835,9 +837,9 @@ void PassportOffice() {
         customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
 
     // Run Senators
-    for(int i = 0; i < numSenators; i++) {
-    	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
-    }
+    // for(int i = 0; i < numSenators; i++) {
+    // 	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
+    // }
     
     /*
     // Run PassportClerks
