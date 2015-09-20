@@ -100,13 +100,14 @@ class Clerk : public Thread {
 		char* name;
 		int lineLength;
 		int bribeLineLength;
+		int senatorLineLength;
 		int money;
 
 		ClerkState state;
 		Customer *customer;	// Only used for picture clerks
 
-		Lock *lineLock, *bribeLineLock, *clerkLock, *moneyLock;
-		Condition *lineCV, *bribeLineCV, *clerkCV, *breakCV;
+		Lock *lineLock, *bribeLineLock, *senatorLineLock, *clerkLock, *moneyLock;
+		Condition *lineCV, *bribeLineCV, *senatorLineCV, *clerkCV, *breakCV;
 
 		Clerk(char* _name);
 };
@@ -279,7 +280,14 @@ void Customer::chooseLine(Clerk** clerks, int numClerks) {
 bool Customer::enterLine(Clerk* clerk) {
 	// Stand in line
 	if (clerk->state != FREE) {
-		if (didBribe) {
+		if(isSenator) {
+			clerk->senatorLineLock->Acquire();
+			clerk->senatorLineLength++;
+			printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());
+			clerk->senatorLineCV->Wait(clerk->senatorLineLock);
+			clerk->senatorLineLength--;
+		}
+		else if (didBribe) {
 			clerk->bribeLineLock->Acquire();
 			clerk->bribeLineLength++;
 			printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());
@@ -314,6 +322,7 @@ bool Customer::enterLine(Clerk* clerk) {
 		clerk->state = BUSY;
 		clerk->bribeLineLock->Release();
 		clerk->lineLock->Release();
+		clerk->senatorLineLock->Release();
 
 		return false;
 	}
@@ -330,10 +339,13 @@ Clerk::Clerk(char* _name) : Thread(_name) {
 
 	lineLength = 0;
 	bribeLineLength = 0;
+	senatorLineLength = 0;
 	lineLock = new Lock("lineLock");
 	bribeLineLock = new Lock("bribeLineLock");
+	senatorLineLock = new Lock("senatorLineLock");
 	lineCV = new Condition("lineCV");
 	bribeLineCV = new Condition("bribeLineCV");
+	senatorLineCV = new Condition("senatorLineCV");
 	clerkLock = new Lock("clerkLock");
 	moneyLock = new Lock("moneyLock");
 	clerkCV = new Condition("clerkCV");
@@ -367,10 +379,8 @@ void Manager::managerMain() {
 			} else { //if on break
 				thisClerk->bribeLineLock->Acquire();
 				thisClerk->lineLock->Acquire();
-				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
-					cout<<"Manager about to wake up: "<<thisClerk->getName()<<endl;
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
-					cout<<"Manager signalled "<<thisClerk->getName()<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -388,7 +398,7 @@ void Manager::managerMain() {
 			} else { //if on break
 				thisClerk->bribeLineLock->Acquire();
 				thisClerk->lineLock->Acquire();
-				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
@@ -396,7 +406,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Release();
 			}
 		}
-		for(int k = 0; k < numPassportClerks; k ++) { //loop through all pic clerks
+		for(int k = 0; k < numPassportClerks; k ++) { //loop through all passport clerks
 			Clerk *thisClerk = passportClerks[k];
 			thisClerk->moneyLock->Acquire();
 			passportClerkMoneyTotal += thisClerk->money;  //get this clerks money total
@@ -406,7 +416,7 @@ void Manager::managerMain() {
 			} else { //if on break
 				thisClerk->bribeLineLock->Acquire();
 				thisClerk->lineLock->Acquire();
-				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
@@ -414,7 +424,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Release();
 			}
 		}
-		for(int k = 0; k < numCashiers; k ++) { //loop through all pic clerks
+		for(int k = 0; k < numCashiers; k ++) { //loop through all cashiers
 			Clerk *thisClerk = cashiers[k];
 			thisClerk->moneyLock->Acquire();
 			cashierMoneyTotal += thisClerk->money;  //get this clerks money total
@@ -424,7 +434,7 @@ void Manager::managerMain() {
 			} else { //if on break
 				thisClerk->bribeLineLock->Acquire();
 				thisClerk->lineLock->Acquire();
-				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3) { //check if >=3 customers are in line
+				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
@@ -448,7 +458,7 @@ void Manager::managerMain() {
 		//cout << "Manager: Passport clerks have made a total of $" << passportClerkMoneyTotal << endl;
 		//cout << "Manager: Cashier have made a total of $" << cashierMoneyTotal << endl;
 		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
-		//cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
 	}
 }
 
@@ -572,7 +582,9 @@ void runSenator(int id) {
 	senatorOutsideLineCV->Broadcast(senatorOutsideLineLock);
 	senatorInsideLock->Release();
 	senatorOutsideLineLock->Release();
-	customerOutsideLineCV->Broadcast(customerOutsideLineLock);
+	if(senatorsOutside == false) { //if there are no other senators outside, then customers can come in
+		customerOutsideLineCV->Broadcast(customerOutsideLineLock);
+	}
 	customerOutsideLineLock->Release();
 }
 
@@ -580,7 +592,21 @@ void runApplicationClerk(int id) {
     Clerk *thisClerk = applicationClerks[id];
     cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
-        if(thisClerk->bribeLineLength > 0) {
+    	if(thisClerk->senatorLineLength > 0) {
+    		thisClerk->senatorLineLock->Acquire();
+            thisClerk->senatorLineCV->Signal(thisClerk->senatorLineLock);     // Signal Customer to exit line
+            thisClerk->clerkLock->Acquire(); //
+            thisClerk->senatorLineLock->Release();
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application
+            int wait = rand() % ((100 - 20) + 1) + 20;
+            for(int i = 0; i < wait; i++)               // Process application
+                currentThread->Yield();
+            thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give complete application back
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept application
+            thisClerk->clerkLock->Release();
+            thisClerk->state = FREE;
+    	}
+        else if(thisClerk->bribeLineLength > 0) {
             thisClerk->bribeLineLock->Acquire();
             thisClerk->bribeLineCV->Signal(thisClerk->bribeLineLock);     // Signal Customer to exit line
             thisClerk->clerkLock->Acquire(); //
@@ -622,6 +648,25 @@ void runPictureClerk(int id) {
     Clerk *thisClerk = pictureClerks[id];
     cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
+    	if(thisClerk->senatorLineLength > 0) {
+    		thisClerk->senatorLineLock->Acquire();
+            thisClerk->senatorLineCV->Signal(thisClerk->senatorLineLock);     // Signal Customer to exit line
+            thisClerk->clerkLock->Acquire(); //
+            thisClerk->senatorLineLock->Release();
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
+            thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
+            if(thisClerk->customer->likedPic) {
+                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
+                int wait = rand() % ((100 - 20) + 1) + 20;
+                for(int i = 0; i < wait; i++)               // Process picture
+                    currentThread->Yield();
+                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
+            }
+            thisClerk->customer = NULL;
+            thisClerk->clerkLock->Release();
+            thisClerk->state = FREE;
+    	}
         if(thisClerk->bribeLineLength > 0) {
             thisClerk->bribeLineLock->Acquire();
             thisClerk->bribeLineCV->Signal(thisClerk->bribeLineLock);     // Signal Customer to exit line
@@ -675,7 +720,27 @@ void runPassportClerk(int id) {
     Clerk *thisClerk = passportClerks[id];
     cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
-        if(thisClerk->bribeLineLength > 0) {
+    	if(thisClerk->senatorLineLength > 0) {
+    		thisClerk->senatorLineLock->Acquire();
+            thisClerk->senatorLineCV->Signal(thisClerk->senatorLineLock);     // Signal Customer to exit line
+            thisClerk->clerkLock->Acquire(); //
+            thisClerk->senatorLineLock->Release();
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application and picture
+            if(thisClerk->customer->hasApp && thisClerk->customer->hasPic) {
+                int wait = rand() % ((100 - 20) + 1) + 20; 
+                for(int i = 0; i < wait; i++)               // Process application and picture
+                    currentThread->Yield();
+            } else {
+                cout << thisClerk->getName() << " has sent " << thisClerk->customer->getName();
+                cout << " back to get an application and picture." << endl;
+            }
+            thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give passport to customer
+            thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept passport
+            thisClerk->customer = NULL;
+            thisClerk->clerkLock->Release();
+            thisClerk->state = FREE;
+    	}
+        else if(thisClerk->bribeLineLength > 0) {
             thisClerk->bribeLineLock->Acquire();
             thisClerk->bribeLineCV->Signal(thisClerk->bribeLineLock);     // Signal Customer to exit line
             thisClerk->clerkLock->Acquire(); //
@@ -729,7 +794,25 @@ void runCashier(int id) {
 	Clerk *thisCashier = cashiers[id];
     cout << thisCashier->getName() << " currently running." << endl;
     while(true) {
-        if(thisCashier->lineLength > 0) {
+    	if(thisCashier->senatorLineLength > 0) {
+    		thisCashier->senatorLineLock->Acquire();
+            thisCashier->senatorLineCV->Signal(thisCashier->senatorLineLock);     // Signal Customer to exit line
+            thisCashier->clerkLock->Acquire();
+            thisCashier->senatorLineLock->Release();
+            thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for customer to pay
+            if(thisCashier->customer->hasPassport) {
+                thisCashier->money = thisCashier->money + 100;
+            } else {
+                cout << thisCashier->getName() << " has sent " << thisCashier->customer->getName();
+                cout << " back to get their passport." << endl;
+            }
+            thisCashier->clerkCV->Signal(thisCashier->clerkLock);    // Give complete application back
+            thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for Customer to accept application
+            thisCashier->customer = NULL;
+            thisCashier->clerkLock->Release();
+            thisCashier->state = FREE;
+    	}
+        else if(thisCashier->lineLength > 0) {
             thisCashier->lineLock->Acquire();
             thisCashier->lineCV->Signal(thisCashier->lineLock);     // Signal Customer to exit line
             thisCashier->clerkLock->Acquire();
@@ -837,18 +920,18 @@ void PassportOffice() {
         customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
 
     // Run Senators
-    // for(int i = 0; i < numSenators; i++) {
-    // 	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
-    // }
+    for(int i = 0; i < numSenators; i++) {
+    	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
+    }
     
-    /*
+    
     // Run PassportClerks
     for(int i = 0; i < numPassportClerks; i++)
         passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
     // Run Cashiers
     for(int i = 0; i < numCashiers; i++)
         cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
-    */
+    
 
     manager = new Manager("manager 1");
     manager->Fork((VoidFunctionPtr)runManager, 0);
@@ -860,8 +943,8 @@ void Problem2() {
     numCustomers = 5;
     numApplicationClerks = 1;
     numPictureClerks = 1;
-    numPassportClerks = 5;
-    numCashiers = 5;
+    numPassportClerks = 1;
+    numCashiers = 1;
     numSenators = 2;
     cout << "Welcome to the Passport Office." << endl;
     //printMenu();
