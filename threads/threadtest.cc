@@ -37,10 +37,6 @@ using namespace std;
 
 class Customer;
 class Clerk;
-class ApplicationClerk;
-class PictureClerk;
-class PassportClerk;
-class Cashier;
 class Manager;
 
 //
@@ -52,10 +48,10 @@ enum ClerkType {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER};
 int amounts[] = {100, 600, 1100, 1600};
 int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
 Customer** customers;
-ApplicationClerk** applicationClerks;
-PictureClerk** pictureClerks;
-PassportClerk** passportClerks;
-Cashier** cashiers;
+Clerk** applicationClerks;
+Clerk** pictureClerks;
+Clerk** passportClerks;
+Clerk** cashiers;
 Manager *theManager;
 Lock *senatorOutsideLineLock;
 Condition *senatorOutsideLineCV;
@@ -82,13 +78,10 @@ void printMenu();
 class Customer : public Thread {
 	
 	public:
-		int ssn;
+		char* name;
 		int money;
-		int myClerk;
-
-		bool didBribe;
-		int clerkID; // intended as a clearer reference to myClerk
-		
+		int clerkID;
+		bool didBribe;		
 		bool isSenator;
 		bool hasApp;
 		bool hasPic;
@@ -97,7 +90,7 @@ class Customer : public Thread {
 		bool seenPic;
 		bool likedPic;
 
-		Customer(int _ssn, char* debugName, bool _isSenator = false);
+		Customer(char* _name, bool _isSenator = false);
 		void doApplication();
 		void doPicture();
 		void waitInLine(Clerk** clerks, int numClerks);
@@ -112,67 +105,19 @@ class Customer : public Thread {
 class Clerk : public Thread { 
 
 	public:
+		char* name;
 		int lineLength;
 		int bribeLineLength;
 		int money;
 
 		ClerkState state;
+		Customer *customer;	// Only used for picture clerks
 
-		Lock *lineLock, *bribeLineLock;
-		Condition *lineCV, *bribeLineCV;
+		Lock *lineLock, *bribeLineLock, *clerkLock, *moneyLock;
+		Condition *lineCV, *bribeLineCV, *clerkCV, *breakCV;
 
-		Clerk(int id, char* debugName) : Thread(debugName) { }
+		Clerk(char* _name);
 };
-
-//
-// ApplicationClerk class header
-//
-
-class ApplicationClerk : public Clerk {
-	
-	public:
-		int appClerkID;
-		
-		Lock *clerkLock, *moneyLock;
-		Condition *clerkCV, *breakCV;
-
-		ApplicationClerk(int id, char* debugName);
-};
-
-//
-// PictureClerk class header
-//
-
-class PictureClerk : public Clerk {
-	
-	public:
-		int picClerkID;
-
-		Customer *myCustomer;
-		
-		Lock *clerkLock, *moneyLock;
-		Condition *clerkCV, *breakCV;
-
-		PictureClerk(int id, char* debugName);
-};
-
-//
-// PassportClerk class header
-//
-
-
-
-//
-// Cashier class header
-//
-
-
-
-//
-// Cashier class source
-//
-
-
 
 //
 // Manager class header
@@ -191,10 +136,10 @@ class Manager : public Thread {
 // Customer class source
 //
 
-Customer::Customer(int _ssn, char* debugName, bool _isSenator) : Thread(debugName) {
-    ssn = _ssn;
+Customer::Customer(char* _name, bool _isSenator) : Thread(_name) {
+    name = _name;
 	isSenator = _isSenator;
-    myClerk = -1;
+    clerkID = -1;
     money = amounts[(int)(rand() % NUM_CLERKS)];
     hasApp = false;
     hasPic = false;
@@ -206,7 +151,7 @@ Customer::Customer(int _ssn, char* debugName, bool _isSenator) : Thread(debugNam
 
 void Customer::doApplication() {
 	this->waitInLine(applicationClerks, numApplicationClerks);
-	ApplicationClerk* clerk = applicationClerks[clerkID];
+	Clerk* clerk = applicationClerks[clerkID];
 
     // Interaction with clerk
     clerk->clerkLock->Acquire();
@@ -221,13 +166,13 @@ void Customer::doApplication() {
 
 void Customer::doPicture() {
 	this->waitInLine(pictureClerks, numPictureClerks);
-	PictureClerk* clerk = pictureClerks[clerkID];
+	Clerk* clerk = pictureClerks[clerkID];
 
     // Interaction with clerk
     // JGT- didn't make any changes here, but recursivly calling doPicture() isn't a good solution
     seenPic = false;
     clerk->clerkLock->Acquire();
-    clerk->myCustomer = this;
+    clerk->customer = this;
     cout << currentThread->getName() << " currently with " << clerk->getName() << endl;
     clerk->clerkCV->Signal(clerk->clerkLock); // Customer with Clerk
     clerk->clerkCV->Wait(clerk->clerkLock);   // Wait for Picture Clerk
@@ -337,56 +282,25 @@ bool Customer::enterLine(Clerk* clerk) {
 }
 
 //
-// ApplicationClerk class source
+// Clerk class source
 //
 
-ApplicationClerk::ApplicationClerk(int id, char* debugName) : Clerk(id, debugName) {
-	appClerkID = id;
+Clerk::Clerk(char* _name) : Thread(_name) {
+	name = _name;
 	money = 0;
 	state = BUSY;
+
 	lineLength = 0;
 	bribeLineLength = 0;
-	clerkLock = new Lock("appClerkLock");
-	lineLock = new Lock("appClerkLineLock");
-	bribeLineLock = new Lock("appClerkBribeLineLock");
-	moneyLock = new Lock("appmoneyLock");
-	clerkCV = new Condition("appClerkCV");
-	lineCV = new Condition("appClerkLineCV");
-	bribeLineCV = new Condition("appClerkBribeLineCV");
-	breakCV = new Condition("appClerkBreakCV");
+	lineLock = new Lock("lineLock");
+	bribeLineLock = new Lock("bribeLineLock");
+	lineCV = new Condition("lineCV");
+	bribeLineCV = new Condition("bribeLineCV");
+	clerkLock = new Lock("clerkLock");
+	moneyLock = new Lock("moneyLock");
+	clerkCV = new Condition("clerkCV");
+	breakCV = new Condition("breakCV");
 }
-
-//
-// PictureClerk class source
-//
-
-PictureClerk::PictureClerk(int id, char* debugName) : Clerk(id, debugName) {
-	picClerkID = id;
-	money = 0;
-	state = BUSY;
-	lineLength = 0;
-	bribeLineLength = 0;
-	clerkLock = new Lock("appClerkLock");
-	lineLock = new Lock("appClerkLineLock");
-	bribeLineLock = new Lock("appClerkBribeLineLock");
-	moneyLock = new Lock("picmoneyLock");
-	clerkCV = new Condition("appClerkCV");
-	lineCV = new Condition("appClerkLineCV");
-	bribeLineCV = new Condition("appClerkBribeLineCV");
-	breakCV = new Condition("appClerkBreakCV");
-}
-
-//
-// PassportClerk class source
-//
-
-
-
-//
-// Cashier class source
-//
-
-
 
 //
 // Manager class source
@@ -405,7 +319,7 @@ void Manager::managerMain() {
 		int passportClerkMoneyTotal = 0;
 
 		for(int k = 0; k < numApplicationClerks; k ++) { //loop through all app clerks
-			ApplicationClerk *thisClerk = applicationClerks[k];
+			Clerk *thisClerk = applicationClerks[k];
 			thisClerk->moneyLock->Acquire();
 			appClerkMoneyTotal += thisClerk->money;  //get this clerks money total
 			thisClerk->moneyLock->Release();
@@ -424,7 +338,7 @@ void Manager::managerMain() {
 
 		}
 		for(int k = 0; k < numPictureClerks; k ++) { //loop through all pic clerks
-			PictureClerk *thisClerk = pictureClerks[k];
+			Clerk *thisClerk = pictureClerks[k];
 			thisClerk->moneyLock->Acquire();
 			picClerkMoneyTotal += thisClerk->money;  //get this clerks money total
 			thisClerk->moneyLock->Release();
@@ -492,7 +406,7 @@ void runCustomer(int ssn) {
 		
 		// Senator entering, alert all lines to empty
 		for(int i = 0; i < numApplicationClerks; i++) {
-			ApplicationClerk *clerk = applicationClerks[i];
+			Clerk *clerk = applicationClerks[i];
 			clerk->lineLock->Acquire();
 			clerk->lineCV->Broadcast(clerk->lineLock);
 			clerk->lineLock->Release();
@@ -502,7 +416,7 @@ void runCustomer(int ssn) {
 		}
 		
 		for(int i = 0; i < numPictureClerks; i++) {
-			PictureClerk *clerk = pictureClerks[i];
+			Clerk *clerk = pictureClerks[i];
 			clerk->lineLock->Acquire();
 			clerk->lineCV->Broadcast(clerk->lineLock);
 			clerk->lineLock->Release();
@@ -512,7 +426,7 @@ void runCustomer(int ssn) {
 		}
 		
 		/* for(int i = 0; i < numPassportClerks; i++) {
-			PassportClerk *clerk = passportClerks[i];
+			Clerk *clerk = passportClerks[i];
 			clerk->lineLock->Acquire();
 			clerk->lineCV->Broadcast(clerk->lineLock);
 			clerk->lineLock->Release();
@@ -522,7 +436,7 @@ void runCustomer(int ssn) {
 		}
 		
 		for(int i = 0; i < numCashiers; i++) {
-			Cashier *clerk = cashiers[i];
+			Clerk *clerk = cashiers[i];
 			clerk->lineLock->Acquire();
 			clerk->lineCV->Broadcast(clerk->lineLock);
 			clerk->lineLock->Release();
@@ -565,7 +479,7 @@ void runCustomer(int ssn) {
 }
 
 void runApplicationClerk(int id) {
-    ApplicationClerk *thisClerk = applicationClerks[id];
+    Clerk *thisClerk = applicationClerks[id];
     cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
         if(thisClerk->bribeLineLength > 0) {
@@ -607,7 +521,7 @@ void runApplicationClerk(int id) {
 }
 
 void runPictureClerk(int id) {
-    PictureClerk *thisClerk = pictureClerks[id];
+    Clerk *thisClerk = pictureClerks[id];
     cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
         if(thisClerk->bribeLineLength > 0) {
@@ -618,14 +532,14 @@ void runPictureClerk(int id) {
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
-            if(thisClerk->myCustomer->likedPic) {
-                cout << thisClerk->getName() << " filing " << thisClerk->myCustomer->getName() << "'s picture." << endl;
+            if(thisClerk->customer->likedPic) {
+                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
                 int wait = rand() % ((100 - 20) + 1) + 20;
                 for(int i = 0; i < wait; i++)               // Process picture
                     currentThread->Yield();
-                cout << thisClerk->getName() << " finished filing " << thisClerk->myCustomer->getName() << "'s picture." << endl;
+                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
             }
-            thisClerk->myCustomer = NULL;
+            thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
         } else if(thisClerk->lineLength > 0) {
@@ -636,15 +550,15 @@ void runPictureClerk(int id) {
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
-            cout << thisClerk->getName() << " - " << thisClerk->myCustomer->getName() << endl;
-            if(thisClerk->myCustomer->likedPic) {
-                cout << thisClerk->getName() << " filing " << thisClerk->myCustomer->getName() << "'s picture." << endl;
+            cout << thisClerk->getName() << " - " << thisClerk->customer->getName() << endl;
+            if(thisClerk->customer->likedPic) {
+                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
                 int wait = rand() % ((100 - 20) + 1) + 20;
                 for(int i = 0; i < wait; i++)               // Process picture
                     currentThread->Yield();
-                cout << thisClerk->getName() << " finished filing " << thisClerk->myCustomer->getName() << "'s picture." << endl;
+                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
             }
-            thisClerk->myCustomer = NULL;
+            thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
         } else {
@@ -680,41 +594,41 @@ void PassportOffice() {
     customers = new Customer*[numCustomers];
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
-        sprintf(name, "Customer%d", i);
-        customers[i] = new Customer(i, name);
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name);
     }
 
     // Create ApplicationClerks
-    applicationClerks = new ApplicationClerk*[numApplicationClerks];
+    applicationClerks = new Clerk*[numApplicationClerks];
     for(int i = 0; i < numApplicationClerks; i++) {
         name = new char[20];
-        sprintf(name, "ApplicationClerk%d", i);
-        applicationClerks[i] = new ApplicationClerk(i, name);
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
     }
 
     // Create PictureClerks
-    pictureClerks = new PictureClerk*[numPictureClerks];
+    pictureClerks = new Clerk*[numPictureClerks];
     for(int i = 0; i < numPictureClerks; i++) {
         name = new char[20];
-        sprintf(name, "PictureClerk%d", i);
-        pictureClerks[i] = new PictureClerk(i, name);
+        sprintf(name, "PictureClerk %d", i);
+        pictureClerks[i] = new Clerk(name);
     }
 
     /*
     // Create PassportClerks
-    passportClerks = new PassportClerk*[numPassportClerks];
+    passportClerks = new Clerk*[numPassportClerks];
     for(int i = 0; i < numPassportClerks; i++) {
         name = new char[20];
         sprintf(name, "PassportClerk%d", i);
-        passportClerks[i] = new PassportClerk(i, name);
+        passportClerks[i] = new Clerk(i, name);
     }
 
     // Create Cashiers
-    cashiers = new Cashier*[numCashiers];
+    cashiers = new Clerk*[numCashiers];
     for(int i = 0; i < numCashiers; i++) {
         name = new char[20];
         sprintf(name, "Cashier%d", i);
-        cashiers[i] = new Cashiers(i, name);
+        cashiers[i] = new Clerk(i, name);
     }
     */
 
