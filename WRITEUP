@@ -7,9 +7,107 @@ Group: Name					Email
 
 I. Requirements:
 
+	Part 1:
+
+	Part 2:
+
+		Part 2 requires writing code (which we elected to place in threadtest.cc) to simulate a
+		passport office, which will demonstrate understanding of thread synchronization principles
+		including locks and condition variables.
+
+		The passport office is to consist of threads acting out the roles of customer, application
+		clerk, picture clerk, passport clerk, cashier, manager, and senator. Multiple instances of
+		each role can exist, except for the manager.
+
+		Customers progress from station to station until they have completed all tasks. Customers 
+		have money which they may use to jump ahead in the lines at each station, and they will
+		always choose the shortest line possible. After visiting a station, the station will 
+		"process" their file after a "processing time" delay.
+
+		Certain roles have special behavior. The picture clerk will allow a customer to keep re-
+		taking their picture until they "like" it. The passport clerk and cashier will refuse to 
+		serve a customer if previous stations are not finished processing their file.
+
+		Stations can take breaks if they don't have customers to serve, the manager tells clerks to 
+		go back to their stations if customers begin queueing. The manager also checks on the money
+		collected by each station and "reports" the totals. 
+
+		The senator behaves just like a customer, except that when a senator enters the office all
+		customers queueing must exit and queue outside until the senator leaves. Likewise, all 
+		customers at a station must leave and queue outside once their transaction is finished.
+
+		In addition to the application code, the assignment requires writing a testing menu that 
+		allows a user to run the passport office with various numbers of each role. The menu should
+		also allow executing pre-defined tests to demonstrate specific functionality.
+
+		All the behavior must be "thread safe" meaning data cannot be corrupted and race conditions
+		must be prevented. Details for these requirements have been posted on Blackboard and Piazza.
+
 II. Assumptions:
 
+	Part 1:
+
+	Part 2:
+
+		Customers and senators can be implemented with the same class. Likewise, all clerks 
+		(including cashiers, but not the manager) can be implemented with a single class.
+
+		Multiple senators can arrive at the passport office at once. In this case, senators will
+		queue outside the office and enter one by one. 
+
+		Station queues are implemented grocery store-style rather than bank-style. Each clerk
+		has their own queues for regular customers, bribe customers, and senators.
+
+		Senators have their own line separate from regular customers and bribe customers to prevent
+		senators being kicked out of the office when a new senator arrives outside. Senators call
+		Broadcast() on all lines to kick customers outside, so a senator itself should never be in
+		one of those lines.
+
 III. Design:
+
+	Part 1:
+
+	Part 2:
+
+		When called from main.cc, Problem2() creates default numbers of each role, then shows
+		a menu by calling printMenu(). The menu allows changing the numbers of each role, running
+		predefined tests, running the overall simulation, or exiting. The overall simulation is 
+		run by calling PassportOffice().
+
+		PassportOffice() creates each role and uses Fork() to start each thread. Each role has
+		its own code, runCustomer(), runsSenator(), runApplicationClerk(), runPictureClerk(),
+		runPassportClerk(), runCashier(), and runManager(). As stated in the assumptions, the 7 
+		roles are implemented with 3 classes.
+
+		runCustomer() checks for senators, and queues outside the office if necessary. When it 
+		enters, it chooses randomly between filing the application and taking the picture. After
+		both have been completed, the customer goes to the passport clerk and then to the cashier.
+
+		runCustomer() accomplishes these actions by executing doApplication(), doPicture(), 
+		doPassport(), and doCashier(). At the start of each of these functions, the customer
+		calls waitInLine() with arguments specifying the type of clerk the customer wishes to queue
+		for. 
+
+		waitInLine() and its associated functions ensure that the customer chooses the shortest
+		line, taking into account whether the customer can pay a bribe. We do not assume that the
+		bribe line is always the shortest. This code also allows handling senators. When
+		runSenator() enters, it sends a Broadcast() to every customer line after setting
+		senatorInside = true. The waitInLine() functions respond to either the senator's Broadcast()
+		or the clerks' Signal() and respond by either allowing the do...() functions to proceed or
+		taking the customer outside. This code can handle the customer being sent outside repeatedly
+		and the customer will always return to the apropriate, shortest line, even if the shortest
+		line is different from before.
+
+		The customer do...() functions handle interacting with each clerk. They handle special cases
+		like rejecting a picture (and waiting in line again) and handling the penalty for arriving
+		at a passport clerk or cashier station without already being in posession of the necessary
+		documents.
+
+		Likewise, the run...Clerk() functions handle calling customers out of line and interacting
+		with them. They will also send the clerks on break as they are allowed to. runManager() 
+		starts the manager running in an infinite loop. The manager will send clerks back out off
+		break as necessary, and also collects (in a thread-safe way) money totals from each clerk
+		and reports them on the console.
 
 IV. Implementation:
 
@@ -22,10 +120,40 @@ IV. Implementation:
 		(none)
 
 	Data Structures Added:
+		class Customer 			in threads/threadtest.cc
+		class Clerk 			in threads/threadtest.cc
+		class Manager 			in threads/threadtest.cc
 
 	Data Structures Modified:
 
 	Functions Added:
+		Customer::Customer()		in threads/threadtest.cc
+		Customer::doApplication()	in threads/threadtest.cc
+		Customer::doPicture()		in threads/threadtest.cc
+		Customer::doPassport()		in threads/threadtest.cc
+		Customer::doCashier()		in threads/threadtest.cc
+		Customer::waitInLine()		in threads/threadtest.cc
+		Customer::chooseLine()		in threads/threadtest.cc
+		Customer::enterLine()		in threads/threadtest.cc
+		Clerk::Clerk()				in threads/threadtest.cc
+		Manager::Manager()			in threads/threadtest.cc
+		Manager::managerMain()		in threads/threadtest.cc
+		runCustomer()				in threads/threadtest.cc
+		runSenator()				in threads/threadtest.cc
+		runApplicationClerk()		in threads/threadtest.cc
+		runPictureClerk()			in threads/threadtest.cc
+		runPassportClerk()			in threads/threadtest.cc
+		runCashier()				in threads/threadtest.cc
+		runManager()				in threads/threadtest.cc
+		PassportOffice()			in threads/threadtest.cc
+		Problem2()					in threads/threadtest.cc
+		printMenu()					in threads/threadtest.cc
+		Test1()						in threads/threadtest.cc
+		Test2()						in threads/threadtest.cc
+		Test3()						in threads/threadtest.cc
+		Test4()						in threads/threadtest.cc
+		Test5()						in threads/threadtest.cc
+		TestSuite()					in threads/threadtest.cc
 
 	Functions Modified:
 
