@@ -60,6 +60,13 @@ bool senatorInside = false;
 Lock *customerOutsideLineLock;
 Condition *customerOutsideLineCV;
 int customersOutside = 0;
+bool runningTest1 = false;
+bool runningTest2 = false;
+bool runningTest3 = false;
+bool runningTest4 = false;
+bool runningTest5 = false;
+bool runningTest6 = false;
+bool runningTest7 = false;
 
 //
 // Customer class header
@@ -79,6 +86,7 @@ class Customer : public Thread {
 		bool seenApp;
 		bool seenPic;
 		bool likedPic;
+
 
 		Customer(char* _name, bool _isSenator);
 		void doApplication();
@@ -237,6 +245,12 @@ void Customer::waitInLine(Clerk** clerks, int numClerks) {
 	bool senatord = false;
 
 	this->chooseLine(clerks, numClerks);
+	if(runningTest1 && didBribe) {
+		cout<<this->getName()<<" chose " <<clerks[clerkID]->getName()<<", with bribe line count: "<<clerks[clerkID]->bribeLineLength<<endl;
+
+	}else if(runningTest1) {
+		cout<<this->getName()<<" is not bribing, chose " <<clerks[clerkID]->getName()<<", with pleb line count: "<<clerks[clerkID]->lineLength<<endl;
+	}
 	senatord = this->enterLine(clerks[clerkID]);
 
 	while (senatord) {
@@ -246,7 +260,9 @@ void Customer::waitInLine(Clerk** clerks, int numClerks) {
 
 	if (didBribe) {
 		money -= 500;
+		clerks[clerkID]->moneyLock->Acquire();
 		clerks[clerkID]->money += 500;
+		clerks[clerkID]->moneyLock->Release();
 	}
 }
 
@@ -485,17 +501,19 @@ void runCustomer(int id) {
 	senatorInsideLock->Release();
 	senatorOutsideLineLock->Release();
 
-	if(rand() % 10 == 0) // Customer has 1 in 10 chance of going to Passport Clerk first
+	if(rand() % 10 == 0 && runningTest1 == false) // Customer has 1 in 10 chance of going to Passport Clerk first
         customer->doPassport();
     // Randomly decide whether to go to AppClerk or PicClerk first
-    if(rand() % 2 == 0) {
+    if(runningTest1) { //if running test 1, then just go to the application clerk
+    	customer->doApplication();
+    } else if(rand() % 2 == 0) {
         customer->doApplication();
         customer->doPicture();
     } else {
         customer->doPicture();
         customer->doApplication();
     }
-	if(rand() % 10 == 0) // Customer has 1 in 10 chance of going to Cashier before PassportClerk
+	if(rand() % 10 == 0 && runningTest1 == false) // Customer has 1 in 10 chance of going to Cashier before PassportClerk
         customer->doCashier();
     customer->doPassport();
     customer->doCashier();
@@ -850,6 +868,14 @@ void runManager() {
 //
 
 void PassportOffice() {
+	//initial output
+	cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
 	// Create locks and conditions
 	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
 	senatorInsideLock = new Lock("senatorInsideLock");
@@ -1034,3 +1060,104 @@ void printMenu() {
 int getRandomNumber() {
 	return 4; // chosen by fair dice roll, guaranteed to be random
 }
+
+
+void Test1() {
+	//test : Customers always take the shortest line, 
+	//but no 2 customers ever choose the same shortest line at the same time
+	runningTest1 = true;
+	numCustomers = 6;
+    numApplicationClerks = 2;
+    numPictureClerks = 0;
+    numPassportClerks = 0;
+    numCashiers = 0;
+    numSenators = 0;
+    cout<<"Running Test 1" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+    
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+    // Create Customers
+    customers = new Customer*[numCustomers];
+    for(int i = 0; i < numCustomers; i++) {
+        name = new char[20];
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name, false);
+    }
+
+    // Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+    }
+
+    // Run ApplicationClerks
+    for(int i = 0; i < numApplicationClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+
+     // Run Customers
+    for(int i = 0; i < numCustomers; i++)
+        customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
+}
+
+void Test2() {
+	//Managers only read one from one Clerk's total money received, at a time.
+	runningTest2 = true;
+	numCustomers = 0;
+    numApplicationClerks = 5;
+    numPictureClerks = 0;
+    numPassportClerks = 0;
+    numCashiers = 0;
+    numSenators = 0;
+    cout<<"Running Test 1" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+	// Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+        applicationClerks[i]->money += (int)rand();
+    }
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+}
+
+void TestSuite() {
+	cout<<"This is the beginning of test 1"<<endl;
+	
+
+    Test1();
+    //Test2();
+}
+

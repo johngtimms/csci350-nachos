@@ -89,8 +89,8 @@ main(int argc, char **argv)
             printf (copyright);
 #ifdef THREADS
     //ThreadTest();
-    //if(!strcmp(*argv, "-T"))			// Test Suite
-    	//TestSuite();
+    if(!strcmp(*argv, "-T"))			// Test Suite
+    	TestSuite();
     if(!strcmp(*argv, "-P2"))			// Problem 2
     	Problem2();
 #endif
