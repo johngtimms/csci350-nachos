@@ -9,6 +9,13 @@ I. Requirements:
 
 	Part 1:
 
+		Part 1 requires implementing the Lock and Condition classes in threads/synch.h and 
+		threads/synch.cc. Locks and conditions should be implemented according to the designs
+		discussed in class and in the course textbook. Furthermore, the code should prevent
+		misuses of locks and conditions (such as a thread releasing a lock it does not hold).
+		Finally, tests from test_code.cc (on Blackboard) should be placed in threadtest.cc so
+		that they can be run to demonstrate functionality.
+
 	Part 2:
 
 		Part 2 requires writing code (which we elected to place in threadtest.cc) to simulate a
@@ -47,6 +54,8 @@ II. Assumptions:
 
 	Part 1:
 
+		(none)
+
 	Part 2:
 
 		Customers and senators can be implemented with the same class. Likewise, all clerks 
@@ -66,6 +75,17 @@ II. Assumptions:
 III. Design:
 
 	Part 1:
+
+		Locks can either be FREE or BUSY. The lock should store the thread that has Acquire()d it
+		most recently, and the lock should keep a queue of threads waiting to Acquire() it.
+
+		Condition variables ("conditions") keep a queue of threads waiting for the condition to 
+		change, and they track a lock that active threads hold in order to modify the variable.
+
+		When Acquire()ing and Release()ing locks, disable/enable interrupts as apropriate to make
+		these actions atomic. The same will be done for conditions Wait(), Signal(), and Broadcast()
+		functions because the tracked lock must be released when the thread Wait()s and acquired
+		again when the thread is Signal()ed or marked ready after Broadcast() was called.
 
 	Part 2:
 
@@ -113,6 +133,7 @@ IV. Implementation:
 
 	Files Modified:
 		main.cc
+		synch.h
 		synch.cc
 		threadtest.cc
 
@@ -120,11 +141,13 @@ IV. Implementation:
 		(none)
 
 	Data Structures Added:
-		class Customer 			in threads/threadtest.cc
-		class Clerk 			in threads/threadtest.cc
-		class Manager 			in threads/threadtest.cc
+		class Customer 				in threads/threadtest.cc
+		class Clerk 				in threads/threadtest.cc
+		class Manager 				in threads/threadtest.cc
 
 	Data Structures Modified:
+		class Lock 					in threads/synch.h
+		class Condition 			in threads/synch.h
 
 	Functions Added:
 		Customer::Customer()		in threads/threadtest.cc
@@ -156,11 +179,82 @@ IV. Implementation:
 		TestSuite()					in threads/threadtest.cc
 
 	Functions Modified:
-
-
+		main()						in threads/main.cc
+		Lock::Lock()				in threads/synch.cc
+		Lock::~Lock()				in threads/synch.cc
+		Lock::Acquire()				in threads/synch.cc
+		Lock::Release()				in threads/synch.cc
+		Condition::Condition()		in threads/synch.cc
+		Condition::~Condition()		in threads/synch.cc
+		Condition::Wait()			in threads/synch.cc
+		Condition::Signal()			in threads/synch.cc
+		Condition::Broadcast()		in threads/synch.cc
+		SimpleThread()				in threads/threadtest.cc (removed)
+		ThreadTest()				in threads/threadtest.cc (removed)
 
 V. Testing:
 
+	How To Test:
+
+		Part 1:
+
+			Run threads/nachos with -T to execute the professor-provided test suite.
+
+		Part 2:
+
+			(none)
+
+	Test Output:
+
+		Part 1:
+
+			Please compare the test output with the professor's expected output.
+
+		Part 2:
+
+			Test 1:
+
+				Customers are sent in to the office with a restricted number of clerks at one 
+				station. You will see that customers alternate evenly between clerks.
+
+			Test 2:
+
+				You will see the manager report each figure sequentially. The manager code in 
+				runManager() checks with each clerk and acquires the clerk's lock before getting 
+				their individual money amount, then releases the lock.
+
+			Test 3:
+
+				You will see customers go to the cashier, transact, and then wait to leave. The 
+				cashier will then begin serving another customer.
+
+			Test 4:
+
+				You will see clerks going on break because they have no customers to serve.
+
+			Test 5:
+
+				You will see managers put clerks back on duty after customers get in line.
+
+			Test 6:
+
+				(none)
+
+			Test 7:
+
+				(none)
+
 VI: Discussion:
 
+	The locks and conditions were expected to behave according to conventional expectations, and the
+	passport office was expected to function rationally without data corruption or endless loops.
+
+	The majority of the work on this project was implementing the Part 2 requirements and the 
+	customer's flow through the passport office. By using locks for every type of data change that
+	took place, we avoided data corruption. Condition variables were used to allow customers to
+	queue, and Broadcast() was particularly useful for handling when senators arrived and left and
+	customers needed to change from "inside" to "outside" and back.
+
 VII. Miscellaneous:
+
+	(none)
