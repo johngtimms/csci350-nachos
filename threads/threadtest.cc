@@ -412,8 +412,9 @@ void Manager::managerMain() {
 			}
 
 		}
-		if(runningTest2)
+		if(runningTest2) //test 2 just needed to read clerk's money once
 			break;
+
 		for(int k = 0; k < numPictureClerks; k ++) { //loop through all pic clerks
 			Clerk *thisClerk = pictureClerks[k];
 			thisClerk->moneyLock->Acquire();
@@ -469,7 +470,8 @@ void Manager::managerMain() {
 			}
 
 		}
-		if(runningTest3) //dont need manager to output anything if running test 3
+
+		if(runningTest3 || runningTest4) //dont need manager to output anything if running test 3/4
 			break;
 
 		if(allClerksOnBreak) //if all clerks are on break
@@ -480,7 +482,8 @@ void Manager::managerMain() {
 		for(int k = 0 ; k < 100 ; k ++ ) {
 			currentThread->Yield();
 		}
-		
+		if(runningTest5) //test 5 should just keep checking if manager needs to wake cashier clerks
+			continue;
 		//cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
 		//cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
 		//cout << "Manager: Passport clerks have made a total of $" << passportClerkMoneyTotal << endl;
@@ -519,7 +522,7 @@ void runCustomer(int id) {
     if(runningTest1) { //if running test 1, then just go to the application clerk
     	customer->doApplication();
     	return;
-    } else if(runningTest3) {
+    } else if(runningTest3 || runningTest5) { // go straight to cashier for these tests
     	customer->doCashier();
     	return;
     } else if(rand() % 2 == 0) {
@@ -1174,7 +1177,7 @@ void Test2() {
     numPassportClerks = 0;
     numCashiers = 0;
     numSenators = 0;
-    cout<<"Running Test 1" <<endl;
+    cout<<"Running Test 2" <<endl;
     cout<<"Number of Customers = " << numCustomers <<endl;
 	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
 	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
@@ -1209,7 +1212,6 @@ void Test2() {
 }
 
 void Test3() {
-	//Managers only read one from one Clerk's total money received, at a time.
 	runningTest3 = true;
 	numCustomers = 3;
     numApplicationClerks = 0;
@@ -1217,7 +1219,7 @@ void Test3() {
     numPassportClerks = 0;
     numCashiers = 1;
     numSenators = 0;
-    cout<<"Running Test 1" <<endl;
+    cout<<"Running Test 3" <<endl;
     cout<<"Number of Customers = " << numCustomers <<endl;
 	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
 	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
@@ -1266,12 +1268,152 @@ void Test3() {
     manager->Fork((VoidFunctionPtr)runManager, 0);
 }
 
+void Test4() {
+	//Clerks go on break when they have no one waiting in their line
+	runningTest4 = true;
+	numCustomers = 0;
+    numApplicationClerks = 2;
+    numPictureClerks = 2;
+    numPassportClerks = 02;
+    numCashiers = 2;
+    numSenators = 0;
+    cout<<"Running Test 4" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+
+    // Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+    }
+
+    // Create PictureClerks
+    pictureClerks = new Clerk*[numPictureClerks];
+    for(int i = 0; i < numPictureClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PictureClerk %d", i);
+        pictureClerks[i] = new Clerk(name);
+    }
+
+    
+    // Create PassportClerks
+    passportClerks = new Clerk*[numPassportClerks];
+    for(int i = 0; i < numPassportClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PassportClerk%d", i);
+        passportClerks[i] = new Clerk(name);
+    }
+
+    // Create Cashiers
+    cashiers = new Clerk*[numCashiers];
+    for(int i = 0; i < numCashiers; i++) {
+        name = new char[20];
+        sprintf(name, "Cashier%d", i);
+        cashiers[i] = new Clerk(name);
+    }
+    
+
+    // Run ApplicationClerks
+    for(int i = 0; i < numApplicationClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+    // Run PictureClerks
+    for(int i = 0; i < numPictureClerks; i++)
+        pictureClerks[i]->Fork((VoidFunctionPtr)runPictureClerk, i);
+    
+    
+    // Run PassportClerks
+    for(int i = 0; i < numPassportClerks; i++)
+        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
+    // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+}
+
+void Test5() {
+	runningTest5 = true;
+	numCustomers = 3;
+    numApplicationClerks = 0;
+    numPictureClerks = 0;
+    numPassportClerks = 0;
+    numCashiers = 1;
+    numSenators = 0;
+    cout<<"Running Test 3" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+    // Create Cashiers
+    cashiers = new Clerk*[numCashiers];
+    for(int i = 0; i < numCashiers; i++) {
+        name = new char[20];
+        sprintf(name, "Cashier%d", i);
+        cashiers[i] = new Clerk(name);
+    }
+
+    // Create Customers
+    customers = new Customer*[numCustomers];
+    for(int i = 0; i < numCustomers; i++) {
+        name = new char[20];
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name, false);
+        customers[i]->hasApp = true; //assign each customer with app
+        customers[i]->hasPic = true; //assign each customer with pic
+        customers[i]->certifiedByPassportClerk = true; //assign each customer to be certified by passport clerk
+
+    }
+
+        // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+        // Run Customers
+    for(int i = 0; i < numCustomers; i++)
+        customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
+
+
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+}
+
 void TestSuite() {
 	cout<<"This is the beginning of test 1"<<endl;
 	
 
     //Test1();
     //Test2();
-    Test3();
+    //Test3();
+    //Test4();
+    Test5();
 }
 
