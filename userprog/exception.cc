@@ -264,7 +264,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	else
 		cout << "Condition trying to wait owns lock that doesn't exist" << endl;
 	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
-		condition->condition->Wait(*lock);
+		condition->condition->Wait(lock->lock);
 		cout << "Waiting on condition with key: " << conditionKey << endl;
 	}
 	lockTable->tableLock->Release();
@@ -285,7 +285,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	else
 		cout << "Condition trying to signal owns lock that doesn't exist" << endl;
 	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
-		condition->condition->Signal(*lock);
+		condition->condition->Signal(lock->lock);
 		cout << "Condition with key " << conditionKey <<  " signalling" << endl;
 	}
 	lockTable->tableLock->Release();
@@ -306,7 +306,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	else
 		cout << "Condition trying to broadcast owns lock that doesn't exist" << endl;
 	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
-		condition->condition->Broadcast(*lock);
+		condition->condition->Broadcast(lock->lock);
 		cout << "Condition with key " << conditionKey << " broadcasting" << endl;
 	}
 	lockTable->tableLock->Release();
@@ -390,7 +390,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_DestroyCondition:
 				DEBUG('a', "DestroyCondition syscall.\n");
-				DetroyCondition_Syscall(machine->ReadRegister(4));
+				DestroyCondition_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Wait:
 				DEBUG('a', "Wait syscall.\n");
