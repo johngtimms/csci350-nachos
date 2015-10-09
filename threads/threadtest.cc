@@ -66,7 +66,8 @@ bool runningTest3 = false;
 bool runningTest4 = false;
 bool runningTest5 = false;
 bool runningTest6 = false;
-bool runningTest7 = false;
+bool runningTest7a = false;
+bool runningTest7b = false;
 
 //
 // Customer class header
@@ -78,18 +79,20 @@ class Customer : public Thread {
 		char* name;
 		int money;
 		int clerkID;
+		int SSN;
 		bool didBribe;		
 		bool isSenator;
 		bool hasApp;
 		bool hasPic;
 		bool certifiedByPassportClerk;
 		bool hasPassport;
+		bool hasPaidForPassport;
 		bool seenApp;
 		bool seenPic;
 		bool likedPic;
 
 
-		Customer(char* _name, bool _isSenator);
+		Customer(char* _name, int i, bool _isSenator);
 		void doApplication();
 		void doPicture();
 		void doPassport();
@@ -138,10 +141,11 @@ class Manager : public Thread {
 // Customer class source
 //
 
-Customer::Customer(char* _name, bool _isSenator) : Thread(_name) {
+Customer::Customer(char* _name, int i, bool _isSenator) : Thread(_name) {
     name = _name;
 	isSenator = _isSenator;
     clerkID = -1;
+    SSN = i;
     money = amounts[(int)(rand() % 4)];
     hasApp = false;
     hasPic = false;
@@ -150,18 +154,21 @@ Customer::Customer(char* _name, bool _isSenator) : Thread(_name) {
     seenApp = false;
     seenPic = false;
     likedPic = false;
+    hasPaidForPassport = false;
 }
 
 void Customer::doApplication() {
 	this->waitInLine(applicationClerks, numApplicationClerks);
 	Clerk* clerk = applicationClerks[clerkID];
-
+	cout<<clerk->getName()<<" has signalled "<<this->getName()<<" to come to their counter."<<endl;
+	clerk->customer = this;
     // Interaction with clerk
     clerk->clerkLock->Acquire();
     clerk->clerkCV->Signal(clerk->clerkLock); // Give incomplete application to Application Clerk
-    printf("%s has given SSN to %s.\n", name, clerk->name);
+    printf("%s has given SSN %i to %s.\n", this->name, this->SSN,clerk->name);
     clerk->clerkCV->Wait(clerk->clerkLock);   // Wait for Application Clerk
     clerk->clerkCV->Signal(clerk->clerkLock); // Accept completed application
+
     hasApp = true;
     clerk->clerkLock->Release();
 }
@@ -169,7 +176,7 @@ void Customer::doApplication() {
 void Customer::doPicture() {
 	this->waitInLine(pictureClerks, numPictureClerks);
 	Clerk* clerk = pictureClerks[clerkID];
-
+	cout<<clerk->getName()<<" has signalled "<<this->getName()<<" to come to their counter."<<endl;
     // Interaction with clerk
     // JGT- didn't make any changes here, but recursivly calling doPicture() isn't a good solution
     seenPic = false;
@@ -197,15 +204,16 @@ void Customer::doPicture() {
 void Customer::doPassport() {
 	this->waitInLine(passportClerks, numPassportClerks);
 	Clerk* clerk = passportClerks[clerkID];
+	cout<<clerk->getName()<<" has signalled "<<this->getName()<<" to come to their counter."<<endl;
 	clerk->clerkLock->Acquire();
     clerk->customer = this;
-    cout << getName() << " currently with " << clerk->getName() << endl;
+    //cout << getName() << " currently with " << clerk->getName() << endl;
     clerk->clerkCV->Signal(clerk->clerkLock); 
     clerk->clerkCV->Wait(clerk->clerkLock); 
     if(hasApp && hasPic) {
         //cout << getName() << " accepted passport from " << clerk->getName() << endl;
         //certifiedByPassportClerk = true; passport clerk should be setting this
-        cout << getName() << " finished with " << clerk->getName() << endl;
+        //cout << getName() << " finished with " << clerk->getName() << endl;
         clerk->clerkCV->Signal(clerk->clerkLock);
         clerk->clerkLock->Release();
     } else {
@@ -220,19 +228,21 @@ void Customer::doPassport() {
 void Customer::doCashier() {
 	this->waitInLine(cashiers, numCashiers);	// ---------- Cashier doesn't have a bribe line -------------------
 	Clerk* clerk = cashiers[clerkID];
+	cout<<clerk->getName()<<" has signalled "<<this->getName()<<" to come to their counter."<<endl;
 	   // Interaction with cashier
     clerk->clerkLock->Acquire();
     clerk->customer = this;
-    cout << getName() << " currently with " << clerk->getName() << endl;
+    //cout << getName() << " currently with " << clerk->getName() << endl;
     clerk->clerkCV->Signal(clerk->clerkLock);
     clerk->clerkCV->Wait(clerk->clerkLock); 
-    if(certifiedByPassportClerk) {
-        cout << getName() << " has paid for and received their passport." << endl;
+    if(certifiedByPassportClerk && hasPaidForPassport) {
+        cout << clerk->getName() << " has recorded that "<<this->getName()<<" has been given their completed passport." << endl;
         money = money - 100;
         hasPassport = true;
-        cout << getName() << " finished with " << clerk->getName() << endl;
+        //cout << getName() << " finished with " << clerk->getName() << endl;
         clerk->clerkCV->Signal(clerk->clerkLock);
         clerk->clerkLock->Release();
+        cout<<getName()<<" is leaving the Passport Office"<<endl;
     } else {
         clerk->clerkCV->Signal(clerk->clerkLock);
         clerk->clerkLock->Release();
@@ -247,12 +257,6 @@ void Customer::waitInLine(Clerk** clerks, int numClerks) {
 	bool senatord = false;
 
 	this->chooseLine(clerks, numClerks);
-	if(runningTest1 && didBribe) {
-		cout<<this->getName()<<" chose " <<clerks[clerkID]->getName()<<", with bribe line count: "<<clerks[clerkID]->bribeLineLength<<endl;
-
-	}else if(runningTest1) {
-		cout<<this->getName()<<" is not bribing, chose " <<clerks[clerkID]->getName()<<", with pleb line count: "<<clerks[clerkID]->lineLength<<endl;
-	}
 	senatord = this->enterLine(clerks[clerkID]);
 
 	while (senatord) {
@@ -390,14 +394,8 @@ void Manager::managerMain() {
 		for(int k = 0; k < numApplicationClerks; k ++) { //loop through all app clerks
 			Clerk *thisClerk = applicationClerks[k];
 			thisClerk->moneyLock->Acquire();
-			if(runningTest2)
-				cout<<this->getName()<<" acquired "<<thisClerk->getName()<<"'s money lock."<<endl;
 			appClerkMoneyTotal += thisClerk->money;  //get this clerks money total
-			if(runningTest2)
-				cout<<this->getName()<<": reading "<<thisClerk->getName()<<"'s money: $"<<thisClerk->money<<endl;
 			thisClerk->moneyLock->Release();
-			if(runningTest2)
-				cout<<this->getName()<<" released "<<thisClerk->getName()<<"'s money lock."<<endl;
 			if(thisClerk->state != BREAK) { //check if not on break 
 				allClerksOnBreak = false; 
 			} else { //if on break
@@ -405,6 +403,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Acquire();
 				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					cout<<"Manager has woken up an ApplicationClerk"<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -412,8 +411,8 @@ void Manager::managerMain() {
 			}
 
 		}
-		if(runningTest2) //test 2 just needed to read clerk's money once
-			break;
+		// if(runningTest2) //test 2 just needed to read clerk's money once
+		// 	break;
 
 		for(int k = 0; k < numPictureClerks; k ++) { //loop through all pic clerks
 			Clerk *thisClerk = pictureClerks[k];
@@ -427,6 +426,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Acquire();
 				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					cout<<"Manager has woken up a PictureClerk"<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -445,6 +445,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Acquire();
 				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					cout<<"Manager has woken up a PassportClerk"<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -463,6 +464,7 @@ void Manager::managerMain() {
 				thisClerk->lineLock->Acquire();
 				if((thisClerk->bribeLineLength + thisClerk->lineLength) >= 3 || thisClerk->senatorLineLength > 0) { //check if >=3 customers are in line, or if a senator is in line
 					thisClerk->breakCV->Signal(thisClerk->clerkLock); //if so, then wake up clerk 
+					cout<<"Manager has woken up a Cashier"<<endl;
 					allClerksOnBreak = false; //all clerks are no longer are on break
 				}
 				thisClerk->bribeLineLock->Release();
@@ -474,7 +476,7 @@ void Manager::managerMain() {
 		if(runningTest3 || runningTest4) //dont need manager to output anything if running test 3/4
 			break;
 
-		if(allClerksOnBreak) //if all clerks are on break
+		if(allClerksOnBreak && !runningTest2) //if all clerks are on break
 			continue;
 
 		//output money statements
@@ -482,14 +484,16 @@ void Manager::managerMain() {
 		for(int k = 0 ; k < 100 ; k ++ ) {
 			currentThread->Yield();
 		}
-		if(runningTest5) //test 5 should just keep checking if manager needs to wake cashier clerks
+		if(runningTest5 || runningTest7a || runningTest7b) //test 5/7 should just keep checking if manager needs to wake cashier clerks
 			continue;
-		//cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
-		//cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
-		//cout << "Manager: Passport clerks have made a total of $" << passportClerkMoneyTotal << endl;
-		//cout << "Manager: Cashier have made a total of $" << cashierMoneyTotal << endl;
+		cout << "Manager: App clerks have made a total of $" << appClerkMoneyTotal << endl;
+		cout << "Manager: Pic clerks have made a total of $" << picClerkMoneyTotal << endl;
+		cout << "Manager: Passport clerks have made a total of $" << passportClerkMoneyTotal << endl;
+		cout << "Manager: Cashier have made a total of $" << cashierMoneyTotal << endl;
 		totalMoneyMade = appClerkMoneyTotal + picClerkMoneyTotal + passportClerkMoneyTotal;
 		cout << "Manager: Passport Office has made a total of $" << totalMoneyMade << endl;
+		if(runningTest2)
+			break;
 	}
 }
 
@@ -543,7 +547,7 @@ void runCustomer(int id) {
 
 
 void runSenator(int id) {
-    Customer *senator = senators[id];
+	Customer *senator = senators[id];
 	
 	senatorOutsideLineLock->Acquire();
 	senatorInsideLock->Acquire();
@@ -631,7 +635,7 @@ void runSenator(int id) {
 
 void runApplicationClerk(int id) {
     Clerk *thisClerk = applicationClerks[id];
-    cout << thisClerk->getName() << " currently running." << endl;
+    // cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
     	if(thisClerk->senatorLineLength > 0) {
     		thisClerk->senatorLineLock->Acquire();
@@ -639,11 +643,14 @@ void runApplicationClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->senatorLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             int wait = rand() % ((100 - 20) + 1) + 20;
             for(int i = 0; i < wait; i++)               // Process application
                 currentThread->Yield();
+            printf("%s has recored a complete application for %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give complete application back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept application
+            thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
     	}
@@ -653,11 +660,15 @@ void runApplicationClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->bribeLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             int wait = rand() % ((100 - 20) + 1) + 20;
             for(int i = 0; i < wait; i++)               // Process application
                 currentThread->Yield();
+            printf("%s has recorded a complete application for %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give complete application back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept application
+            printf("%s has received $500 from %s.\n", thisClerk->name,thisClerk->customer->getName());            
+            thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
         } else if(thisClerk->lineLength > 0) {
@@ -666,11 +677,14 @@ void runApplicationClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->lineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             int wait = rand() % ((100 - 20) + 1) + 20;
             for(int i = 0; i < wait; i++)               // Process application
                 thisClerk->Yield();
+            printf("%s has recored a complete application for %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give complete application back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept application
+            thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
             thisClerk->state = FREE;
         } else {
@@ -687,7 +701,7 @@ void runApplicationClerk(int id) {
 
 void runPictureClerk(int id) {
     Clerk *thisClerk = pictureClerks[id];
-    cout << thisClerk->getName() << " currently running." << endl;
+    // cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
     	if(thisClerk->senatorLineLength > 0) {
     		thisClerk->senatorLineLock->Acquire();
@@ -695,14 +709,17 @@ void runPictureClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->senatorLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
+            printf("%s has taken a picture of %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
             if(thisClerk->customer->likedPic) {
-                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
+                cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does like their picture." << endl;
                 int wait = rand() % ((100 - 20) + 1) + 20;
                 for(int i = 0; i < wait; i++)               // Process picture
                     currentThread->Yield();
-                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
+            }else{
+            cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does not like their picture." << endl;
             }
             thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
@@ -714,14 +731,17 @@ void runPictureClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->bribeLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
+            printf("%s has taken a picture of %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
             if(thisClerk->customer->likedPic) {
-                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
+                cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does like their picture." << endl;
                 int wait = rand() % ((100 - 20) + 1) + 20;
                 for(int i = 0; i < wait; i++)               // Process picture
                     currentThread->Yield();
-                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
+            }else{
+            cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does not like their picture." << endl;
             }
             thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
@@ -732,15 +752,18 @@ void runPictureClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->lineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to get ready for picture
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
+            printf("%s has taken a picture of %s.\n", thisClerk->name,thisClerk->customer->getName());
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give picture back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept picture
             cout << thisClerk->getName() << " - " << thisClerk->customer->getName() << endl;
             if(thisClerk->customer->likedPic) {
-                cout << thisClerk->getName() << " filing " << thisClerk->customer->getName() << "'s picture." << endl;
+                cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does like their picture." << endl;
                 int wait = rand() % ((100 - 20) + 1) + 20;
                 for(int i = 0; i < wait; i++)               // Process picture
                     currentThread->Yield();
-                cout << thisClerk->getName() << " finished filing " << thisClerk->customer->getName() << "'s picture." << endl;
+            }else{
+            cout << thisClerk->getName() << " has been told that " << thisClerk->customer->getName() << " does not like their picture." << endl;
             }
             thisClerk->customer = NULL;
             thisClerk->clerkLock->Release();
@@ -759,7 +782,7 @@ void runPictureClerk(int id) {
 
 void runPassportClerk(int id) {
     Clerk *thisClerk = passportClerks[id];
-    cout << thisClerk->getName() << " currently running." << endl;
+    // cout << thisClerk->getName() << " currently running." << endl;
     while(true) {
     	if(thisClerk->senatorLineLength > 0) {
     		thisClerk->senatorLineLock->Acquire();
@@ -767,18 +790,19 @@ void runPassportClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->senatorLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application and picture
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             if(thisClerk->customer->hasApp && thisClerk->customer->hasPic) {
+            	cout<<"inside if";
                 int wait = rand() % ((100 - 20) + 1) + 20; 
                 cout << thisClerk->getName() << " started recording " << thisClerk->customer->getName();
                 cout << "'s documents.'" << endl;
                 for(int i = 0; i < wait; i++)               // Process application and picture
                     currentThread->Yield();
                 cout << thisClerk->getName() << " finished recording " << thisClerk->customer->getName();
-                cout << "'s documents." << endl;
+                cout << "'s passport documents." << endl;
                 thisClerk->customer->certifiedByPassportClerk = true;
             } else {
-                cout << thisClerk->getName() << " has sent " << thisClerk->customer->getName();
-                cout << " back to get an application and picture." << endl;
+            	printf("%s has determined that %s does not have both their application and picture completed.\n", thisClerk->name,thisClerk->customer->getName());
             }
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give passport to customer
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept passport
@@ -792,6 +816,7 @@ void runPassportClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->bribeLineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application and picture
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             if(thisClerk->customer->hasApp && thisClerk->customer->hasPic) {
                 int wait = rand() % ((100 - 20) + 1) + 20; 
                 cout << thisClerk->getName() << " started recording " << thisClerk->customer->getName();
@@ -799,11 +824,10 @@ void runPassportClerk(int id) {
                 for(int i = 0; i < wait; i++)               // Process application and picture
                     currentThread->Yield();
                 cout << thisClerk->getName() << " finished recording " << thisClerk->customer->getName();
-                cout << "'s documents.'" << endl;
+                cout << "'s passport documents.'" << endl;
                 thisClerk->customer->certifiedByPassportClerk = true;
             } else {
-                cout << thisClerk->getName() << " has sent " << thisClerk->customer->getName();
-                cout << " back to get an application and picture." << endl;
+                printf("%s has determined that %s does not have both their application and picture completed.\n", thisClerk->name,thisClerk->customer->getName());
             }
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give passport to customer
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept passport
@@ -816,16 +840,16 @@ void runPassportClerk(int id) {
             thisClerk->clerkLock->Acquire(); //
             thisClerk->lineLock->Release();
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for customer to turn in application
+            printf("%s has received SSN %i from %s.\n", thisClerk->name, thisClerk->customer->SSN,thisClerk->customer->getName());
             if(thisClerk->customer->hasApp && thisClerk->customer->hasPic) {
                 int wait = rand() % ((100 - 20) + 1) + 20; 
                 for(int i = 0; i < wait; i++)               // Process application and picture
                     currentThread->Yield();
                 cout << thisClerk->getName() << " finished recording " << thisClerk->customer->getName();
-                cout << "'s documents.'" << endl;
+                cout << "'s passport documents.'" << endl;
                 thisClerk->customer->certifiedByPassportClerk = true;
             } else {
-                cout << thisClerk->getName() << " has sent " << thisClerk->customer->getName();
-                cout << " back to get an application and picture." << endl;
+                printf("%s has determined that %s does not have both their application and picture completed.\n", thisClerk->name,thisClerk->customer->getName());
             }
             thisClerk->clerkCV->Signal(thisClerk->clerkLock);    // Give complete application back
             thisClerk->clerkCV->Wait(thisClerk->clerkLock);      // Wait for Customer to accept application
@@ -846,7 +870,7 @@ void runPassportClerk(int id) {
 
 void runCashier(int id) {
 	Clerk *thisCashier = cashiers[id];
-    cout << thisCashier->getName() << " currently running." << endl;
+    // cout << thisCashier->getName() << " currently running." << endl;
     while(true) {
     	if(thisCashier->senatorLineLength > 0) {
     		thisCashier->senatorLineLock->Acquire();
@@ -854,13 +878,28 @@ void runCashier(int id) {
             thisCashier->clerkLock->Acquire();
             thisCashier->senatorLineLock->Release();
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for customer to pay
+            printf("%s has received SSN %i from %s.\n", thisCashier->name, thisCashier->customer->SSN,thisCashier->customer->getName());
             if(thisCashier->customer->certifiedByPassportClerk) {
-                thisCashier->money = thisCashier->money + 100;
+            	printf("%s has verified that %s has been certified by a PassportClerk.\n", thisCashier->name, thisCashier->customer->getName());
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s after ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+	                thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
+            	printf("%s has provided %s their completed passport.\n", thisCashier->name, thisCashier->customer->getName());
             } else {
-                cout << thisCashier->getName() << " has sent " << thisCashier->customer->getName();
-                cout << " back in line because their documents haven't been filed yet." << endl;
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s before ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+	                thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
             }
             thisCashier->clerkCV->Signal(thisCashier->clerkLock);    // Give complete application back
+
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for Customer to accept application
             thisCashier->customer = NULL;
             thisCashier->clerkLock->Release();
@@ -872,11 +911,25 @@ void runCashier(int id) {
             thisCashier->clerkLock->Acquire();
             thisCashier->bribeLineLock->Release();
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for customer to pay
+            printf("%s has received SSN %i from %s.\n", thisCashier->name, thisCashier->customer->SSN,thisCashier->customer->getName());
             if(thisCashier->customer->certifiedByPassportClerk) {
-                thisCashier->money = thisCashier->money + 100;
+            	printf("%s has verified that %s has been certified by a PassportClerk.\n", thisCashier->name, thisCashier->customer->getName());
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s after ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+		        	thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
+            	printf("%s has provided %s their completed passport.\n", thisCashier->name, thisCashier->customer->getName());
             } else {
-                cout << thisCashier->getName() << " has sent " << thisCashier->customer->getName();
-                cout << " back in line because their documents haven't been filed yet." << endl;
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s before ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+	                thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
             }
             thisCashier->clerkCV->Signal(thisCashier->clerkLock);    // Give complete application back
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for Customer to accept application
@@ -890,11 +943,25 @@ void runCashier(int id) {
             thisCashier->clerkLock->Acquire();
             thisCashier->lineLock->Release();
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for customer to pay
+            printf("%s has received SSN %i from %s.\n", thisCashier->name, thisCashier->customer->SSN,thisCashier->customer->getName());
             if(thisCashier->customer->certifiedByPassportClerk) {
-                thisCashier->money = thisCashier->money + 100;
+            	printf("%s has verified that %s has been certified by a PassportClerk.\n", thisCashier->name, thisCashier->customer->getName());
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s after ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+	                thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
+            	printf("%s has provided %s their completed passport.\n", thisCashier->name, thisCashier->customer->getName());
             } else {
-                cout << thisCashier->getName() << " has sent " << thisCashier->customer->getName();
-                cout << " back in line because their documents haven't been filed yet." << endl;
+            	if(thisCashier->customer->hasPaidForPassport == false){
+		        	printf("%s has receieved the $100 from %s before ceritification.\n", thisCashier->name, thisCashier->customer->getName());
+		        	thisCashier->customer->hasPaidForPassport = true;
+	                thisCashier->moneyLock->Acquire();
+	                thisCashier->money = thisCashier->money + 100;
+	                thisCashier->moneyLock->Release();
+            	}
             }
             thisCashier->clerkCV->Signal(thisCashier->clerkLock);    // Give complete application back
             thisCashier->clerkCV->Wait(thisCashier->clerkLock);      // Wait for Customer to accept application
@@ -943,7 +1010,7 @@ void PassportOffice() {
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
         sprintf(name, "Customer %d", i);
-        customers[i] = new Customer(name, false);
+        customers[i] = new Customer(name, i, false);
     }
 
     // Create Senators
@@ -951,7 +1018,7 @@ void PassportOffice() {
     for(int i = 0; i < numSenators; i++) {
         name = new char[20];
         sprintf(name, "Senator %d", i);
-        senators[i] = new Customer(name, true);
+        senators[i] = new Customer(name, i, true);
     }
 
     // Create ApplicationClerks
@@ -995,6 +1062,13 @@ void PassportOffice() {
     for(int i = 0; i < numPictureClerks; i++)
         pictureClerks[i]->Fork((VoidFunctionPtr)runPictureClerk, i);
 
+        // Run PassportClerks
+    for(int i = 0; i < numPassportClerks; i++)
+        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
+    // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+
     // Run Customers
     for(int i = 0; i < numCustomers; i++)
         customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
@@ -1005,12 +1079,7 @@ void PassportOffice() {
     }
     
     
-    // Run PassportClerks
-    for(int i = 0; i < numPassportClerks; i++)
-        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
-    // Run Cashiers
-    for(int i = 0; i < numCashiers; i++)
-        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+
     
 
     manager = new Manager("manager 1");
@@ -1018,29 +1087,18 @@ void PassportOffice() {
 
 }
 
-void Problem2() {
-    // Default values for Customers and Clerks
-    numCustomers = 6;
-    numApplicationClerks = 1;
-    numPictureClerks = 1;
-    numPassportClerks = 1;
-    numCashiers = 1;
-    numSenators = 2;
-    cout << "Welcome to the Passport Office." << endl;
-    //printMenu();
-    PassportOffice();
-}
+
 
 void printMenu() {
     // Run menu for Part 2 of assignment
-    while(true) {
+ //   while(true) {
         cout << "Please enter an option:" << endl;
         cout << " -a  (View/Edit default values)" << endl;
-        cout << " -b  (Run a test)" << endl;
+        //cout << " -b  (Run Passport Office)" << endl;
         cout << " -c  (Exit)" << endl;
         string input;
         getline(cin, input);
-        if(input == "-a") {     // Print/Edit default values
+        if(input == "a") {     // Print/Edit default values
             cout << "Number of Customers: " <<  numCustomers << endl;
             cout << "Number of Appication Clerks: " << numApplicationClerks << endl;
             cout << "Number of Picture Clerks: " << numPictureClerks << endl;
@@ -1098,21 +1156,29 @@ void printMenu() {
                 cin.clear();
                 cin.ignore(10000, '\n');
             }
-        } else if(input == "-b") {  // Run a test
             PassportOffice();
-        } else if(input == "-c") {  // Exit
+        } else if(input == "c") {  // Exit
             cout << "Exiting Passport Office." << endl;
-            break;
+            // break;
         } else {
             cout << "Invalid input. Please try again." << endl;
         }
-        cin.clear();
-        cin.ignore(10000, '\n');
-    }
+        // cin.clear();
+        // cin.ignore(10000, '\n');
+ //   }
 }
 
-int getRandomNumber() {
-	return 4; // chosen by fair dice roll, guaranteed to be random
+void Problem2() {
+    // Default values for Customers and Clerks
+    numCustomers = 20;
+    numApplicationClerks = 1;
+    numPictureClerks = 1;
+    numPassportClerks = 1;
+    numCashiers = 1;
+    numSenators = 1;
+    cout << "Welcome to the Passport Office." << endl;
+    printMenu();
+    //PassportOffice();
 }
 
 
@@ -1148,7 +1214,7 @@ void Test1() {
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
         sprintf(name, "Customer %d", i);
-        customers[i] = new Customer(name, false);
+        customers[i] = new Customer(name, i, false);
     }
 
     // Create ApplicationClerks
@@ -1249,7 +1315,7 @@ void Test3() {
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
         sprintf(name, "Customer %d", i);
-        customers[i] = new Customer(name, false);
+        customers[i] = new Customer(name, i, false);
         customers[i]->hasApp = true; //assign each customer with app
         customers[i]->hasPic = true; //assign each customer with pic
         customers[i]->certifiedByPassportClerk = true; //assign each customer to be certified by passport clerk
@@ -1386,7 +1452,7 @@ void Test5() {
     for(int i = 0; i < numCustomers; i++) {
         name = new char[20];
         sprintf(name, "Customer %d", i);
-        customers[i] = new Customer(name, false);
+        customers[i] = new Customer(name, i, false);
         customers[i]->hasApp = true; //assign each customer with app
         customers[i]->hasPic = true; //assign each customer with pic
         customers[i]->certifiedByPassportClerk = true; //assign each customer to be certified by passport clerk
@@ -1406,14 +1472,389 @@ void Test5() {
     manager->Fork((VoidFunctionPtr)runManager, 0);
 }
 
-void TestSuite() {
-	cout<<"This is the beginning of test 1"<<endl;
-	
+void Test6() {
+	runningTest6 = true;
+	numCustomers = 10;
+    numApplicationClerks = 1;
+    numPictureClerks = 1;
+    numPassportClerks = 1;
+    numCashiers = 1;
+    numSenators = 0;
+    cout<<"Running Test 6" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
 
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+    // Create Customers
+    customers = new Customer*[numCustomers];
+    for(int i = 0; i < numCustomers; i++) {
+        name = new char[20];
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name, i, false);
+    }
+
+    // Create Senators
+    senators = new Customer*[numSenators];
+    for(int i = 0; i < numSenators; i++) {
+        name = new char[20];
+        sprintf(name, "Senator %d", i);
+        senators[i] = new Customer(name, i, true);
+    }
+
+    // Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+    }
+
+    // Create PictureClerks
+    pictureClerks = new Clerk*[numPictureClerks];
+    for(int i = 0; i < numPictureClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PictureClerk %d", i);
+        pictureClerks[i] = new Clerk(name);
+    }
+
+    
+    // Create PassportClerks
+    passportClerks = new Clerk*[numPassportClerks];
+    for(int i = 0; i < numPassportClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PassportClerk%d", i);
+        passportClerks[i] = new Clerk(name);
+    }
+
+    // Create Cashiers
+    cashiers = new Clerk*[numCashiers];
+    for(int i = 0; i < numCashiers; i++) {
+        name = new char[20];
+        sprintf(name, "Cashier%d", i);
+        cashiers[i] = new Clerk(name);
+    }
+    
+
+    // Run ApplicationClerks
+    for(int i = 0; i < numApplicationClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+    // Run PictureClerks
+    for(int i = 0; i < numPictureClerks; i++)
+        pictureClerks[i]->Fork((VoidFunctionPtr)runPictureClerk, i);
+
+    // Run Customers
+    for(int i = 0; i < numCustomers; i++)
+        customers[i]->Fork((VoidFunctionPtr)runCustomer, i);
+
+    // Run Senators
+    for(int i = 0; i < numSenators; i++) {
+    	senators[i]->Fork((VoidFunctionPtr)runSenator, i);
+    }
+    
+    
+    // Run PassportClerks
+    for(int i = 0; i < numPassportClerks; i++)
+        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
+    // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+    
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+}
+
+void Test7a() {
+	runningTest7a = true;
+	numCustomers = 1;
+    numApplicationClerks = 1;
+    numPictureClerks = 1;
+    numPassportClerks = 1;
+    numCashiers = 1;
+    numSenators = 3;
+    cout<<"Running Test 7a" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+    // Create Customers
+    customers = new Customer*[numCustomers];
+    for(int i = 0; i < numCustomers; i++) {
+        name = new char[20];
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name, i, false);
+    }
+
+    // Create Senators
+    senators = new Customer*[numSenators];
+    for(int i = 0; i < numSenators; i++) {
+        name = new char[20];
+        sprintf(name, "Senator %d", i);
+        senators[i] = new Customer(name, i, true);
+    }
+
+    // Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+    }
+
+    // Create PictureClerks
+    pictureClerks = new Clerk*[numPictureClerks];
+    for(int i = 0; i < numPictureClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PictureClerk %d", i);
+        pictureClerks[i] = new Clerk(name);
+    }
+
+    
+    // Create PassportClerks
+    passportClerks = new Clerk*[numPassportClerks];
+    for(int i = 0; i < numPassportClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PassportClerk%d", i);
+        passportClerks[i] = new Clerk(name);
+    }
+
+    // Create Cashiers
+    cashiers = new Clerk*[numCashiers];
+    for(int i = 0; i < numCashiers; i++) {
+        name = new char[20];
+        sprintf(name, "Cashier%d", i);
+        cashiers[i] = new Clerk(name);
+    }
+    
+
+    // Run ApplicationClerks
+    for(int i = 0; i < numApplicationClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+    // Run PictureClerks
+    for(int i = 0; i < numPictureClerks; i++)
+        pictureClerks[i]->Fork((VoidFunctionPtr)runPictureClerk, i);
+
+    // // Run Senator
+	senators[0]->Fork((VoidFunctionPtr)runSenator, 0);
+    // // Run Customer
+	customers[0]->Fork((VoidFunctionPtr)runCustomer, 0);
+
+    
+    
+    // Run PassportClerks
+    for(int i = 0; i < numPassportClerks; i++)
+        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
+    // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+    
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+
+
+
+
+}
+
+void Test7b() {
+	runningTest7b = true;
+	numCustomers = 1;
+    numApplicationClerks = 1;
+    numPictureClerks = 1;
+    numPassportClerks = 1;
+    numCashiers = 1;
+    numSenators = 3;
+    cout<<"Running Test 3" <<endl;
+    cout<<"Number of Customers = " << numCustomers <<endl;
+	cout<<"Number of ApplicationClerks = " << numApplicationClerks<<endl;
+	cout<<"Number of PictureClerks = " << numPictureClerks <<endl;
+	cout<<"Number of PassportClerks = " << numPassportClerks <<endl;
+	cout<<"Number of Cashiers = " << numCashiers <<endl;
+	cout<<"Number of Senators = " << numSenators <<endl;
+
+
+	// Create locks and conditions
+	senatorOutsideLineLock = new Lock("senatorOutsideLineLock");
+	senatorInsideLock = new Lock("senatorInsideLock");
+	customerOutsideLineLock = new Lock("customerOutsideLineLock");
+	senatorOutsideLineCV = new Condition("senatorOutsideLineCV");
+	customerOutsideLineCV = new Condition("customerOutsideLineCV");
+	
+    char* name;
+    // Create Customers
+    customers = new Customer*[numCustomers];
+    for(int i = 0; i < numCustomers; i++) {
+        name = new char[20];
+        sprintf(name, "Customer %d", i);
+        customers[i] = new Customer(name, i, false);
+    }
+
+    // Create Senators
+    senators = new Customer*[numSenators];
+    for(int i = 0; i < numSenators; i++) {
+        name = new char[20];
+        sprintf(name, "Senator %d", i);
+        senators[i] = new Customer(name, i, true);
+    }
+
+    // Create ApplicationClerks
+    applicationClerks = new Clerk*[numApplicationClerks];
+    for(int i = 0; i < numApplicationClerks; i++) {
+        name = new char[20];
+        sprintf(name, "ApplicationClerk %d", i);
+        applicationClerks[i] = new Clerk(name);
+    }
+
+    // Create PictureClerks
+    pictureClerks = new Clerk*[numPictureClerks];
+    for(int i = 0; i < numPictureClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PictureClerk %d", i);
+        pictureClerks[i] = new Clerk(name);
+    }
+
+    
+    // Create PassportClerks
+    passportClerks = new Clerk*[numPassportClerks];
+    for(int i = 0; i < numPassportClerks; i++) {
+        name = new char[20];
+        sprintf(name, "PassportClerk%d", i);
+        passportClerks[i] = new Clerk(name);
+    }
+
+    // Create Cashiers
+    cashiers = new Clerk*[numCashiers];
+    for(int i = 0; i < numCashiers; i++) {
+        name = new char[20];
+        sprintf(name, "Cashier%d", i);
+        cashiers[i] = new Clerk(name);
+    }
+    
+
+    // Run ApplicationClerks
+    for(int i = 0; i < numApplicationClerks; i++)
+        applicationClerks[i]->Fork((VoidFunctionPtr)runApplicationClerk, i);
+    // Run PictureClerks
+    for(int i = 0; i < numPictureClerks; i++)
+        pictureClerks[i]->Fork((VoidFunctionPtr)runPictureClerk, i);
+
+    // // Run Customer
+	customers[0]->Fork((VoidFunctionPtr)runCustomer, 0);
+
+    // // Run Senator
+	senators[0]->Fork((VoidFunctionPtr)runSenator, 0);
+
+
+    
+    
+    // Run PassportClerks
+    for(int i = 0; i < numPassportClerks; i++)
+        passportClerks[i]->Fork((VoidFunctionPtr)runPassportClerk, i);
+    // Run Cashiers
+    for(int i = 0; i < numCashiers; i++)
+        cashiers[i]->Fork((VoidFunctionPtr)runCashier, i);
+    
+
+    manager = new Manager("manager 1");
+    manager->Fork((VoidFunctionPtr)runManager, 0);
+
+
+
+
+}
+
+void printTest7Menu() {
+ cout << "Test 7" << endl;
+    cout << "Please enter an option:" << endl;
+    cout << " -T7a  (Run Test 7a: Senator comes in with no Customers inside)" << endl;
+    cout << " -T7b  (Run Test 7b: Senator comes in with Customers inside)" << endl;
+    string input;
+    getline(cin, input);
+    if(input == "T7a")
+        Test7a();
+    else if(input == "T7b")
+        Test7b();
+    else
+        cout << "Invalid input." << endl;
+
+}
+
+ void printTestMenu() {
+  cout << "Welcome to TestSuite" << endl;
+    //while(true) {
+        cout << "Please enter an option:" << endl;
+        cout << " -T1  (Run Test 1)" << endl;
+        cout << " -T2  (Run Test 2)" << endl;
+        cout << " -T3  (Run Test 3)" << endl;
+        cout << " -T4  (Run Test 4)" << endl;
+        cout << " -T5  (Run Test 5)" << endl;
+        cout << " -T6  (Run Test 6)" << endl;
+        cout << " -T7  (Run Test 7)" << endl;
+        cout << " -e  (Exit)" << endl;
+        string input;
+        getline(cin, input);
+        if(input == "-T1")
+            Test1();
+        else if(input == "T2")
+            Test2();
+        else if(input == "T3")
+            Test3();
+        else if(input == "T4")
+            Test4();
+        else if(input == "T5")
+            Test5();
+        else if(input == "T6")
+            Test6();
+        else if(input == "T7")
+            printTest7Menu();
+        else if(input == "e") {
+        cout << "Exiting TestSuite" << endl;
+        //break;
+        } else
+            cout << "Invalid input. Please try again." << endl;
+        //cin.clear();
+        //cin.ignore(10000, '\n');
+    //}
+ }
+
+
+void TestSuite() {
+	printTestMenu();
+	//Test7a();
     //Test1();
     //Test2();
     //Test3();
     //Test4();
-    Test5();
+    //Test5();
+    //Test6();
+    //Test7a();
+	//Test7b();
 }
+
+
 
