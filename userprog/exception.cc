@@ -29,57 +29,8 @@
 
 using namespace std;
 
-int copyin(unsigned int vaddr, int len, char *buf) {
-    // Copy len bytes from the current thread's virtual address vaddr.
-    // Return the number of bytes so read, or -1 if an error occors.
-    // Errors can generally mean a bad virtual address was passed in.
-    bool result;
-    int n=0;			// The number of bytes copied in
-    int *paddr = new int;
-
-    while ( n >= 0 && n < len) {
-      result = machine->ReadMem( vaddr, 1, paddr );
-      while(!result) // FALL 09 CHANGES
-	  {
-   			result = machine->ReadMem( vaddr, 1, paddr ); // FALL 09 CHANGES: TO HANDLE PAGE FAULT IN THE ReadMem SYS CALL
-	  }	
-      
-      buf[n++] = *paddr;
-     
-      if ( !result ) {
-	//translation failed
-	return -1;
-      }
-
-      vaddr++;
-    }
-
-    delete paddr;
-    return len;
-}
-
-int copyout(unsigned int vaddr, int len, char *buf) {
-    // Copy len bytes to the current thread's virtual address vaddr.
-    // Return the number of bytes so written, or -1 if an error
-    // occors.  Errors can generally mean a bad virtual address was
-    // passed in.
-    bool result;
-    int n=0;			// The number of bytes copied in
-
-    while ( n >= 0 && n < len) {
-      // Note that we check every byte's address
-      result = machine->WriteMem( vaddr, 1, (int)(buf[n++]) );
-
-      if ( !result ) {
-	//translation failed
-	return -1;
-      }
-
-      vaddr++;
-    }
-
-    return n;
-}
+int copyin(unsigned int vaddr, int len, char *buf);
+int copyout(unsigned int vaddr, int len, char *buf);
 
 void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
@@ -87,16 +38,14 @@ void Create_Syscall(unsigned int vaddr, int len) {
     // way to return errors, though...
     char *buf = new char[len+1];	// Kernel buffer to put the name in
 
-    if (!buf) return;
-
+    if (!buf) 
+    	return;
     if( copyin(vaddr,len,buf) == -1 ) {
-	printf("%s","Bad pointer passed to Create\n");
-	delete buf;
-	return;
+		printf("%s","Bad pointer passed to Create\n");
+		delete buf;
+		return;
     }
-
     buf[len]='\0';
-
     fileSystem->Create(buf,0);
     delete[] buf;
     return;
@@ -112,15 +61,14 @@ int Open_Syscall(unsigned int vaddr, int len) {
     OpenFile *f;			// The new open file
     int id;				// The openfile id
 
-    if (!buf) {
-	printf("%s","Can't allocate kernel buffer in Open\n");
-	return -1;
+    if(!buf) {
+		printf("%s","Can't allocate kernel buffer in Open\n");
+		return -1;
     }
-
-    if( copyin(vaddr,len,buf) == -1 ) {
-	printf("%s","Bad pointer passed to Open\n");
-	delete[] buf;
-	return -1;
+    if(copyin(vaddr, len, buf) == -1) {
+		printf("%s","Bad pointer passed to Open\n");
+		delete[] buf;
+		return -1;
     }
 
     buf[len]='\0';
@@ -128,13 +76,13 @@ int Open_Syscall(unsigned int vaddr, int len) {
     f = fileSystem->Open(buf);
     delete[] buf;
 
-    if ( f ) {
-	if ((id = currentThread->space->fileTable.Put(f)) == -1 )
-	    delete f;
-	return id;
+    if(f) {
+		if((id = currentThread->space->fileTable.Put(f)) == -1)
+	    	delete f;
+		return id;
     }
     else
-	return -1;
+		return -1;
 }
 
 void Write_Syscall(unsigned int vaddr, int len, int id) {
@@ -144,37 +92,34 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
     // console exists, create one. For disk files, the file is looked
     // up in the current address space's open file table and used as
     // the target of the write.
-    
     char *buf;		// Kernel buffer for output
     OpenFile *f;	// Open file for output
 
-    if ( id == ConsoleInput) return;
-    
-    if ( !(buf = new char[len]) ) {
-	printf("%s","Error allocating kernel buffer for write!\n");
-	return;
+    if(id == ConsoleInput) 
+    	return;
+    if(!(buf = new char[len])) {
+		printf("%s","Error allocating kernel buffer for write!\n");
+		return;
     } else {
-        if ( copyin(vaddr,len,buf) == -1 ) {
-	    printf("%s","Bad pointer passed to to write: data not written\n");
-	    delete[] buf;
-	    return;
-	}
+        if (copyin(vaddr,len,buf) == -1) {
+	    	printf("%s","Bad pointer passed to to write: data not written\n");
+	    	delete[] buf;
+	    	return;
+		}
     }
-
-    if ( id == ConsoleOutput) {
-      for (int ii=0; ii<len; ii++) {
-	printf("%c",buf[ii]);
+    if(id == ConsoleOutput) {
+      	for (int ii=0; ii<len; ii++) {
+			printf("%c",buf[ii]);
       }
 
     } else {
-	if ( (f = (OpenFile *) currentThread->space->fileTable.Get(id)) ) {
-	    f->Write(buf, len);
-	} else {
-	    printf("%s","Bad OpenFileId passed to Write\n");
-	    len = -1;
-	}
+		if ((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
+	    	f->Write(buf, len);
+		} else {
+	    	printf("%s","Bad OpenFileId passed to Write\n");
+	    	len = -1;
+		}
     }
-
     delete[] buf;
 }
 
@@ -187,35 +132,32 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
     char *buf;		// Kernel buffer for input
     OpenFile *f;	// Open file for output
 
-    if ( id == ConsoleOutput) return -1;
-    
-    if ( !(buf = new char[len]) ) {
-	printf("%s","Error allocating kernel buffer in Read\n");
-	return -1;
+    if(id == ConsoleOutput) 
+    	return -1;
+    if(!(buf = new char[len])) {
+		printf("%s","Error allocating kernel buffer in Read\n");
+		return -1;
     }
-
-    if ( id == ConsoleInput) {
-      //Reading from the keyboard
-      scanf("%s", buf);
-
-      if ( copyout(vaddr, len, buf) == -1 ) {
-	printf("%s","Bad pointer passed to Read: data not copied\n");
-      }
+    if(id == ConsoleInput) {
+      	//Reading from the keyboard
+      	scanf("%s", buf);
+      	if(copyout(vaddr, len, buf) == -1 ) {
+			printf("%s","Bad pointer passed to Read: data not copied\n");
+      	}
     } else {
-	if ( (f = (OpenFile *) currentThread->space->fileTable.Get(id)) ) {
-	    len = f->Read(buf, len);
-	    if ( len > 0 ) {
-	        //Read something from the file. Put into user's address space
-  	        if ( copyout(vaddr, len, buf) == -1 ) {
-		    printf("%s","Bad pointer passed to Read: data not copied\n");
+		if((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
+	    	len = f->Read(buf, len);
+	    	if(len > 0) {
+	        	//Read something from the file. Put into user's address space
+  	        	if(copyout(vaddr, len, buf) == -1) {
+		    	printf("%s","Bad pointer passed to Read: data not copied\n");
+				}
+	    	}
+		} else {
+	    	printf("%s","Bad OpenFileId passed to Read\n");
+	    	len = -1;
 		}
-	    }
-	} else {
-	    printf("%s","Bad OpenFileId passed to Read\n");
-	    len = -1;
-	}
     }
-
     delete[] buf;
     return len;
 }
@@ -223,60 +165,302 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
 void Close_Syscall(int fd) {
     // Close the file associated with id fd.  No error reporting.
     OpenFile *f = (OpenFile *) currentThread->space->fileTable.Remove(fd);
-
-    if ( f ) {
-      delete f;
+    if(f) {
+      	delete f;
     } else {
-      printf("%s","Tried to close an unopen file\n");
+      	printf("%s","Tried to close an unopen file\n");
     }
+}
+
+int CreateLock_Syscall() {
+	KernelLock *lock = new KernelLock();
+	lockTable->tableLock->Acquire();
+	int key = lockTable->index;
+	lockTable->locks[key] = lock;
+	lockTable->index++;
+	cout << "Created lock with key: " << key << endl;
+	lockTable->tableLock->Release();
+	return key;
+}
+
+void DestroyLock_Syscall(unsigned int key) {
+	KernelLock *lock;
+	lockTable->tableLock->Acquire();
+	if(key >= 0 && key < lockTable->locks.size())
+		lock = lockTable->locks[key];
+	else
+		cout << "Attempt to destroy lock that doesn't exist" << endl;
+	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+		lockTable->locks.erase(key);
+		cout << "Destroyed lock with key: " << key << endl;
+	}
+	lockTable->tableLock->Release();
+}
+
+void Acquire_Syscall(unsigned int key) {
+	KernelLock *lock;
+	lockTable->tableLock->Acquire();
+	if(key >= 0 && key < lockTable->locks.size())
+		lock = lockTable->locks[key];
+	else
+		cout << "Attempt to acquire lock that doesn't exist" << endl;
+	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+		lock->lock->Acquire();
+		cout << "Acquired lock with key: " << key << endl;
+	}
+	lockTable->tableLock->Release();
+}
+
+void Release_Syscall(unsigned int key) {
+	KernelLock *lock;
+	lockTable->tableLock->Acquire();
+	if(key >= 0 && key < lockTable->locks.size())
+		lock = lockTable->locks[key];
+	else
+		cout << "Attempt to release lock that doesn't exist" << endl;
+	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+		lock->lock->Release();
+		cout << "Released lock with key: " << key << endl;
+	}
+	lockTable->tableLock->Release();
+}
+
+int CreateCondition_Syscall() {
+	KernelCondition *condition = new KernelCondition();
+	conditionTable->tableLock->Acquire();
+	int key = conditionTable->index;
+	conditionTable->conditions[key] = condition;
+	conditionTable->index++;
+	cout << "Created condition with key: " << key << endl;
+	conditionTable->tableLock->Release();
+	return key;
+}
+
+void DestroyCondition_Syscall(unsigned int key) {
+	KernelCondition *condition;
+	conditionTable->tableLock->Acquire();
+	if(key >= 0 && key < conditionTable->conditions.size())
+		condition = conditionTable->conditions[key];
+	else
+		cout << "Attempt to destroy condition that doesn't exist" << endl;
+	if(condition != NULL /*&& condition->space == AddrSpace* of process*/) {
+		conditionTable->conditions.erase(key);
+		cout << "Destroyed condition with key: " << key << endl;
+	}
+	conditionTable->tableLock->Release();
+}
+
+void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
+	KernelCondition *condition;
+	KernelLock *lock;
+	conditionTable->tableLock->Acquire();
+	lockTable->tableLock->Acquire();
+	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+		condition = conditionTable->conditions[conditionKey];
+	else
+		cout << "Attempt to wait by condition that doesn't exist" << endl;
+	if(lockKey >= 0 && lockKey < lockTable->locks.size())
+		lock = lockTable->locks[lockKey];
+	else
+		cout << "Condition trying to wait owns lock that doesn't exist" << endl;
+	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+		condition->condition->Wait(*lock);
+		cout << "Waiting on condition with key: " << conditionKey << endl;
+	}
+	lockTable->tableLock->Release();
+	conditionTable->tableLock->Release();
+}
+
+void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
+	KernelCondition *condition;
+	KernelLock *lock;
+	conditionTable->tableLock->Acquire();
+	lockTable->tableLock->Acquire();
+	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+		condition = conditionTable->conditions[conditionKey];
+	else
+		cout << "Attempt to signal by condition that doesn't exist" << endl;
+	if(lockKey >= 0 && lockKey < lockTable->locks.size())
+		lock = lockTable->locks[lockKey];
+	else
+		cout << "Condition trying to signal owns lock that doesn't exist" << endl;
+	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+		condition->condition->Signal(*lock);
+		cout << "Condition with key " << conditionKey <<  " signalling" << endl;
+	}
+	lockTable->tableLock->Release();
+	conditionTable->tableLock->Release();
+}
+
+void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
+	KernelCondition *condition;
+	KernelLock *lock;
+	conditionTable->tableLock->Acquire();
+	lockTable->tableLock->Acquire();
+	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+		condition = conditionTable->conditions[conditionKey];
+	else
+		cout << "Attempt to broadcast by condition that doesn't exist" << endl;
+	if(lockKey >= 0 && lockKey < lockTable->locks.size())
+		lock = lockTable->locks[lockKey];
+	else
+		cout << "Condition trying to broadcast owns lock that doesn't exist" << endl;
+	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+		condition->condition->Broadcast(*lock);
+		cout << "Condition with key " << conditionKey << " broadcasting" << endl;
+	}
+	lockTable->tableLock->Release();
+	conditionTable->tableLock->Release();
+}
+
+void Print_Syscall(int i) {
+	cout << i << endl;
 }
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
-    int rv=0; 	// the return value from a syscall
-
-    if ( which == SyscallException ) {
-	switch (type) {
-	    default:
-		DEBUG('a', "Unknown syscall - shutting down.\n");
-	    case SC_Halt:
-		DEBUG('a', "Shutdown, initiated by user program.\n");
-		interrupt->Halt();
-		break;
-	    case SC_Create:
-		DEBUG('a', "Create syscall.\n");
-		Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-		break;
-	    case SC_Open:
-		DEBUG('a', "Open syscall.\n");
-		rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-		break;
-	    case SC_Write:
-		DEBUG('a', "Write syscall.\n");
-		Write_Syscall(machine->ReadRegister(4),
-			      machine->ReadRegister(5),
-			      machine->ReadRegister(6));
-		break;
-	    case SC_Read:
-		DEBUG('a', "Read syscall.\n");
-		rv = Read_Syscall(machine->ReadRegister(4),
-			      machine->ReadRegister(5),
-			      machine->ReadRegister(6));
-		break;
-	    case SC_Close:
-		DEBUG('a', "Close syscall.\n");
-		Close_Syscall(machine->ReadRegister(4));
-		break;
-	}
-
-	// Put in the return value and increment the PC
-	machine->WriteRegister(2,rv);
-	machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-	machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-	machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-	return;
+    int rv = 0; 	// the return value from a syscall
+    if(which == SyscallException) {
+		switch (type) {
+	    	default:
+				DEBUG('a', "Unknown syscall - shutting down.\n");
+	    	case SC_Halt:
+				DEBUG('a', "Shutdown, initiated by user program.\n");
+				interrupt->Halt();
+				break;
+			case SC_Exit:
+				DEBUG('a', "Exiting.\n");
+				//Exit_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Exec:
+				DEBUG('a', "Exec.\n");
+				//Exec_Syscall();
+				break;
+			case SC_Join:
+				DEBUG('a', "Join.\n");
+				//Join_Syscall();
+				break;
+	    	case SC_Create:
+				DEBUG('a', "Create syscall.\n");
+				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+	    	case SC_Open:
+				DEBUG('a', "Open syscall.\n");
+				rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+	    	case SC_Write:
+				DEBUG('a', "Write syscall.\n");
+				Write_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				break;
+	    	case SC_Read:
+				DEBUG('a', "Read syscall.\n");
+				rv = Read_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				break;
+	    	case SC_Close:
+				DEBUG('a', "Close syscall.\n");
+				Close_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Fork:
+				DEBUG('a', "Fork.\n");
+				//Fork_Syscall();
+				break;
+			case SC_Yield:
+				DEBUG('a', "Yield.\n");
+				currentThread->Yield();
+				break;
+			case SC_CreateLock:
+				DEBUG('a', "CreateLock syscall.\n");
+				rv = CreateLock_Syscall();
+				break;
+			case SC_DestroyLock:
+				DEBUG('a', "DestroyLock syscall.\n");
+				DestroyLock_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Acquire:
+				DEBUG('a', "Acquire syscall.\n");
+				Acquire_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Release:
+				DEBUG('a', "Release syscall.\n");
+				Release_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_CreateCondition:
+				DEBUG('a', "CreateCondition syscall.\n");
+				CreateCondition_Syscall();
+				break;
+			case SC_DestroyCondition:
+				DEBUG('a', "DestroyCondition syscall.\n");
+				DetroyCondition_Syscall(machine->ReadRegister(4));
+				break;
+			case SC_Wait:
+				DEBUG('a', "Wait syscall.\n");
+				Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Signal:
+				DEBUG('a', "Signal syscall.\n");
+				Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Broadcast:
+				DEBUG('a', "Broadcast syscall.\n");
+				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+			case SC_Print:
+				Print_Syscall(machine->ReadRegister(4));
+				break;
+		}
+		// Put in the return value and increment the PC
+		machine->WriteRegister(2,rv);
+		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+		return;
     } else {
-      cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
-      interrupt->Halt();
+      	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
+      	interrupt->Halt();
     }
+}
+
+int copyin(unsigned int vaddr, int len, char *buf) {
+    // Copy len bytes from the current thread's virtual address vaddr.
+    // Return the number of bytes so read, or -1 if an error occors.
+    // Errors can generally mean a bad virtual address was passed in.
+    bool result;
+    int n = 0;			// The number of bytes copied in
+    int *paddr = new int;
+
+    while ( n >= 0 && n < len) {
+      	result = machine->ReadMem( vaddr, 1, paddr );
+      	while(!result) // FALL 09 CHANGES
+	  	{
+   			result = machine->ReadMem( vaddr, 1, paddr ); // FALL 09 CHANGES: TO HANDLE PAGE FAULT IN THE ReadMem SYS CALL
+		}	
+      	buf[n++] = *paddr;
+      	if ( !result ) {
+		//translation failed
+		return -1;
+      	}
+      	vaddr++;
+    }
+    delete paddr;
+    return len;
+}
+
+int copyout(unsigned int vaddr, int len, char *buf) {
+    // Copy len bytes to the current thread's virtual address vaddr.
+    // Return the number of bytes so written, or -1 if an error
+    // occors.  Errors can generally mean a bad virtual address was
+    // passed in.
+    bool result;
+    int n = 0;			// The number of bytes copied in
+    while ( n >= 0 && n < len) {
+      	// Note that we check every byte's address
+      	result = machine->WriteMem( vaddr, 1, (int)(buf[n++]) );
+
+    	if ( !result ) {
+			//translation failed
+			return -1;
+     	}
+      	vaddr++;
+    }
+    return n;
 }

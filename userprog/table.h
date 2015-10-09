@@ -22,5 +22,4 @@ class Table {
     void *Remove(int);
 };
 
-
 #endif // TABLE_H

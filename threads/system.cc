@@ -12,12 +12,11 @@
 // These are all initialized and de-allocated by this file.
 
 Thread *currentThread;			// the thread we are running now
-Thread *threadToBeDestroyed;  		// the thread that just finished
+Thread *threadToBeDestroyed;  	// the thread that just finished
 Scheduler *scheduler;			// the ready list
-Interrupt *interrupt;			// interrupt status
-Statistics *stats;			// performance metrics
-Timer *timer;				// the hardware timer device,
-					// for invoking context switches
+Interrupt *interrupt;           // interrupt status
+Statistics *stats;              // performance metrics
+Timer *timer;                   // the hardware timer device for invoking context switches
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -29,16 +28,16 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+LockTable *lockTable;
+ConditionTable *conditionTable;
 #endif
 
 #ifdef NETWORK
 PostOffice *postOffice;
 #endif
 
-
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
-
 
 //----------------------------------------------------------------------
 // TimerInterruptHandler
@@ -58,8 +57,7 @@ extern void Cleanup();
 //		whether it needs it or not.
 //----------------------------------------------------------------------
 static void
-TimerInterruptHandler(int dummy)
-{
+TimerInterruptHandler(int dummy) {
     if (interrupt->getStatus() != IdleMode)
 	interrupt->YieldOnReturn();
 }
@@ -75,8 +73,7 @@ TimerInterruptHandler(int dummy)
 //		ex: "nachos -d +" -> argv = {"nachos", "-d", "+"}
 //----------------------------------------------------------------------
 void
-Initialize(int argc, char **argv)
-{
+Initialize(int argc, char **argv) {
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
@@ -146,9 +143,11 @@ Initialize(int argc, char **argv)
 
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
-    
+
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
+    lockTable = new LockTable();
+    conditionTable = new ConditionTable();
 #endif
 
 #ifdef FILESYS
@@ -169,15 +168,16 @@ Initialize(int argc, char **argv)
 // 	Nachos is halting.  De-allocate global data structures.
 //----------------------------------------------------------------------
 void
-Cleanup()
-{
+Cleanup() {
     printf("\nCleaning up...\n");
 #ifdef NETWORK
     delete postOffice;
 #endif
     
 #ifdef USER_PROGRAM
-    delete machine;
+    delete machine; 
+    delete lockTable;
+    delete conditionTable;
 #endif
 
 #ifdef FILESYS_NEEDED
@@ -187,11 +187,9 @@ Cleanup()
 #ifdef FILESYS
     delete synchDisk;
 #endif
-    
     delete timer;
     delete scheduler;
     delete interrupt;
-    
     Exit(0);
 }
 
