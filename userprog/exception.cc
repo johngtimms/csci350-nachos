@@ -29,8 +29,15 @@
 
 using namespace std;
 
+int threadCount;
+
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
+
+void Exit_Syscall(int processNumber) {
+	
+
+}
 
 void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
@@ -330,7 +337,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Exit:
 				DEBUG('a', "Exiting.\n");
-				//Exit_Syscall(machine->ReadRegister(4));
+				Exit_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec.\n");

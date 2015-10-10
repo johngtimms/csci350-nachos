@@ -4,6 +4,8 @@
 #include "synch.h"
 #include <map>
 
+typedef int SpaceID;
+
 struct KernelLock {
 	Lock* lock;
 	AddrSpace* space;
@@ -54,7 +56,7 @@ struct LockTable {
 struct ConditionTable {
 	int index;
 	Lock *tableLock;
-	map<int, KernelCondition*> conditions;
+	std::map<int, KernelCondition*> conditions;
 	ConditionTable() {
 		index = 0;
 		tableLock = new Lock();
@@ -62,5 +64,18 @@ struct ConditionTable {
 	~ConditionTable() {
 		delete tableLock;
 	}
+};
+
+struct Process {
+	AddrSpace* space;
+	Thread* processThread;
+	std::vector<Thread*> threads;
+
+
+};
+
+struct ProcessTable {
+	std::map<SpaceID, Process*> processes;
+
 };
 #endif
