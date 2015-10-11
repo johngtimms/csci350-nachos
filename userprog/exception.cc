@@ -26,16 +26,96 @@
 #include "syscall.h"
 #include <stdio.h>
 #include <iostream>
+#include <vector>
+#include <map>
+#include "process.h"
 
 using namespace std;
 
-int threadCount;
+
+
+struct ProcessTable {
+	std::map<SpaceID, Process*> processes;
+
+};
+
+Process::Process(char *processName) {
+	this->name = processName;
+	this->processThread = currentThread;
+	threads = new List();
+	threadCount = 0;
+}
+
+Process *currentProcess;
+ProcessTable processes;
 
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
 
-void Exit_Syscall(int processNumber) {
+void InitExceptions(){
+	cout<<"INIT EXCEPTIONS CALLED"<<endl;
+}
+
+void InitProcess(Process* process) {
+	cout<<"Init PROCESS CALLED FOR PROCESS: " <<process->name<<endl;
+	currentProcess = process;
+}
+
+
+
+// Ensures that the forked thread begins execution at the correct position.
+void ForkUserThread(int functionPtr)
+{
+  DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
+ 
+  currentThread->space->InitRegisters();
+  currentThread->space->RestoreState();
+  
+  // update the stack register
+  machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16);
+
+  // Set the program counter to the appropriate place indicated by funcPtr...
+  machine->WriteRegister(PCReg, functionPtr);
+  machine->WriteRegister(NextPCReg, functionPtr + 4);
+  machine->Run();
+}
+
+void Fork_Syscall(int functionPtr) {
+	currentProcess->threadCount++;
+
+	Thread *thread = new Thread(currentProcess->name);
+	thread->space = currentThread->space;
+
+	// if this fails then delete thread and exit function
+	if(thread->space->CreateStack() == false)
+	{
+		delete thread;
+    	DEBUG('p', "Create stack failed - not enough memory available.\n");
+    	cout<<"failed"<<endl;
+    	return;
+	}
 	
+
+	currentProcess->threads->Append(thread);
+	thread->Fork(ForkUserThread, functionPtr);
+}
+
+bool Exit_Syscall(int status) {
+	if(currentThread == currentProcess->processThread) {
+		if(currentProcess->threadCount == 0) {
+			//exit main thread
+			interrupt->Halt();
+			return true;
+		} else {
+			currentThread->Finish();
+			return false;
+		}
+	} else {
+		//exiting a forked thread
+		currentProcess->threadCount--;
+		currentThread->Finish();
+		return false;
+	}
 
 }
 
@@ -337,7 +417,10 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Exit:
 				DEBUG('a', "Exiting.\n");
-				Exit_Syscall(machine->ReadRegister(4));
+				if(Exit_Syscall(machine->ReadRegister(4))) {
+					delete currentProcess;
+					return;
+				}
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec.\n");
@@ -369,7 +452,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Fork:
 				DEBUG('a', "Fork.\n");
-				//Fork_Syscall();
+				Fork_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Yield:
 				DEBUG('a', "Yield.\n");

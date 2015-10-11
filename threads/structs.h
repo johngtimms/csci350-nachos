@@ -66,16 +66,5 @@ struct ConditionTable {
 	}
 };
 
-struct Process {
-	AddrSpace* space;
-	Thread* processThread;
-	std::vector<Thread*> threads;
 
-
-};
-
-struct ProcessTable {
-	std::map<SpaceID, Process*> processes;
-
-};
 #endif

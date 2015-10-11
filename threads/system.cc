@@ -30,7 +30,6 @@ SynchDisk   *synchDisk;
 Machine *machine;	// user program memory and registers
 LockTable *lockTable;
 ConditionTable *conditionTable;
-ProcessTable *processTable;
 #endif
 
 #ifdef NETWORK

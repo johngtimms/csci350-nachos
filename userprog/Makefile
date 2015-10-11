@@ -2,11 +2,11 @@
 #
 # Makefile for the multiprogramming assignment
 #    Defines set up assuming multiprogramming is done before the file system.
-#    If not, use the "filesys first"  defines below. 
+#    If not, use the "filesys first"  defines below.
 #
 #
 # Copyright (c) 1992 The Regents of the University of California.
-# All rights reserved.  See copyright.h for copyright notice and limitation 
+# All rights reserved.  See copyright.h for copyright notice and limitation
 # of liability and disclaimer of warranty provisions.
 
 DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB
@@ -2290,7 +2290,7 @@ translate.o: ../machine/translate.cc ../threads/copyright.h \
   ../threads/thread.h ../machine/machine.h ../userprog/addrspace.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../filesys/filesys.h
+  ../filesys/filesys.h ../userprog/process.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY
 # see make depend above

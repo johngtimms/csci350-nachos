@@ -14,8 +14,12 @@
 #include "addrspace.h"
 #include "synch.h"
 #include "string.h"
+#include "process.h"
 
 #define QUANTUM 100
+
+extern void InitExceptions();
+extern void InitProcess(Process* process);
 
 //----------------------------------------------------------------------
 // StartProcess
@@ -31,8 +35,11 @@ StartProcess(char *filename)
 	   printf("Unable to open file %s\n", filename);
 	   return;
     }
+    InitExceptions();
     space = new AddrSpace(executable);
     currentThread->space = space;
+    Process *process = new Process(filename);
+    InitProcess(process);
     delete executable;			// close file
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
