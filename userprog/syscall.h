@@ -61,7 +61,7 @@ void Halt(int i);
 void Exit(int status);	
 
 /* A unique identifier for an executing user program (address space) */
-/* typedef int SpaceId;	*/
+typedef int spaceId;
  
 /* Run the executable, stored in the Nachos file "name", and return the address space identifier */
 int Exec(char *name);

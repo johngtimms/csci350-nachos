@@ -54,14 +54,13 @@ Thread::Thread(char* threadName)
 //      because we didn't allocate it -- we got it automatically
 //      as part of starting up Nachos.
 //----------------------------------------------------------------------
-
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     ASSERT(this != currentThread);
-    if (stack != NULL)
-	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    if(stack != NULL)
+	   DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
 }
 
 //----------------------------------------------------------------------
@@ -83,7 +82,6 @@ Thread::~Thread()
 //	"func" is the procedure to run concurrently.
 //	"arg" is a single argument to be passed to the procedure.
 //----------------------------------------------------------------------
-
 void 
 Thread::Fork(VoidFunctionPtr func, int arg)
 {
@@ -112,7 +110,6 @@ Thread::Fork(VoidFunctionPtr func, int arg)
 // 	overflows by not putting large data structures on the stack.
 // 	Don't do this: void foo() { int bigArray[10000]; ... }
 //----------------------------------------------------------------------
-
 void
 Thread::CheckOverflow()
 {
@@ -138,8 +135,6 @@ Thread::CheckOverflow()
 // 	NOTE: we disable interrupts, so that we don't get a time slice 
 //	between setting threadToBeDestroyed, and going to sleep.
 //----------------------------------------------------------------------
-
-//
 void
 Thread::Finish ()
 {
@@ -170,9 +165,8 @@ Thread::Finish ()
 //
 // 	Similar to Thread::Sleep(), but a little different.
 //----------------------------------------------------------------------
-
 void
-Thread::Yield ()
+Thread::Yield()
 {
     Thread *nextThread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -294,7 +288,6 @@ Thread::StackAllocate (VoidFunctionPtr func, int arg)
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine saves the former.
 //----------------------------------------------------------------------
-
 void
 Thread::SaveUserState()
 {
@@ -310,7 +303,6 @@ Thread::SaveUserState()
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine restores the former.
 //----------------------------------------------------------------------
-
 void
 Thread::RestoreUserState()
 {

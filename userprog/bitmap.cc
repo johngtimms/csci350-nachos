@@ -16,7 +16,6 @@
 //
 //	"nitems" is the number of bits in the bitmap.
 //----------------------------------------------------------------------
-
 BitMap::BitMap(int nitems) 
 { 
     numBits = nitems;
@@ -30,7 +29,6 @@ BitMap::BitMap(int nitems)
 // BitMap::~BitMap
 // 	De-allocate a bitmap.
 //----------------------------------------------------------------------
-
 BitMap::~BitMap()
 { 
     delete map;
@@ -42,7 +40,6 @@ BitMap::~BitMap()
 //
 //	"which" is the number of the bit to be set.
 //----------------------------------------------------------------------
-
 void
 BitMap::Mark(int which) 
 { 
@@ -56,7 +53,6 @@ BitMap::Mark(int which)
 //
 //	"which" is the number of the bit to be cleared.
 //----------------------------------------------------------------------
-
 void 
 BitMap::Clear(int which) 
 {
@@ -70,7 +66,6 @@ BitMap::Clear(int which)
 //
 //	"which" is the number of the bit to be tested.
 //----------------------------------------------------------------------
-
 bool 
 BitMap::Test(int which)
 {
@@ -90,7 +85,6 @@ BitMap::Test(int which)
 //
 //	If no bits are clear, return -1.
 //----------------------------------------------------------------------
-
 int 
 BitMap::Find() 
 {
@@ -107,7 +101,6 @@ BitMap::Find()
 // 	Return the number of clear bits in the bitmap.
 //	(In other words, how many bits are unallocated?)
 //----------------------------------------------------------------------
-
 int 
 BitMap::NumClear() 
 {
@@ -125,7 +118,6 @@ BitMap::NumClear()
 //	Could be done in a number of ways, but we just print the #'s of
 //	all the bits that are set in the bitmap.
 //----------------------------------------------------------------------
-
 void
 BitMap::Print() 
 {
@@ -144,7 +136,6 @@ BitMap::Print()
 //
 //	"file" is the place to read the bitmap from
 //----------------------------------------------------------------------
-
 void
 BitMap::FetchFrom(OpenFile *file) 
 {
@@ -157,7 +148,6 @@ BitMap::FetchFrom(OpenFile *file)
 //
 //	"file" is the place to write the bitmap to
 //----------------------------------------------------------------------
-
 void
 BitMap::WriteBack(OpenFile *file)
 {

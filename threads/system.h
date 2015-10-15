@@ -34,6 +34,7 @@ extern Timer *timer;					// the hardware alarm clock
 extern Machine *machine;	// user program memory and registers
 extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
+extern MainMemory *mmBitMap;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

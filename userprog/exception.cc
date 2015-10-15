@@ -32,40 +32,48 @@
 
 using namespace std;
 
-
-
 struct ProcessTable {
-	std::map<SpaceID, Process*> processes;
+	spaceId processCount = 0;
+	Lock *tableLock;
+	std::map<spaceID, Process*> processes;
 
 };
 
 Process::Process(char *processName) {
-	this->name = processName;
-	this->processThread = currentThread;
+	name = processName;
+	processTable->tableLock->Acquire();
+	processID = processTable->processCount;
+	processTable->processCount++;
+	processTable->tableLock->Release();
+	processThread = currentThread;
+	tableLock = new Lock();
 	threads = new List();
 	threadCount = 0;
 }
 
+Process::~Process() {
+	delete tableLock;
+	delete threads;
+}
+
 Process *currentProcess;
-ProcessTable processes;
+ProcessTable processTable;
 
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
 
 void InitExceptions(){
-	cout<<"INIT EXCEPTIONS CALLED"<<endl;
+	cout << "INIT EXCEPTIONS CALLED" << endl;
 }
 
 void InitProcess(Process* process) {
-	cout<<"Init PROCESS CALLED FOR PROCESS: " <<process->name<<endl;
+	cout << "Init PROCESS CALLED FOR PROCESS: " << process->name << endl;
+	processTable.processes->Append(process->processID, process);
 	currentProcess = process;
 }
 
-
-
 // Ensures that the forked thread begins execution at the correct position.
-void ForkUserThread(int functionPtr)
-{
+void ForkUserThread(int functionPtr) {
   DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
  
   currentThread->space->InitRegisters();
@@ -94,7 +102,6 @@ void Fork_Syscall(int functionPtr) {
     	cout<<"failed"<<endl;
     	return;
 	}
-	
 
 	currentProcess->threads->Append(thread);
 	thread->Fork(ForkUserThread, functionPtr);
@@ -117,6 +124,59 @@ bool Exit_Syscall(int status) {
 		return false;
 	}
 
+}
+
+SpaceID Exec_Syscall(char *filename) {
+	OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+    Process *process;
+    Thread *thread;
+
+    if(executable == NULL) {
+	   printf("Unable to open file %s\n", filename);
+	   return;
+    }
+    InitExceptions();
+    space = new AddrSpace(executable);
+    process = new Process(filename);
+    thread = new Thread(process->name);
+
+    process->processThread = thread;
+	thread->space = process->space;
+    InitProcess(process);
+    delete executable;
+
+    space->InitRegisters();
+    /*
+    // 	Set the initial values for the user-level register set.
+	// 	We write these directly into the "machine" registers, so
+	//	that we can immediately jump to user code.  Note that these
+	//	will be saved/restored into the currentThread->userRegisters
+	//	when this thread is context switched out.
+	int i;
+    for(i = 0; i < NumTotalRegs; i++)
+		machine->WriteRegister(i, 0);
+    // Initial program counter -- must be location of "Start"
+    machine->WriteRegister(PCReg, 0);	
+    // Need to also tell MIPS where next instruction is, because
+    // of branch delay possibility
+    machine->WriteRegister(NextPCReg, 4);
+   	// Set the stack register to the end of the address space, where we
+   	// allocated the stack; but subtract off a bit, to make sure we don't
+   	// accidentally reference off the end!
+    machine->WriteRegister(StackReg, numPages * PageSize - 16);
+    DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);
+    */
+
+    space->RestoreState();
+	/*
+	// On a context switch, restore the machine state so that this address space can run.
+	machine->pageTable = pageTable;
+    machine->pageTableSize = numPages;
+	*/
+
+    //machine->Run();
+    return process->processID;
 }
 
 void Create_Syscall(unsigned int vaddr, int len) {
@@ -424,7 +484,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec.\n");
-				//Exec_Syscall();
+				rv = Exec_Syscall(machine->ReadRegister(4));
 				break;
 			case SC_Join:
 				DEBUG('a', "Join.\n");
@@ -499,7 +559,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 		}
 		// Put in the return value and increment the PC
-		machine->WriteRegister(2,rv);
+		machine->WriteRegister(2, rv);
 		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
 		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);

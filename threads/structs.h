@@ -2,13 +2,25 @@
 #define STRUCTS_H
 
 #include "synch.h"
+#include "bitmap.h"
 #include <map>
 
-typedef int SpaceID;
+struct MainMemory {
+	Lock* lock;
+	BitMap pages;
+	MainMemory(int NumPhysPages) {
+		lock = new Lock(NumPhysPages);
+		pages = new BitMap();
+	}
+	~MainMemory() {
+		delete lock;
+		delete pages;
+	}
+};
 
 struct KernelLock {
-	Lock* lock;
-	AddrSpace* space;
+	Lock *lock;
+	AddrSpace *space;
 	bool isToBeDeleted;
 	KernelLock() {
     	lock = new Lock();
@@ -24,8 +36,8 @@ struct KernelLock {
 };
 
 struct KernelCondition {
-	Condition* condition;
-	AddrSpace* space;
+	Condition *condition;
+	AddrSpace *space;
 	bool isToBeDeleted;
 	KernelCondition() {
 	    condition = new Condition();
@@ -65,6 +77,5 @@ struct ConditionTable {
 		delete tableLock;
 	}
 };
-
 
 #endif
