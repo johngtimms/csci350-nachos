@@ -30,7 +30,8 @@ SynchDisk   *synchDisk;
 Machine *machine;	// user program memory and registers
 LockTable *lockTable;
 ConditionTable *conditionTable;
-PhysicalMemory *physMemory;
+BitMap *mmBitMap;
+Lock *mmLock;
 #endif
 
 #ifdef NETWORK
@@ -149,7 +150,8 @@ Initialize(int argc, char **argv) {
     machine = new Machine(debugUserProg);	// this must come first
     lockTable = new LockTable();
     conditionTable = new ConditionTable();
-    physMemory = new PhysicalMemory(NumPhysPages);
+    mmBitMap = new BitMap();
+    mmLock = new Lock();
 #endif
 
 #ifdef FILESYS

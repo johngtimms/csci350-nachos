@@ -2,21 +2,7 @@
 #define STRUCTS_H
 
 #include "synch.h"
-#include "bitmap.h"
 #include <map>
-
-struct MainMemory {
-	Lock* lock;
-	BitMap pages;
-	MainMemory(int NumPhysPages) {
-		lock = new Lock(NumPhysPages);
-		pages = new BitMap();
-	}
-	~MainMemory() {
-		delete lock;
-		delete pages;
-	}
-};
 
 struct KernelLock {
 	Lock *lock;

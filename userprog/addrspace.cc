@@ -213,17 +213,14 @@ unsigned int AddrSpace::GetNumPages() {
     return numPages;
 }
 
-bool AddrSpace::CreateStack() 
-{
+bool AddrSpace::CreateStack() {
 	int numNewPages = divRoundUp(UserStackSize, PageSize);
   	int newSize = (numPages + numNewPages) * PageSize;
-
-  	if(numPages + numNewPages <= NumPhysPages)
-  	{
+  	if(numPages + numNewPages <= NumPhysPages) {
+  		mmLock->Acquire();
+  		int i, ppn;
     	TranslationEntry *newPageTable = new TranslationEntry[numPages + numNewPages];
-    
-    	int i, ppn;
-    	for (i = 0; i < numPages; i++) {
+    	for(i = 0; i < numPages; i++) {
       		newPageTable[i].virtualPage = pageTable[i].virtualPage;
 	    	newPageTable[i].physicalPage = pageTable[i].physicalPage;
 	    	newPageTable[i].valid = pageTable[i].valid;
@@ -231,39 +228,9 @@ bool AddrSpace::CreateStack()
 	    	newPageTable[i].dirty = pageTable[i].dirty;
 	    	newPageTable[i].readOnly = pageTable[i].readOnly;
     	}
-    	for (i = numPages; i < numPages + numNewPages; i++) {
+    	for(i = numPages; i < numPages + numNewPages; i++) {
 	    	newPageTable[i].virtualPage = i;
-	    	ppn = 
-	    	newPageTable[i].physicalPage = ;
-	    	newPageTable[i].valid = TRUE;
-	    	newPageTable[i].use = FALSE;
-	    	newPageTable[i].dirty = FALSE;
-	    	newPageTable[i].readOnly = FALSE;
-    	}
-    	pageTable = newPageTable;
-    	numPages = (numPages + numNewPages);
-    	size = newSize;
-  	  	return true;
-  	} else {
-    	DEBUG('a', "No room available on the stack");
-    	return false;
-    }
-
-  /*
-	int numNewPages = divRoundUp(UserStackSize, PageSize);
-  	int newSize = (numPages + numNewPages) * PageSize;
-
-  	if(numPages + numNewPages <= NumPhysPages)
-  	{
-    	TranslationEntry *newPageTable = new TranslationEntry[numPages + numNewPages];
-    
-    	int i;
-    	for (i = 0; i < numPages; i++) {
-      		newPageTable[i] = pageTable[i];
-    	}
-    	for (i = numPages; i < numPages + numNewPages; i++)
-    	{
-	    	newPageTable[i].virtualPage = i;
+	    	// TODO: Find usused physical memory page
 	    	newPageTable[i].physicalPage = i;
 	    	newPageTable[i].valid = TRUE;
 	    	newPageTable[i].use = FALSE;
@@ -272,10 +239,11 @@ bool AddrSpace::CreateStack()
     	}
     	pageTable = newPageTable;
     	numPages = (numPages + numNewPages);
+    	size = newSize;
+    	mmLock->Release();
   	  	return true;
   	} else {
     	DEBUG('a', "No room available on the stack");
     	return false;
-  	}
-  */
+    }
 }
