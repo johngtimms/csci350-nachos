@@ -53,11 +53,11 @@ void InitExceptions() {
 }
 
 void InitProcess(Process* process) {
-	processTable.tableLock->Acquire();
-	cout << "Init PROCESS CALLED FOR PROCESS: " << process->name << endl;
+	processTable.tableLock.Acquire();
+	cout << "InitProcess() CALLED FOR PROCESS: " << process->name << endl;
 	processTable.processes[process->processID] = process;
-	currentProcess = process; // ?
-	processTable.tableLock->Release();
+	currentProcess = process;
+	processTable.tableLock.Release();
 }
 
 // Ensures that the forked thread begins execution at the correct position.
@@ -78,11 +78,11 @@ void Fork_Syscall(int functionPtr) {
 	Thread *thread = new Thread(currentProcess->name);
 	thread->space = currentThread->space;
 	// if this fails then delete thread and exit function
-	if(thread->space->CreateStack(thread) == false)
+	if(thread->space->CreateStack() == false)
 	{
 		delete thread;
     	DEBUG('p', "Create stack failed - not enough memory available.\n");
-    	cout << "Fork failed" < <endl;
+    	cout << "Fork failed" << endl;
     	return;
 	}
 	currentProcess->threads->Append(thread);
@@ -106,53 +106,57 @@ bool Exit_Syscall(int status) {
 		return false;
 	}
 	/*
-	unsigned int i;
+	// TEMPLATE FOR EXIT SYSCALL
 	processTable.tableLock->Acquire();
-	if(processTable.size() == 1 && currentProcess->threads.isEmpty()) { // or currentThread->space->process->threads
-   		// The Exiting thread is the last thread in Nachos
-		// Clear all the physical pages used in the AddrSpace of this process
-
-		for(i = 0; i < (currentThread->space->numPages); i++)
-			currentThread->space->clearPhysicalPage(x); 	
-		// delete currentThread->space;
-
+	if(processTable.size() == 1 && currentProcess->threadCount == 0) {
+   		// CASE: The exiting thread is execThread of the last process running - exit Nachos
+   		
+   		// Maybe this instead of delete currentThread->space; ???
+		// for(unsigned int i = 0; i < (currentThread->space->numPages); i++)
+			// currentThread->space->clearPhysicalPage(x); 	
+		
+		delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
         processTable.tableLock->Release();	
 		DEBUG('x', "\n Removing last thread of Nachos\n");
 		interrupt->Halt();
-    } else if(processTable.size() > 1 && currentProcess->threads.isEmpty()) { // or currentThread->space->process->threads
-   		// The Exiting thread is the last thread in a process
+    } else if(processTable.size() > 1 && currentProcess->threadCount == 0) {
+   		// CASE: The exiting thread is the process' execThread (last thread) - exit the process 
 		processTable.processes->erase(currentThread->space->process);
-
-		// delete currentThread->space;
-		// Clear all the physical pages used in the AddrSpace of this process
-		for(i = 0; i < (currentThread->space->numPages); i++)
-			currentThread->space->clearPhysicalPage(x);
-		// delete currentThread->space;
-
+		delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
 		currentThread->space = NULL;	           
         processTable.tableLock->Release();	
 		DEBUG('x', "\n Removing last thread in a Process\n");
 		currentThread->Finish();
     } else {
-   		// The exiting thread is a thread that was forked in a process
-		// CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
-		// CLEAR THREAD'S STACK'S PHYSICAL PAGES
-		// DELETE THREAD FROM PROCESS->THREADS
-		processTable.tableLock->Release();		
-		DEBUG('x', "\n Removing a forked thread\n");
-		currentThread->Finish();
+   		// CASE: The exiting thread is a thread that was forked in a process
+
+		
+		// THREE THINGS TO DO:
+		// 1. CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
+				// But there's no way of knowning where a thread's stack begins in currentThread->space->pageTable
+		// 2. CLEAR THREAD'S STACK'S PHYSICAL PAGES
+				// But there's no way of knowning where a thread's stack begins in space->pageTable
+		// currentThread->space->clearStack(currentThread->stackStart); ???
+
+		// 3. DELETE THREAD FROM PROCESS->THREADS
+				// currentProcess->threads is a List object with no "remove(Thread* threadToRemove)"
+
+		currentProcess->threadCount--;
+		processTable.tableLock->Release();	
+		currentThread->Finish();	
 	}
 	*/
 }
 
-void ExecUserThread(int a) {
+void ExecUserThread(spaceId processID) {
 	currentThread->space->InitRegisters();	
 	currentThread->space->RestoreState();	
 	machine->Run();
 }
 
 spaceId Exec_Syscall(unsigned int vaddr, int len) {
-	char *buf = new char[len+1];	// Kernel buffer to put the name in
+	// Open file passed into Exec
+	char *buf = new char[len+1];
     if(!buf) 
     	return -1;
     if(copyin(vaddr, len, buf) == -1) {
@@ -166,18 +170,19 @@ spaceId Exec_Syscall(unsigned int vaddr, int len) {
 	   cout << "Unable to open file" << endl;
 	   return -1;
     }
-    AddrSpace *space;
-    space = new AddrSpace(executable); 
-    Process *process;
-    Thread *thread;
-    thread = new Thread(process->name);
-    space->CreateStack();
+    // Create an AddrSpace for new file
+    AddrSpace *space = new AddrSpace(executable);
+    space->CreateStack(); 
+    Thread *thread = new Thread(buf);
+    // space->CreateStack(thread); // So that a thread can keep track of its8 pages of stack in AddrSpace->pageTable ??
+    thread->space = space;
     InitExceptions();
-    process = new Process(buf);
+    Process *process = new Process(buf);
+    process->space = space;
     process->processThread = thread;
-	thread->space = process->space;
+	delete executable;
     InitProcess(process);
-	thread->Fork((VoidFunctionPtr)ExecUserThread, 0);
+	thread->Fork((VoidFunctionPtr)ExecUserThread, process->processID);
     return process->processID;
 }
 

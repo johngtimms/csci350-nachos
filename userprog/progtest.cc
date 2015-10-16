@@ -27,8 +27,7 @@ extern void InitProcess(Process* process);
 //	memory, and jump to it.
 //----------------------------------------------------------------------
 void
-StartProcess(char *filename)
-{
+StartProcess(char *filename) {
     OpenFile *executable = fileSystem->Open(filename);
     AddrSpace *space;
     if(executable == NULL) {
@@ -70,8 +69,7 @@ static void WriteDone(int arg) { writeDone->V(); }
 //----------------------------------------------------------------------
 
 void 
-ConsoleTest (char *in, char *out)
-{
+ConsoleTest (char *in, char *out) {
     char ch;
 
     console = new Console(in, out, ReadAvail, WriteDone, 0);
