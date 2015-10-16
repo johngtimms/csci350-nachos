@@ -146,7 +146,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	// Zero out address space
 	for(i = 0; i < (numPages + 8); i++)
 		bzero(&machine->mainMemory[PageSize * pageTable[i].physicalPage], PageSize);
-	// Number of pages to copy code and initialized data to main memory
+	// Number of pages to copy to main memory
 	initPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 	for(i = 0; i < initPages; i++)
 		executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
@@ -160,6 +160,10 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 // 	and file tables
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace() {
+	mmBitMapLock->Acquire();
+	for(unsinged int i = 0; i < numPages; i++)
+		mmBitMap->Clear(pageTable[i].physicalPage);
+	mmBitMapLock->Release();
     delete pageTable;
 }
 
@@ -215,7 +219,7 @@ unsigned int AddrSpace::GetNumPages() {
     return numPages;
 }
 
-bool AddrSpace::CreateStack() {
+bool AddrSpace::CreateStack(Thread* thread) {
   	if(numPages + 8 <= NumPhysPages) {
   		mmBitMapLock->Acquire();
   		int i, ppn;
@@ -249,4 +253,12 @@ bool AddrSpace::CreateStack() {
     	DEBUG('a', "No room available on the stack");
     	return false;
     }
+}
+
+void AddrSpace::clearStack(int stackStart) {
+	for(unsigned int i = stackStart; i < stackStart + 8; i++) {
+		pageTable[i].valid = FALSE;
+		mmBitMap->Clear(pageTable[i].physicalPage);
+	}
+
 }

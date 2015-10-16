@@ -38,7 +38,6 @@ struct ProcessTable {
 	std::map<spaceId, Process*> processes;
 	ProcessTable() {
 		processCount = 0;
-		//tableLock = new Lock();
 	}
 
 };
@@ -49,14 +48,16 @@ ProcessTable processTable;
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
 
-void InitExceptions(){
+void InitExceptions() {
 	cout << "INIT EXCEPTIONS CALLED" << endl;
 }
 
 void InitProcess(Process* process) {
+	processTable.tableLock->Acquire();
 	cout << "Init PROCESS CALLED FOR PROCESS: " << process->name << endl;
 	processTable.processes[process->processID] = process;
-	currentProcess = process;
+	currentProcess = process; // ?
+	processTable.tableLock->Release();
 }
 
 // Ensures that the forked thread begins execution at the correct position.
@@ -77,14 +78,13 @@ void Fork_Syscall(int functionPtr) {
 	Thread *thread = new Thread(currentProcess->name);
 	thread->space = currentThread->space;
 	// if this fails then delete thread and exit function
-	if(thread->space->CreateStack() == false)
+	if(thread->space->CreateStack(thread) == false)
 	{
 		delete thread;
     	DEBUG('p', "Create stack failed - not enough memory available.\n");
-    	cout<<"failed"<<endl;
+    	cout << "Fork failed" < <endl;
     	return;
 	}
-
 	currentProcess->threads->Append(thread);
 	thread->Fork(ForkUserThread, functionPtr);
 }
@@ -105,6 +105,44 @@ bool Exit_Syscall(int status) {
 		currentThread->Finish();
 		return false;
 	}
+	/*
+	unsigned int i;
+	processTable.tableLock->Acquire();
+	if(processTable.size() == 1 && currentProcess->threads.isEmpty()) { // or currentThread->space->process->threads
+   		// The Exiting thread is the last thread in Nachos
+		// Clear all the physical pages used in the AddrSpace of this process
+
+		for(i = 0; i < (currentThread->space->numPages); i++)
+			currentThread->space->clearPhysicalPage(x); 	
+		// delete currentThread->space;
+
+        processTable.tableLock->Release();	
+		DEBUG('x', "\n Removing last thread of Nachos\n");
+		interrupt->Halt();
+    } else if(processTable.size() > 1 && currentProcess->threads.isEmpty()) { // or currentThread->space->process->threads
+   		// The Exiting thread is the last thread in a process
+		processTable.processes->erase(currentThread->space->process);
+
+		// delete currentThread->space;
+		// Clear all the physical pages used in the AddrSpace of this process
+		for(i = 0; i < (currentThread->space->numPages); i++)
+			currentThread->space->clearPhysicalPage(x);
+		// delete currentThread->space;
+
+		currentThread->space = NULL;	           
+        processTable.tableLock->Release();	
+		DEBUG('x', "\n Removing last thread in a Process\n");
+		currentThread->Finish();
+    } else {
+   		// The exiting thread is a thread that was forked in a process
+		// CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
+		// CLEAR THREAD'S STACK'S PHYSICAL PAGES
+		// DELETE THREAD FROM PROCESS->THREADS
+		processTable.tableLock->Release();		
+		DEBUG('x', "\n Removing a forked thread\n");
+		currentThread->Finish();
+	}
+	*/
 }
 
 void ExecUserThread(int a) {
@@ -118,14 +156,14 @@ spaceId Exec_Syscall(unsigned int vaddr, int len) {
     if(!buf) 
     	return -1;
     if(copyin(vaddr, len, buf) == -1) {
-		printf("%s","Bad pointer passed to Create\n");
+		cout << "Bad pointer passed to Create" << endl;
 		delete buf;
 		return -1;
     }
     buf[len]='\0';
 	OpenFile *executable = fileSystem->Open(buf);
 	if(executable == NULL) {
-	   printf("Unable to open file %s\n", buf);
+	   cout << "Unable to open file" << endl;
 	   return -1;
     }
     AddrSpace *space;
@@ -424,8 +462,16 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	conditionTable->tableLock->Release();
 }
 
-void Print_Syscall(int i) {
-	cout << i << endl;
+void Print_Syscall(int text, int num) {
+	char *buf = new char[100+1];
+	if(!buf) 
+  		DEBUG('a', "Unable to allocate buffer in Print_Syscall\n");
+	if(copyin(text, 100, buf) == -1) {	
+		DEBUG('a', "Unable to print in Print_Syscall\n");
+		delete[] buf;
+	}
+	buf[100] = '\0';
+	printf(buf, num);
 }
 
 void ExceptionHandler(ExceptionType which) {
@@ -519,7 +565,7 @@ void ExceptionHandler(ExceptionType which) {
 				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Print:
-				Print_Syscall(machine->ReadRegister(4));
+				Print_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 		}
 		// Put in the return value and increment the PC

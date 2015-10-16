@@ -126,8 +126,7 @@ void DestroyCondition(int key);
 void Wait(int conditionKey, int lockKey);
 void Signal(int conditionKey, int lockKey);
 void Broadcast(int conditionKey, int lockKey);
-
-void Print(int i);
+void Print(int text, int num);
 
 #endif /* IN_ASM */
 #endif /* SYSCALL_H */
