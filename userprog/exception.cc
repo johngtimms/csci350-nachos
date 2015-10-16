@@ -33,28 +33,15 @@
 using namespace std;
 
 struct ProcessTable {
-	spaceId processCount = 0;
-	Lock *tableLock;
-	std::map<spaceID, Process*> processes;
+	spaceId processCount;
+	Lock tableLock;
+	std::map<spaceId, Process*> processes;
+	ProcessTable() {
+		processCount = 0;
+		//tableLock = new Lock();
+	}
 
 };
-
-Process::Process(char *processName) {
-	name = processName;
-	processTable->tableLock->Acquire();
-	processID = processTable->processCount;
-	processTable->processCount++;
-	processTable->tableLock->Release();
-	processThread = currentThread;
-	tableLock = new Lock();
-	threads = new List();
-	threadCount = 0;
-}
-
-Process::~Process() {
-	delete tableLock;
-	delete threads;
-}
 
 Process *currentProcess;
 ProcessTable processTable;
@@ -68,20 +55,17 @@ void InitExceptions(){
 
 void InitProcess(Process* process) {
 	cout << "Init PROCESS CALLED FOR PROCESS: " << process->name << endl;
-	processTable.processes->Append(process->processID, process);
+	processTable.processes[process->processID] = process;
 	currentProcess = process;
 }
 
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
   DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
- 
   currentThread->space->InitRegisters();
   currentThread->space->RestoreState();
-  
   // update the stack register
   machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16);
-
   // Set the program counter to the appropriate place indicated by funcPtr...
   machine->WriteRegister(PCReg, functionPtr);
   machine->WriteRegister(NextPCReg, functionPtr + 4);
@@ -90,10 +74,8 @@ void ForkUserThread(int functionPtr) {
 
 void Fork_Syscall(int functionPtr) {
 	currentProcess->threadCount++;
-
 	Thread *thread = new Thread(currentProcess->name);
 	thread->space = currentThread->space;
-
 	// if this fails then delete thread and exit function
 	if(thread->space->CreateStack() == false)
 	{
@@ -123,59 +105,41 @@ bool Exit_Syscall(int status) {
 		currentThread->Finish();
 		return false;
 	}
-
 }
 
-SpaceID Exec_Syscall(char *filename) {
-	OpenFile *executable = fileSystem->Open(filename);
+void ExecUserThread(int a) {
+	currentThread->space->InitRegisters();	
+	currentThread->space->RestoreState();	
+	machine->Run();
+}
+
+spaceId Exec_Syscall(unsigned int vaddr, int len) {
+	char *buf = new char[len+1];	// Kernel buffer to put the name in
+    if(!buf) 
+    	return -1;
+    if(copyin(vaddr, len, buf) == -1) {
+		printf("%s","Bad pointer passed to Create\n");
+		delete buf;
+		return -1;
+    }
+    buf[len]='\0';
+	OpenFile *executable = fileSystem->Open(buf);
+	if(executable == NULL) {
+	   printf("Unable to open file %s\n", buf);
+	   return -1;
+    }
     AddrSpace *space;
+    space = new AddrSpace(executable); 
     Process *process;
     Thread *thread;
-
-    if(executable == NULL) {
-	   printf("Unable to open file %s\n", filename);
-	   return;
-    }
-    InitExceptions();
-    space = new AddrSpace(executable);
-    process = new Process(filename);
     thread = new Thread(process->name);
-
+    space->CreateStack();
+    InitExceptions();
+    process = new Process(buf);
     process->processThread = thread;
 	thread->space = process->space;
     InitProcess(process);
-    delete executable;
-
-    space->InitRegisters();
-    /*
-    // 	Set the initial values for the user-level register set.
-	// 	We write these directly into the "machine" registers, so
-	//	that we can immediately jump to user code.  Note that these
-	//	will be saved/restored into the currentThread->userRegisters
-	//	when this thread is context switched out.
-	int i;
-    for(i = 0; i < NumTotalRegs; i++)
-		machine->WriteRegister(i, 0);
-    // Initial program counter -- must be location of "Start"
-    machine->WriteRegister(PCReg, 0);	
-    // Need to also tell MIPS where next instruction is, because
-    // of branch delay possibility
-    machine->WriteRegister(NextPCReg, 4);
-   	// Set the stack register to the end of the address space, where we
-   	// allocated the stack; but subtract off a bit, to make sure we don't
-   	// accidentally reference off the end!
-    machine->WriteRegister(StackReg, numPages * PageSize - 16);
-    DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);
-    */
-
-    space->RestoreState();
-	/*
-	// On a context switch, restore the machine state so that this address space can run.
-	machine->pageTable = pageTable;
-    machine->pageTableSize = numPages;
-	*/
-
-    //machine->Run();
+	thread->Fork((VoidFunctionPtr)ExecUserThread, 0);
     return process->processID;
 }
 
@@ -337,7 +301,7 @@ void DestroyLock_Syscall(unsigned int key) {
 		lock = lockTable->locks[key];
 	else
 		cout << "Attempt to destroy lock that doesn't exist" << endl;
-	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+	if(lock != NULL && lock->space == currentThread->space) {
 		lockTable->locks.erase(key);
 		cout << "Destroyed lock with key: " << key << endl;
 	}
@@ -351,7 +315,7 @@ void Acquire_Syscall(unsigned int key) {
 		lock = lockTable->locks[key];
 	else
 		cout << "Attempt to acquire lock that doesn't exist" << endl;
-	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Acquire();
 		cout << "Acquired lock with key: " << key << endl;
 	}
@@ -365,7 +329,7 @@ void Release_Syscall(unsigned int key) {
 		lock = lockTable->locks[key];
 	else
 		cout << "Attempt to release lock that doesn't exist" << endl;
-	if(lock != NULL /*&& lock->space == AddrSpace* of process*/) {
+	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Release();
 		cout << "Released lock with key: " << key << endl;
 	}
@@ -390,7 +354,7 @@ void DestroyCondition_Syscall(unsigned int key) {
 		condition = conditionTable->conditions[key];
 	else
 		cout << "Attempt to destroy condition that doesn't exist" << endl;
-	if(condition != NULL /*&& condition->space == AddrSpace* of process*/) {
+	if(condition != NULL && condition->space == currentThread->space) {
 		conditionTable->conditions.erase(key);
 		cout << "Destroyed condition with key: " << key << endl;
 	}
@@ -410,7 +374,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 		lock = lockTable->locks[lockKey];
 	else
 		cout << "Condition trying to wait owns lock that doesn't exist" << endl;
-	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Wait(lock->lock);
 		cout << "Waiting on condition with key: " << conditionKey << endl;
 	}
@@ -431,7 +395,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 		lock = lockTable->locks[lockKey];
 	else
 		cout << "Condition trying to signal owns lock that doesn't exist" << endl;
-	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Signal(lock->lock);
 		cout << "Condition with key " << conditionKey <<  " signalling" << endl;
 	}
@@ -452,7 +416,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 		lock = lockTable->locks[lockKey];
 	else
 		cout << "Condition trying to broadcast owns lock that doesn't exist" << endl;
-	if(condition != NULL && lock != NULL /*&& condition->space == AddrSpace* of process && lock->space == AddrSpace* of process*/) {
+	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Broadcast(lock->lock);
 		cout << "Condition with key " << conditionKey << " broadcasting" << endl;
 	}
@@ -484,7 +448,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec.\n");
-				rv = Exec_Syscall(machine->ReadRegister(4));
+				rv = Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(4));
 				break;
 			case SC_Join:
 				DEBUG('a', "Join.\n");
@@ -568,6 +532,21 @@ void ExceptionHandler(ExceptionType which) {
       	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       	interrupt->Halt();
     }
+}
+
+Process::Process(char *processName) {
+	name = processName;
+	processTable.tableLock.Acquire();
+	processID = processTable.processCount;
+	processTable.processCount++;
+	processTable.tableLock.Release();
+	processThread = currentThread;
+	threads = new List();
+	threadCount = 0;
+}
+
+Process::~Process() {
+	delete threads;
 }
 
 int copyin(unsigned int vaddr, int len, char *buf) {

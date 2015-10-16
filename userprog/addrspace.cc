@@ -110,7 +110,7 @@ SwapHeader (NoffHeader *noffH) {
 //----------------------------------------------------------------------
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     NoffHeader noffH;
-	unsigned int i, size;
+	unsigned int i, size, ppn, initPages;
 	// Don't allocate the input or output to disk files
 	fileTable.Put(0);
 	fileTable.Put(0);
@@ -120,35 +120,37 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
 
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
-	numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize, PageSize);
+	//numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize, PageSize);
+	numPages = divRoundUp(size, PageSize);	// Pages for code, init data and unit data only
 	size = numPages * PageSize;
-	// check we're not trying to run anything too big - at least until we have virtual memory
 	ASSERT(numPages <= NumPhysPages);
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
-
-	// first, set up the TranslationEntry (page table mapping virtual memory pages to physcial memory pages) 
-	pageTable = new TranslationEntry[numPages];
+	// Set up pages for code, init data, unit data and execThread
+	mmBitMapLock->Acquire();
+	pageTable = new TranslationEntry[numPages + 8]; // Add 8 pages for execThread stack
 	for(i = 0; i < numPages; i++) {
-		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-		pageTable[i].physicalPage = i;
+		pageTable[i].virtualPage = i;
+		ppn = mmBitMap->Find();		// Find a free physical page
+		if(ppn == -1) {
+			printf("Unable to find unused physical page\n");
+			interrupt->Halt();
+		}
+		pageTable[i].physicalPage = ppn;
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on a separate page, we could set its pages to be read-only
 	}
-	// zero out the entire address space, to zero the unitialized data segment and the stack segment
-	bzero(machine->mainMemory, size);
-	/*
-	// copy in the code and data segments into memory
-	if(noffH.code.size > 0) {
-	   DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", noffH.code.virtualAddr, noffH.code.size);
-	   executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]), noffH.code.size, noffH.code.inFileAddr);
-	}
-	if(noffH.initData.size > 0) {
-	   DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", noffH.initData.virtualAddr, noffH.initData.size);
-	   executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]), noffH.initData.size, noffH.initData.inFileAddr);
-	}
-	*/
+	mmBitMapLock->Release();
+	mmLock->Acquire();
+	// Zero out address space
+	for(i = 0; i < (numPages + 8); i++)
+		bzero(&machine->mainMemory[PageSize * pageTable[i].physicalPage], PageSize);
+	// Number of pages to copy code and initialized data to main memory
+	initPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
+	for(i = 0; i < initPages; i++)
+		executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
+	mmLock->Release();
 }
 
 //----------------------------------------------------------------------
@@ -214,12 +216,10 @@ unsigned int AddrSpace::GetNumPages() {
 }
 
 bool AddrSpace::CreateStack() {
-	int numNewPages = divRoundUp(UserStackSize, PageSize);
-  	int newSize = (numPages + numNewPages) * PageSize;
-  	if(numPages + numNewPages <= NumPhysPages) {
-  		mmLock->Acquire();
+  	if(numPages + 8 <= NumPhysPages) {
+  		mmBitMapLock->Acquire();
   		int i, ppn;
-    	TranslationEntry *newPageTable = new TranslationEntry[numPages + numNewPages];
+    	TranslationEntry *newPageTable = new TranslationEntry[numPages + 8];
     	for(i = 0; i < numPages; i++) {
       		newPageTable[i].virtualPage = pageTable[i].virtualPage;
 	    	newPageTable[i].physicalPage = pageTable[i].physicalPage;
@@ -228,9 +228,13 @@ bool AddrSpace::CreateStack() {
 	    	newPageTable[i].dirty = pageTable[i].dirty;
 	    	newPageTable[i].readOnly = pageTable[i].readOnly;
     	}
-    	for(i = numPages; i < numPages + numNewPages; i++) {
+    	for(i = numPages; i < numPages + 8; i++) {
 	    	newPageTable[i].virtualPage = i;
-	    	// TODO: Find usused physical memory page
+			ppn = mmBitMap->Find();
+			if(ppn == -1) {
+				printf("Unable to find unused physical page\n");
+				interrupt->Halt();
+			}
 	    	newPageTable[i].physicalPage = i;
 	    	newPageTable[i].valid = TRUE;
 	    	newPageTable[i].use = FALSE;
@@ -238,9 +242,8 @@ bool AddrSpace::CreateStack() {
 	    	newPageTable[i].readOnly = FALSE;
     	}
     	pageTable = newPageTable;
-    	numPages = (numPages + numNewPages);
-    	size = newSize;
-    	mmLock->Release();
+    	numPages = numPages + 8;
+    	mmBitMapLock->Release();
   	  	return true;
   	} else {
     	DEBUG('a', "No room available on the stack");

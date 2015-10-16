@@ -36,6 +36,7 @@ extern Machine *machine;	// user program memory and registers
 extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
 extern BitMap *mmBitMap;
+extern Lock *mmBitMapLock;
 extern Lock *mmLock;
 #endif
 

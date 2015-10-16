@@ -31,6 +31,7 @@ Machine *machine;	// user program memory and registers
 LockTable *lockTable;
 ConditionTable *conditionTable;
 BitMap *mmBitMap;
+Lock *mmBitMapLock;
 Lock *mmLock;
 #endif
 
@@ -150,7 +151,8 @@ Initialize(int argc, char **argv) {
     machine = new Machine(debugUserProg);	// this must come first
     lockTable = new LockTable();
     conditionTable = new ConditionTable();
-    mmBitMap = new BitMap();
+    mmBitMap = new BitMap(NumPhysPages);
+    mmBitMapLock = new Lock();
     mmLock = new Lock();
 #endif
 
@@ -182,6 +184,9 @@ Cleanup() {
     delete machine; 
     delete lockTable;
     delete conditionTable;
+    delete mmBitMap;
+    delete mmBitMapLock;
+    delete mmLock;
 #endif
 
 #ifdef FILESYS_NEEDED

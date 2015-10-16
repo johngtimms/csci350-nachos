@@ -64,11 +64,11 @@ void Exit(int status);
 typedef int spaceId;
  
 /* Run the executable, stored in the Nachos file "name", and return the address space identifier */
-int Exec(char *name);
+spaceId Exec(char *name, int size);
+/*spaceId Exec(OpenFileId id);*/
  
 /* Only return once the the user program "id" has finished. Return the exit status. */
 int Join(int id);
- 
 
 /* File system operations: Create, Open, Read, Write, Close
  * These functions are patterned after UNIX -- files represent

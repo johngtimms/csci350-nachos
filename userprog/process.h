@@ -13,4 +13,5 @@ public:
 	int threadCount;
 	List* threads;
 	Process(char *processName);
+	~Process();
 };
