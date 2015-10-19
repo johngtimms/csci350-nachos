@@ -68,6 +68,9 @@ void ForkUserThread(int functionPtr) {
   currentThread->space->InitRegisters();
   // Set the program counter to the appropriate place indicated by funcPtr...
   machine->WriteRegister(PCReg, functionPtr);
+  int vpn = functionPtr/PageSize;
+  bool valid = currentThread->space->pageTable[vpn].valid;
+  DEBUG('t', "vpn: %i,valid: %i\n",vpn,valid);
   DEBUG('t', "setting pc reg with virtual page number: %d\n",(functionPtr)/PageSize);
 
   machine->WriteRegister(NextPCReg, functionPtr + 4);
