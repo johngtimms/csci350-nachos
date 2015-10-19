@@ -87,7 +87,6 @@ Thread::Fork(VoidFunctionPtr func, int arg)
 {
     DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n",
 	  name, (int) func, arg);
-    
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -290,7 +289,7 @@ void
 Thread::SaveUserState()
 {
     for (int i = 0; i < NumTotalRegs; i++)
-	userRegisters[i] = machine->ReadRegister(i);
+	   userRegisters[i] = machine->ReadRegister(i);
 }
 
 //----------------------------------------------------------------------

@@ -64,8 +64,9 @@ void InitProcess(Process* process) {
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
   DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
-  
-  currentThread->space->InitRegisters();
+  //currentThread->space->InitRegisters();
+
+	kernelThread->space->CreateStack(kernelThread)
   // Set the program counter to the appropriate place indicated by funcPtr...
   machine->WriteRegister(PCReg, functionPtr);
   DEBUG('t', "setting pc reg with virtual page number: %d\n",(functionPtr)/PageSize);
@@ -88,7 +89,7 @@ void Fork_Syscall(int functionPtr) {
 	currentProcess->threadCount++;
 	Thread *kernelThread = new Thread(currentProcess->name);
 	kernelThread->space = currentThread->space;
-
+	/*
 	  // if this fails then delete thread and exit function
   if(kernelThread->space->CreateStack(kernelThread) == false)
   	{
@@ -97,7 +98,7 @@ void Fork_Syscall(int functionPtr) {
     	cout << "Fork failed" << endl;
     	return;
 	}
-	
+	*/
 	currentProcess->threads->push_back(kernelThread);
 	kernelThread->Fork(ForkUserThread, functionPtr);
 }

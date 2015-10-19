@@ -141,6 +141,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on a separate page, we could set its pages to be read-only
+		//executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
 	}
 	mmBitMapLock->Release();
 	mmLock->Acquire();
@@ -148,9 +149,11 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	for(i = 0; i < (numPages); i++)
 		bzero(&machine->mainMemory[PageSize * pageTable[i].physicalPage], PageSize);
 	// Number of pages to copy to main memory
+	
 	initPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 	for(i = 0; i < initPages; i++)
 		executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
+
 	mmLock->Release();
 }
 
@@ -202,7 +205,7 @@ AddrSpace::InitRegisters() {
 //	For now, nothing!
 //----------------------------------------------------------------------
 void AddrSpace::SaveState() {
-
+	
 }
 
 //----------------------------------------------------------------------
@@ -257,10 +260,11 @@ bool AddrSpace::CreateStack(Thread* thread) {
 	    	newPageTable[i].dirty = FALSE;
 	    	newPageTable[i].readOnly = FALSE;
     	}
-        delete[] pageTable; 
+        //delete[] pageTable; 
     	pageTable = newPageTable;
-    	numPages = numPages + 8;
-    	machine->pageTable = pageTable;
+    	numPages += 8;
+    	//machine->pageTable = pageTable;
+    	RestoreState();
     	mmBitMapLock->Release();
     	for(int k = 0; k < numPages ; k ++){
             DEBUG('t', "addrspace: number #%i valid:%i\n",k,machine->pageTable[k].valid);
