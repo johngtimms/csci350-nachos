@@ -50,14 +50,15 @@ int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
 
 void InitExceptions() {
-	cout << "INIT EXCEPTIONS CALLED" << endl;
+	//cout << "INIT EXCEPTIONS CALLED" << endl;
 }
 
 void InitProcess(Process* process) {
 	processTable.tableLock->Acquire();
-	cout << "InitProcess() CALLED FOR PROCESS: " << process->name << endl;
 	processTable.processes[process->processID] = process;
 	currentProcess = process;
+	currentProcess->threads->push_back(currentThread);
+    currentProcess->threadCount++;
 	processTable.tableLock->Release();
 }
 
@@ -66,7 +67,6 @@ void ForkUserThread(int functionPtr) {
   DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
   //currentThread->space->InitRegisters();
 
-	kernelThread->space->CreateStack(kernelThread)
   // Set the program counter to the appropriate place indicated by funcPtr...
   machine->WriteRegister(PCReg, functionPtr);
   int vpn = functionPtr/PageSize;
@@ -89,43 +89,26 @@ void ForkUserThread(int functionPtr) {
 }
 
 void Fork_Syscall(int functionPtr) {
-	currentProcess->threadCount++;
+    currentProcess->threadCount++;
 	Thread *kernelThread = new Thread(currentProcess->name);
 	kernelThread->space = currentThread->space;
-	/*
+	
 	  // if this fails then delete thread and exit function
   if(kernelThread->space->CreateStack(kernelThread) == false)
   	{
   		delete kernelThread;
     	DEBUG('t', "Create stack failed - not enough memory available.\n");
-    	cout << "Fork failed" << endl;
+    	cout << "Create stack failed - not enough memory available." << endl;
     	return;
 	}
-	*/
+	
 	currentProcess->threads->push_back(kernelThread);
 	kernelThread->Fork(ForkUserThread, functionPtr);
 }
 
 void Exit_Syscall(int status) {
-	// if(currentThread == currentProcess->processThread) {
-	// 	if(currentProcess->threadCount == 0) {
-	// 		//exit main thread
-	// 		interrupt->Halt();
-	// 		return true;
-	// 	} else {
-	// 		currentThread->Finish();
-	// 		return false;
-	// 	}
-	// } else {
-	// 	//exiting a forked thread
-	// 	currentProcess->threadCount--;
-	// 	currentThread->Finish();
-	// 	return false;
-	// }
-	
-	// TEMPLATE FOR EXIT SYSCALL
 	processTable.tableLock->Acquire();
-	if(processTable.processes.size() == 1 && currentProcess->threadCount == 0) {
+	if(processTable.processes.size() == 1 && currentProcess->threadCount == 1) {
    		// CASE: The exiting thread is execThread of the last process running - exit Nachos
    		
    		// Maybe this instead of delete currentThread->space; ???
@@ -136,7 +119,7 @@ void Exit_Syscall(int status) {
         processTable.tableLock->Release();	
 		DEBUG('x', "\n Removing last thread of Nachos\n");
 		interrupt->Halt();
-    } else if(processTable.processes.size() > 1 && currentProcess->threadCount == 0) {
+    } else if(processTable.processes.size() > 1 && currentProcess->threadCount == 1) {
    		// CASE: The exiting thread is the process' execThread (last thread) - exit the process 
 		processTable.processes.erase(currentProcess->processID);
 		delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
@@ -146,16 +129,23 @@ void Exit_Syscall(int status) {
 		currentThread->Finish();
     } else {
    		// CASE: The exiting thread is a thread that was forked in a process
-
-		
+        
 		// THREE THINGS TO DO:
 		// 1. CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
 				// But there's no way of knowning where a thread's stack begins in currentThread->space->pageTable
 		// 2. CLEAR THREAD'S STACK'S PHYSICAL PAGES
 				// But there's no way of knowning where a thread's stack begins in space->pageTable
-	    currentThread->space->clearStack(currentThread->stackStart); 
+	    //currentThread->space->clearStack(currentThread->stackStart); 
 		// 3. DELETE THREAD FROM PROCESS->THREADS
 				// currentProcess->threads is a List object with no "remove(Thread* threadToRemove)"
+        for( std::vector<Thread*>::iterator iter = currentProcess->threads->begin(); iter != currentProcess->threads->end(); ++iter )
+		{
+			if( *iter == currentThread )
+			{
+				currentProcess->threads->erase( iter );
+				break;
+			}
+		}
 		currentProcess->threadCount--;
 		processTable.tableLock->Release();	
 		currentThread->Finish();	
