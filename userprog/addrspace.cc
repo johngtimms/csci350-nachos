@@ -256,7 +256,7 @@ unsigned int AddrSpace::GetNumPages() {
     return numPages;
 }
 
-bool AddrSpace::CreateStack()
+bool AddrSpace::CreateStack(Thread *thread)
 {
   
   if (numPages + 8 <= NumPhysPages)
@@ -280,6 +280,7 @@ bool AddrSpace::CreateStack()
     newPageTable[i].readOnly = FALSE;
     }
     pageTable = newPageTable;
+    thread->stackStart = numPages;
     numPages = (numPages + 8);
     mmBitMapLock->Release();
     return true;
@@ -287,4 +288,17 @@ bool AddrSpace::CreateStack()
     DEBUG('a', "No room available on the stack");
     return false;
   }
+}
+
+// Potentially called by Exit_Syscall()
+void AddrSpace::clearStack(int stackStart) {
+    for(unsigned int i = stackStart; i < stackStart + 8; i++) {
+        pageTable[i].valid = TRUE;
+        mmBitMap->Clear(pageTable[i].physicalPage);
+    }
+}
+
+void AddrSpace::clearPhysicalPage(int i)
+{
+    mmBitMap->Clear(pageTable[i].physicalPage);
 }

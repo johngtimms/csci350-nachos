@@ -10,6 +10,7 @@ public:
 	Thread* processThread;
 	char *name;
 	int threadCount;
+	spaceId processID;
 	List* threads;
 	Process(char *processName);
 };

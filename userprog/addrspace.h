@@ -22,6 +22,8 @@
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
 
+class Thread;
+
 class AddrSpace {
   public:
     AddrSpace(OpenFile *executable);	// Create an address space,
@@ -36,7 +38,9 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
     unsigned int GetNumPages();
-    bool CreateStack();
+    bool CreateStack(Thread *thread);
+    void clearStack(int stackStart);
+    void clearPhysicalPage(int page);
 
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation

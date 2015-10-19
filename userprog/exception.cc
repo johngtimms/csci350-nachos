@@ -35,19 +35,30 @@ using namespace std;
 
 
 struct ProcessTable {
-    std::map<SpaceID, Process*> processes;
+    std::map<spaceId, Process*> processes;
+    spaceId processCount;
+    Lock *tableLock;
+    ProcessTable() {
+        processCount = 0;
+        tableLock = new Lock("processTableLock");
+    }
     
 };
 
+Process *currentProcess;
+ProcessTable processTable;
+
 Process::Process(char *processName) {
     this->name = processName;
+    processTable.tableLock->Acquire();
+    processID = processTable.processCount;
+    processTable.processCount++;
+    processTable.tableLock->Release();
     this->processThread = currentThread;
     threads = new List();
     threadCount = 0;
 }
 
-Process *currentProcess;
-ProcessTable processes;
 
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
@@ -58,6 +69,7 @@ void InitExceptions(){
 
 void InitProcess(Process* process) {
     cout<<"Init PROCESS CALLED FOR PROCESS: " <<process->name<<endl;
+    processTable.processes[process->processID] = process;
     currentProcess = process;
 }
 
@@ -81,13 +93,15 @@ void ForkUserThread(int functionPtr)
 }
 
 void Fork_Syscall(int functionPtr) {
+    cout<<"Increasing current process thread count from "<<currentProcess->threadCount;
     currentProcess->threadCount++;
+    cout<<", to "<<currentProcess->threadCount<<endl;
     
     Thread *thread = new Thread(currentProcess->name);
     thread->space = currentThread->space;
     
     // if this fails then delete thread and exit function
-    if(thread->space->CreateStack() == false)
+    if(thread->space->CreateStack(thread) == false)
     {
         delete thread;
         DEBUG('p', "Create stack failed - not enough memory available.\n");
@@ -100,21 +114,84 @@ void Fork_Syscall(int functionPtr) {
     thread->Fork(ForkUserThread, functionPtr);
 }
 
-bool Exit_Syscall(int status) {
-    if(currentThread == currentProcess->processThread) {
-        if(currentProcess->threadCount == 0) {
-            //exit main thread
-            interrupt->Halt();
-            return true;
-        } else {
-            currentThread->Finish();
-            return false;
-        }
-    } else {
-        //exiting a forked thread
-        currentProcess->threadCount--;
+void ExecUserThread(spaceId processID) {
+    currentThread->space->InitRegisters();  
+    currentThread->space->RestoreState();   
+    machine->Run();
+}
+
+spaceId Exec_Syscall(unsigned int vaddr, int len) {
+    // Open file passed into Exec
+    char *buf = new char[len+1];
+    if(!buf) 
+        return -1;
+    if(copyin(vaddr, len, buf) == -1) {
+        cout << "Bad pointer passed to Create" << endl;
+        delete buf;
+        return -1;
+    }
+    buf[len]='\0';
+    OpenFile *executable = fileSystem->Open(buf);
+    if(executable == NULL) {
+       cout << "Unable to open file" << endl;
+       return -1;
+    }
+    // Create an AddrSpace for new file
+    AddrSpace *space = new AddrSpace(executable);
+    Thread *thread = new Thread(buf);
+    space->CreateStack(thread); // So that a thread can keep track of its8 pages of stack in AddrSpace->pageTable ??
+    thread->space = space;
+    InitExceptions();
+    Process *process = new Process(buf);
+    process->space = space;
+    process->processThread = thread;
+    delete executable;
+    InitProcess(process);
+    thread->Fork((VoidFunctionPtr)ExecUserThread, process->processID);
+    return process->processID;
+}
+
+void Exit_Syscall(int status) {
+    cout<<"EXIT IS GETTING CALLED: with process count "<<processTable.processes.size()<<", thread count: "<<currentProcess->threadCount<<endl;
+    processTable.tableLock->Acquire();
+    if(processTable.processes.size() == 1 && currentProcess->threadCount == 0) {
+        cout<<"CASE 1"<<endl;
+        // CASE: The exiting thread is execThread of the last process running - exit Nachos
+        
+        // Maybe this instead of delete currentThread->space; ???
+        for(unsigned int i = 0; i < currentThread->space->GetNumPages(); i++)
+            currentThread->space->clearPhysicalPage(i);     
+        
+        //delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
+        processTable.tableLock->Release();  
+        DEBUG('x', "\n Removing last thread of Nachos\n");
+        interrupt->Halt();
+    } else if(processTable.processes.size() > 1 && currentProcess->threadCount == 0) {
+        cout<<"CASE 2"<<endl;
+        // CASE: The exiting thread is the process' execThread (last thread) - exit the process 
+        processTable.processes.erase(currentProcess->processID);
+        delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
+        currentThread->space = NULL;               
+        processTable.tableLock->Release();  
+        DEBUG('x', "\n Removing last thread in a Process\n");
         currentThread->Finish();
-        return false;
+    } else {
+        cout<<"CASE 3"<<endl;
+        // CASE: The exiting thread is a thread that was forked in a process
+
+        
+        // THREE THINGS TO DO:
+        // 1. CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
+                // But there's no way of knowning where a thread's stack begins in currentThread->space->pageTable
+        // 2. CLEAR THREAD'S STACK'S PHYSICAL PAGES
+                // But there's no way of knowning where a thread's stack begins in space->pageTable
+        currentThread->space->clearStack(currentThread->stackStart); 
+        // 3. DELETE THREAD FROM PROCESS->THREADS
+                // currentProcess->threads is a List object with no "remove(Thread* threadToRemove)"
+        currentProcess->threadCount--;
+        cout<<"thread count is now: "<<currentProcess->threadCount<<endl;
+        processTable.tableLock->Release();  
+        currentThread->Finish();    
     }
     
 }
@@ -417,14 +494,11 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_Exit:
                 DEBUG('a', "Exiting.\n");
-                if(Exit_Syscall(machine->ReadRegister(4))) {
-                    delete currentProcess;
-                    return;
-                }
+                Exit_Syscall(machine->ReadRegister(4));
                 break;
             case SC_Exec:
                 DEBUG('a', "Exec.\n");
-                //Exec_Syscall();
+                rv = Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_Join:
                 DEBUG('a', "Join.\n");

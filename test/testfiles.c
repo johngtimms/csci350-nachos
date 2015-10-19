@@ -7,8 +7,6 @@
 
 void test(){
 	Write("Inside forked function\n", 24, ConsoleOutput);
-  	Yield();
-  	Exit(0);
 }
 
 int main() {
