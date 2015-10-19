@@ -120,14 +120,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
 
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
-	//numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize, PageSize);
-	numPages = divRoundUp(size, PageSize);	// Pages for code, init data and unit data only
+	numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize, PageSize);
+	//numPages = divRoundUp(size, PageSize);	// Pages for code, init data and unit data only
 	size = numPages * PageSize;
 	ASSERT(numPages <= NumPhysPages);
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 	// Set up pages for code, init data, unit data and execThread
 	mmBitMapLock->Acquire();
-	pageTable = new TranslationEntry[numPages + 8]; // Add 8 pages for execThread stack
+	pageTable = new TranslationEntry[numPages];
 	int ppn;
 	for(i = 0; i < numPages; i++) {
 		pageTable[i].virtualPage = i;
@@ -141,7 +141,6 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on a separate page, we could set its pages to be read-only
-		//executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
 	}
 	mmBitMapLock->Release();
 	mmLock->Acquire();
@@ -149,7 +148,6 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	for(i = 0; i < (numPages); i++)
 		bzero(&machine->mainMemory[PageSize * pageTable[i].physicalPage], PageSize);
 	// Number of pages to copy to main memory
-	
 	initPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 	for(i = 0; i < initPages; i++)
 		executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
@@ -254,7 +252,7 @@ bool AddrSpace::CreateStack(Thread* thread) {
 				printf("Unable to find unused physical page\n");
 				interrupt->Halt();
 			}
-	    	newPageTable[i].physicalPage = i;
+	    	newPageTable[i].physicalPage = ppn;
 	    	newPageTable[i].valid = TRUE;
 	    	newPageTable[i].use = FALSE;
 	    	newPageTable[i].dirty = FALSE;
@@ -274,38 +272,6 @@ bool AddrSpace::CreateStack(Thread* thread) {
     	DEBUG('a', "No room available on the stack");
     	return false;
     }
-}
-
-void AddrSpace::AllocateStack()			//Allocate 8 pages of Stack for a new thread
-{
-	mmBitMapLock->Acquire();
-
-	ASSERT(numPages <= NumPhysPages);
-
-	for (unsigned int x=numPages; x < numPages + 8; x++)
-	{
-		pageTable[x].virtualPage = x;
-		pageTable[x].physicalPage = mmBitMap -> Find();	//Returns a Free Page
-		ASSERT(pageTable[x].physicalPage != -1)			//Returns -1, if no free page available
-		pageTable[x].valid = TRUE;
-		pageTable[x].use = FALSE;
-		pageTable[x].dirty = FALSE;
-		pageTable[x].readOnly = FALSE;  // if the code segment was entirely on 
-						// a separate page, we could set its 
-						// pages to be read-only
-	}		
-
-	//update numPages to now include 8 pages for the allocated stack;
-
-	numPages+=8;
-
-	//addressSpaceSize+=8 * PageSize;
-
-//	machine -> pageTableSize = numPages;
-
-	
-	mmBitMapLock->Release();
-
 }
 
 // Potentially called by Exit_Syscall()
