@@ -119,7 +119,7 @@ SwapHeader (NoffHeader *noffH)
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     NoffHeader noffH;
-    unsigned int i, size;
+    unsigned int i, ppn, size;
 
     // Don't allocate the input or output to disk files
     fileTable.Put(0);
@@ -144,11 +144,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
+    mmBitMapLock->Acquire();
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
+    ppn = mmBitMap->Find();
+    ASSERT(ppn != -1);
+	pageTable[i].physicalPage = ppn;
 	pageTable[i].valid = TRUE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
@@ -156,7 +159,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 					// a separate page, we could set its 
 					// pages to be read-only
     }
-    
+    mmBitMapLock->Release();
+    mmLock->Acquire();
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
     bzero(machine->mainMemory, size);
@@ -174,6 +178,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
+
+    mmLock->Release();
 
 }
 
@@ -252,28 +258,30 @@ unsigned int AddrSpace::GetNumPages() {
 
 bool AddrSpace::CreateStack()
 {
-  int numNewPages = divRoundUp(UserStackSize, PageSize);
-  int newSize = (numPages + numNewPages) * PageSize;
-
-  if (numPages + numNewPages <= NumPhysPages)
+  
+  if (numPages + 8 <= NumPhysPages)
   {
-    TranslationEntry *newPageTable = new TranslationEntry[numPages + numNewPages];
+    mmBitMapLock->Acquire();
+    TranslationEntry *newPageTable = new TranslationEntry[numPages + 8];
     
-    int i;
+    int i, ppn;
     for (i = 0; i < numPages; i++) {
       newPageTable[i] = pageTable[i];
     }
-    for (i = numPages; i < numPages + numNewPages; i++)
+    for (i = numPages; i < numPages + 8; i++)
     {
     newPageTable[i].virtualPage = i;
-    newPageTable[i].physicalPage = i;
+    ppn = mmBitMap->Find();
+    ASSERT(ppn != -1);
+    newPageTable[i].physicalPage = ppn;
     newPageTable[i].valid = TRUE;
     newPageTable[i].use = FALSE;
     newPageTable[i].dirty = FALSE;
     newPageTable[i].readOnly = FALSE;
     }
     pageTable = newPageTable;
-    numPages = (numPages + numNewPages);
+    numPages = (numPages + 8);
+    mmBitMapLock->Release();
     return true;
   } else {
     DEBUG('a', "No room available on the stack");

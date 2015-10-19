@@ -16,25 +16,28 @@
 #include "stats.h"
 #include "timer.h"
 
+
 // Initialization and cleanup routines
-extern void Initialize(int argc, char **argv); 	// Initialization,
-						// called before anything else
-extern void Cleanup();				// Cleanup, called when
-						// Nachos is done.
+extern void Initialize(int argc, char **argv); 	// Initialization; called before anything else
+extern void Cleanup();				// Cleanup, called when Nachos is done.
 
 extern Thread *currentThread;			// the thread holding the CPU
-extern Thread *threadToBeDestroyed;  		// the thread that just finished
+extern Thread *threadToBeDestroyed;  	// the thread that just finished
 extern Scheduler *scheduler;			// the ready list
 extern Interrupt *interrupt;			// interrupt status
-extern Statistics *stats;			// performance metrics
-extern Timer *timer;				// the hardware alarm clock
+extern Statistics *stats;				// performance metrics
+extern Timer *timer;					// the hardware alarm clock
 
 #ifdef USER_PROGRAM
 #include "machine.h"
+#include "structs.h"
+#include "bitmap.h"
 extern Machine *machine;	// user program memory and registers
 extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
->>>>>>> b2b31de... worked on Fork and Exit functions
+extern BitMap *mmBitMap;
+extern Lock *mmBitMapLock;
+extern Lock *mmLock;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
@@ -44,7 +47,7 @@ extern FileSystem  *fileSystem;
 
 #ifdef FILESYS
 #include "synchdisk.h"
-extern SynchDisk   *synchDisk;
+extern SynchDisk *synchDisk;
 #endif
 
 #ifdef NETWORK
