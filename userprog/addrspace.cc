@@ -245,3 +245,38 @@ void AddrSpace::RestoreState()
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }
+
+unsigned int AddrSpace::GetNumPages() {
+    return numPages;
+}
+
+bool AddrSpace::CreateStack()
+{
+  int numNewPages = divRoundUp(UserStackSize, PageSize);
+  int newSize = (numPages + numNewPages) * PageSize;
+
+  if (numPages + numNewPages <= NumPhysPages)
+  {
+    TranslationEntry *newPageTable = new TranslationEntry[numPages + numNewPages];
+    
+    int i;
+    for (i = 0; i < numPages; i++) {
+      newPageTable[i] = pageTable[i];
+    }
+    for (i = numPages; i < numPages + numNewPages; i++)
+    {
+    newPageTable[i].virtualPage = i;
+    newPageTable[i].physicalPage = i;
+    newPageTable[i].valid = TRUE;
+    newPageTable[i].use = FALSE;
+    newPageTable[i].dirty = FALSE;
+    newPageTable[i].readOnly = FALSE;
+    }
+    pageTable = newPageTable;
+    numPages = (numPages + numNewPages);
+    return true;
+  } else {
+    DEBUG('a', "No room available on the stack");
+    return false;
+  }
+}

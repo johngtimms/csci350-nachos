@@ -4,7 +4,15 @@
 
 #include "syscall.h"
 
+
+void test(){
+	Write("Inside forked function\n", 24, ConsoleOutput);
+  	Yield();
+  	Exit(0);
+}
+
 int main() {
+<<<<<<< HEAD
   OpenFileId fd;
   int bytesread;
   char buf[20];
@@ -21,3 +29,18 @@ int main() {
     Write( buf, bytesread, ConsoleOutput );
     Close(fd);
 }
+=======
+	Write("Before Fork\n", 14, ConsoleOutput);
+    Fork(&test);
+    /*
+	int lock; 
+	lock = CreateLock();
+    Acquire(lock);
+    Print(lock);
+    Release(lock);
+    DestroyLock(lock);
+    */
+    
+}
+
+>>>>>>> b2b31de... worked on Fork and Exit functions
