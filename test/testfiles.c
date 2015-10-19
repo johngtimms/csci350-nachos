@@ -2,13 +2,15 @@
 
 
 void test(){
-	Write("Inside forked function\n", 24, ConsoleOutput);
+	/*Write("Inside forked function\n", 24, ConsoleOutput);*/
+  /*
   	Yield();
   	Exit(0);
+    */
 }
 
 int main() {
-	Write("Before Fork\n", 14, ConsoleOutput);
+	/*Write("Before Fork\n", 14, ConsoleOutput);*/
     Fork(&test);
     /*
 	int lock; 

@@ -17,6 +17,8 @@
 #include "filesys.h"
 #include "table.h"
 
+class Thread;
+
 #define UserStackSize		1024 	// increase this as necessary!
 
 #define MaxOpenFiles 256
@@ -31,8 +33,10 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
     unsigned int GetNumPages();
-    bool CreateStack();
-    //void clearStack(int stackStart);
+    bool CreateStack(Thread* thread);
+    void AllocateStack();
+    void clearStack(int stackStart);
+    void clearPhysicalPage(int i);
 
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation for now!

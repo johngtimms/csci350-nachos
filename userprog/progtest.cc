@@ -36,6 +36,7 @@ StartProcess(char *filename) {
     }
     InitExceptions();
     space = new AddrSpace(executable);
+    space->AllocateStack();
     currentThread->space = space;
     Process *process = new Process(filename);
     InitProcess(process);

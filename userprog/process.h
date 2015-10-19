@@ -1,6 +1,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+#include <vector>
 
 using namespace std;
 
@@ -11,7 +12,7 @@ public:
 	Thread* processThread;
 	char *name;
 	int threadCount;
-	List* threads;
+	vector<Thread*> *threads;
 	Process(char *processName);
 	~Process();
 };

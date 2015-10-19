@@ -145,7 +145,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	mmBitMapLock->Release();
 	mmLock->Acquire();
 	// Zero out address space
-	for(i = 0; i < (numPages + 8); i++)
+	for(i = 0; i < (numPages); i++)
 		bzero(&machine->mainMemory[PageSize * pageTable[i].physicalPage], PageSize);
 	// Number of pages to copy to main memory
 	initPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
@@ -153,6 +153,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize, 40 + (i * PageSize));
 	mmLock->Release();
 }
+
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
@@ -220,20 +221,21 @@ unsigned int AddrSpace::GetNumPages() {
     return numPages;
 }
 
-// bool AddrSpace::CreateStack(Thread* thread) { // See comments below
-bool AddrSpace::CreateStack() {
+bool AddrSpace::CreateStack(Thread* thread) {
   	if(numPages + 8 <= NumPhysPages) {
   		mmBitMapLock->Acquire();
   		unsigned int i;
     	TranslationEntry *newPageTable = new TranslationEntry[numPages + 8];
-    	/*
-    	// thread->stackStart = numPages 
+    	
+        thread->stackStart = numPages; 
     	// So that AddrSpace::clearStack(int stackStart) can be called in Exit_Syscall() ?
-    	*/
+    	
      	// Make deep copy of pageTable to newPageTable
     	for(i = 0; i < numPages; i++) {
+    		DEBUG('t',"Old virtual page: %i\n",pageTable[i].virtualPage);
       		newPageTable[i].virtualPage = pageTable[i].virtualPage;
 	    	newPageTable[i].physicalPage = pageTable[i].physicalPage;
+	    	DEBUG('t',"valid: %i\n",pageTable[i].valid);
 	    	newPageTable[i].valid = pageTable[i].valid;
 	    	newPageTable[i].use = pageTable[i].use;
 	    	newPageTable[i].dirty = pageTable[i].dirty;
@@ -242,29 +244,66 @@ bool AddrSpace::CreateStack() {
     	// Add 8 new pages of stack to newPageTable
     	int ppn;
     	for(i = numPages; i < numPages + 8; i++) {
+    		DEBUG('t',"New virtual page: %i\n",i);
 	    	newPageTable[i].virtualPage = i;
 			ppn = mmBitMap->Find();
 			if(ppn == -1) {
 				printf("Unable to find unused physical page\n");
 				interrupt->Halt();
 			}
-	    	newPageTable[i].physicalPage = ppn;
+	    	newPageTable[i].physicalPage = i;
 	    	newPageTable[i].valid = TRUE;
 	    	newPageTable[i].use = FALSE;
 	    	newPageTable[i].dirty = FALSE;
 	    	newPageTable[i].readOnly = FALSE;
     	}
-    	// delete pageTable; // Don't know whether this is necessary
+        delete[] pageTable; 
     	pageTable = newPageTable;
     	numPages = numPages + 8;
+    	machine->pageTable = pageTable;
     	mmBitMapLock->Release();
+    	for(int k = 0; k < numPages ; k ++){
+            DEBUG('t', "addrspace: number #%i valid:%i\n",k,machine->pageTable[k].valid);
+        }
   	  	return true;
   	} else {
     	DEBUG('a', "No room available on the stack");
     	return false;
     }
 }
-/*
+
+void AddrSpace::AllocateStack()			//Allocate 8 pages of Stack for a new thread
+{
+	mmBitMapLock->Acquire();
+
+	ASSERT(numPages <= NumPhysPages);
+
+	for (unsigned int x=numPages; x < numPages + 8; x++)
+	{
+		pageTable[x].virtualPage = x;
+		pageTable[x].physicalPage = mmBitMap -> Find();	//Returns a Free Page
+		ASSERT(pageTable[x].physicalPage != -1)			//Returns -1, if no free page available
+		pageTable[x].valid = TRUE;
+		pageTable[x].use = FALSE;
+		pageTable[x].dirty = FALSE;
+		pageTable[x].readOnly = FALSE;  // if the code segment was entirely on 
+						// a separate page, we could set its 
+						// pages to be read-only
+	}		
+
+	//update numPages to now include 8 pages for the allocated stack;
+
+	numPages+=8;
+
+	//addressSpaceSize+=8 * PageSize;
+
+//	machine -> pageTableSize = numPages;
+
+	
+	mmBitMapLock->Release();
+
+}
+
 // Potentially called by Exit_Syscall()
 void AddrSpace::clearStack(int stackStart) {
 	for(unsigned int i = stackStart; i < stackStart + 8; i++) {
@@ -272,4 +311,8 @@ void AddrSpace::clearStack(int stackStart) {
 		mmBitMap->Clear(pageTable[i].physicalPage);
 	}
 }
-*/
+
+void AddrSpace::clearPhysicalPage(int i)
+{
+	mmBitMap->Clear(pageTable[i].physicalPage);
+}
