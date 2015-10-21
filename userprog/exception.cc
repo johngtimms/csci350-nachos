@@ -35,7 +35,8 @@ using namespace std;
 struct ProcessTable {
 	spaceId processCount;
 	Lock *tableLock;
-	std::map<spaceId, Process*> processes;
+	map<spaceId, Process*> processes;
+	//map<spaceId, AddrSpace*> processes;
 	ProcessTable() {
 		processCount = 0;
 		tableLock = new Lock("processTableLock");
@@ -64,60 +65,49 @@ void InitProcess(Process* process) {
 
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
-  DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
-  //currentThread->space->InitRegisters();
-
-  // Set the program counter to the appropriate place indicated by funcPtr...
-  machine->WriteRegister(PCReg, functionPtr);
-  int vpn = functionPtr/PageSize;
-  bool valid = currentThread->space->pageTable[vpn].valid;
-  DEBUG('t', "vpn: %i,valid: %i\n",vpn,valid);
-  DEBUG('t', "setting pc reg with virtual page number: %d\n",(functionPtr)/PageSize);
-
-  machine->WriteRegister(NextPCReg, functionPtr + 4);
-
-  currentThread->space->RestoreState();
-
-  machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16);
-  DEBUG('t', "After big write registers\n");
-  
-  
-  // update the stack register
-  
-  machine->Run();
-  DEBUG('t', "After machine run\n");
+  	DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
+	// Set the program counter to the appropriate place indicated by funcPtr...
+	machine->WriteRegister(PCReg, functionPtr);
+	//int vpn = functionPtr/PageSize;
+	//bool valid = currentThread->space->pageTable[vpn].valid;
+	//DEBUG('t', "vpn: %i,valid: %i\n",vpn,valid);
+	//DEBUG('t', "setting pc reg with virtual page number: %d\n",(functionPtr)/PageSize);
+	machine->WriteRegister(NextPCReg, functionPtr + 4);
+	currentThread->space->RestoreState();
+	// update the stack register
+	machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16);
+	DEBUG('t', "After big write registers\n");  
+	machine->Run();
+	DEBUG('t', "After machine run\n");
 }
 
 void Fork_Syscall(int functionPtr) {
+	DEBUG('t', "In Fork_Syscall\n");
     currentProcess->threadCount++;
 	Thread *kernelThread = new Thread(currentProcess->name);
 	kernelThread->space = currentThread->space;
 	
 	  // if this fails then delete thread and exit function
-  if(kernelThread->space->CreateStack(kernelThread) == false)
-  	{
+  	if(kernelThread->space->CreateStack(kernelThread) == false) {
   		delete kernelThread;
-    	DEBUG('t', "Create stack failed - not enough memory available.\n");
-    	cout << "Create stack failed - not enough memory available." << endl;
+    	printf("Create stack failed - not enough memory available.\n");
     	return;
 	}
-	
 	currentProcess->threads->push_back(kernelThread);
 	kernelThread->Fork(ForkUserThread, functionPtr);
 }
 
 void Exit_Syscall(int status) {
+	DEBUG('t', "In Exit_Syscall\n");
 	processTable.tableLock->Acquire();
 	if(processTable.processes.size() == 1 && currentProcess->threadCount == 1) {
    		// CASE: The exiting thread is execThread of the last process running - exit Nachos
-   		
-   		// Maybe this instead of delete currentThread->space; ???
+   		// Clear all the physical pages used in the AddrSpace of this process
 		for(unsigned int i = 0; i < currentThread->space->GetNumPages(); i++)
-			currentThread->space->clearPhysicalPage(i); 	
-		
-		//delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
+			currentThread->space->ClearPhysicalPage(i); 	
+		//delete currentThread->space; 
         processTable.tableLock->Release();	
-		DEBUG('x', "\n Removing last thread of Nachos\n");
+		DEBUG('t', "Exiting last thread of Nachos\n");
 		interrupt->Halt();
     } else if(processTable.processes.size() > 1 && currentProcess->threadCount == 1) {
    		// CASE: The exiting thread is the process' execThread (last thread) - exit the process 
@@ -125,55 +115,47 @@ void Exit_Syscall(int status) {
 		delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
 		currentThread->space = NULL;	           
         processTable.tableLock->Release();	
-		DEBUG('x', "\n Removing last thread in a Process\n");
+		DEBUG('t', "Exiting from last thread in a Process\n");
 		currentThread->Finish();
     } else {
    		// CASE: The exiting thread is a thread that was forked in a process
-        
-		// THREE THINGS TO DO:
-		// 1. CHANGE THREAD'S STACK'S PAGES' VALID BITS TO FALSE
-				// But there's no way of knowning where a thread's stack begins in currentThread->space->pageTable
-		// 2. CLEAR THREAD'S STACK'S PHYSICAL PAGES
-				// But there's no way of knowning where a thread's stack begins in space->pageTable
-	    //currentThread->space->clearStack(currentThread->stackStart); 
-		// 3. DELETE THREAD FROM PROCESS->THREADS
-				// currentProcess->threads is a List object with no "remove(Thread* threadToRemove)"
-        for( std::vector<Thread*>::iterator iter = currentProcess->threads->begin(); iter != currentProcess->threads->end(); ++iter )
-		{
-			if( *iter == currentThread )
-			{
+	    // currentThread->space->ClearStack(currentThread->stackStart);
+        for(vector<Thread*>::iterator iter = currentProcess->threads->begin(); iter != currentProcess->threads->end(); ++iter) {
+			if(*iter == currentThread) {
 				currentProcess->threads->erase( iter );
 				break;
 			}
 		}
 		currentProcess->threadCount--;
 		processTable.tableLock->Release();	
+		DEBUG('t', "Exiting from forked thread\n");
 		currentThread->Finish();	
-	}
-	
+	}	
 }
 
 void ExecUserThread(spaceId processID) {
+	DEBUG('t', "In ExecUserSyscall\n");
 	currentThread->space->InitRegisters();	
-	currentThread->space->RestoreState();	
+	currentThread->space->RestoreState();
 	machine->Run();
 }
 
 spaceId Exec_Syscall(unsigned int vaddr, int len) {
-	// Open file passed into Exec
+	DEBUG('t', "In Exec_Syscall\n");
+	OpenFile *executable;
 	char *buf = new char[len+1];
     if(!buf) 
     	return -1;
     if(copyin(vaddr, len, buf) == -1) {
-		cout << "Bad pointer passed to Create" << endl;
+		cout << "" << endl;
 		delete buf;
 		return -1;
     }
     buf[len]='\0';
-	OpenFile *executable = fileSystem->Open(buf);
+	executable = fileSystem->Open(buf);
 	if(executable == NULL) {
-	   cout << "Unable to open file" << endl;
-	   return -1;
+	    cout << "Unable to open file: " << buf << endl;
+	    return -1;
     }
     // Create an AddrSpace for new file
     AddrSpace *space = new AddrSpace(executable);
@@ -472,6 +454,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 }
 
 void Print_Syscall(int text, int num) {
+	DEBUG('x', "In Print_Syscall\n");
 	char *buf = new char[100+1];
 	if(!buf) 
   		DEBUG('a', "Unable to allocate buffer in Print_Syscall\n");

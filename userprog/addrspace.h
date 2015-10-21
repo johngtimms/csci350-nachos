@@ -34,12 +34,11 @@ class AddrSpace {
     Table fileTable;			// Table of openfiles
     unsigned int GetNumPages();
     bool CreateStack(Thread* thread);
-    void clearStack(int stackStart);
-    void clearPhysicalPage(int i);
-    TranslationEntry *pageTable;
+    void ClearStack(unsigned int stackStart);
+    void ClearPhysicalPage(int i);
 
  private:
-    //TranslationEntry *pageTable;	// Assume linear page table translation for now!
+    TranslationEntry *pageTable;	// Assume linear page table translation for now!
     unsigned int numPages;		// Number of pages in the virtual address space
 };
 
