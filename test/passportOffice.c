@@ -160,7 +160,7 @@ Customer newCustomer(int index, bool _isSenator){
 void doApplication(int id){
 }
 void doPicture(int id){
-	waitInLine(id,pictureClerks);
+	/*waitInLine(id,pictureClerks);*/
 }
 void doPassport(int id){
 	/*
@@ -196,6 +196,7 @@ void runCustomer() {
 	int i;
 	i = nextAvailableCustomerIndex;
 	initCustomer(i,false); 
+	Print("running customer %i\n",i);
 	
 	nextAvailableCustomerIndex = nextAvailableCustomerIndex + 1;   /*temporary keeping track of index*/
 
@@ -236,7 +237,7 @@ void runCustomer() {
     doPassport(customers[i].SSN);
     do{
     	doCashier(customers[i].SSN);
-    }while(customers[i].certifiedByPassportClerk == true); /* until the customer has been certified, keep him in line with cashier */
+    }while(customers[i].certifiedByPassportClerk == false); /* until the customer has been certified, keep him in line with cashier */
   	
 
 	Exit(0);
