@@ -18,12 +18,17 @@ int customerOutsideLineCV;
 int customersOutside = 0;
 int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
 
+int customerIndexLock;
 int nextAvailableCustomerIndex = 0;
-int clerkCounter = 0;
+int passportClerkIndexLock;
 int nextAvailablePassportClerkIndex = 0;
+int cashierClerkIndexLock;
 int nextAvailableCashierClerkIndex = 0;
+int pictureClerkIndexLock;
 int nextAvailablePictureClerkIndex = 0;
+int senatorIndexLock;
 int nextAvailableSenatorIndex = 0;
+int applicationClerkIndexLock;
 int nextAvailableApplicationClerkIndex = 0;
 
 bool runningTest1 = false;
@@ -92,14 +97,14 @@ void initCustomer(int i, bool _isSenator){
     customers[i].hasPaidForPassport = false;
 }
 
-void initApplicationClerk(int i){
+void initClerk(int i){
 	
 	applicationClerks[i].lineLength = 0;
 	applicationClerks[i].bribeLineLength = 0;
 	applicationClerks[i].senatorLineLength = 0;
 	applicationClerks[i].money = 0;
 	applicationClerks[i].state = BUSY;
-	/*
+	
 	applicationClerks[i].lineLock = CreateLock();
 	applicationClerks[i].bribeLineLock = CreateLock();
 	applicationClerks[i].senatorLineLock = CreateLock();
@@ -109,53 +114,10 @@ void initApplicationClerk(int i){
 	applicationClerks[i].senatorLineCV = CreateCondition();
 	applicationClerks[i].clerkCV = CreateCondition();
 	applicationClerks[i].breakCV = CreateCondition();
-	*/
+	
 
 }
 
-void initPassportClerk(int i){
-	
-	passportClerks[i].lineLength = 0;
-	passportClerks[i].bribeLineLength = 0;
-	passportClerks[i].senatorLineLength = 0;
-	passportClerks[i].money = 0;
-	passportClerks[i].state = BUSY;
-    /*
-	passportClerks[i].lineLock = CreateLock();
-	passportClerks[i].bribeLineLock = CreateLock();
-	passportClerks[i].senatorLineLock = CreateLock();
-	passportClerks[i].moneyLock = CreateLock();
-	passportClerks[i].lineCV = CreateCondition();
-	passportClerks[i].bribeLineCV = CreateCondition();
-	passportClerks[i].senatorLineCV = CreateCondition();
-	passportClerks[i].clerkCV = CreateCondition();
-	passportClerks[i].breakCV = CreateCondition();
-	*/
-
-}
-
-
-/*
-Customer newCustomer(int index, bool _isSenator){
-	Customer customer;
-	
-	customer.isSenator = _isSenator;
-	customer.clerkID = -1;
-	customer.SSN = index;
-	money = amounts[(int)(Rand() % 4)];
-	
-	customer.hasApp = false;
-	customer.hasPic = false;
-	customer.certifiedByPassportClerk = false;
-	customer.hasPassport = false;
-	customer.seenApp = false;
-	customer.seenPic = false;
-	customer.likedPic = false;
-	customer.hasPaidForPassport = false;
-	
-	return &(customer);
-}
-*/
 
 void doApplication(int id){
 }
@@ -194,11 +156,17 @@ void doCashier(int id){
 
 void runCustomer() {
 	int i;
+
+	Acquire(customerIndexLock);
 	i = nextAvailableCustomerIndex;
-	initCustomer(i,false); 
-	Print("running customer %i\n",i);
-	
 	nextAvailableCustomerIndex = nextAvailableCustomerIndex + 1;   /*temporary keeping track of index*/
+	Release(customerIndexLock);
+
+	initCustomer(i,false); 
+	Print("Running Customer %i\n",i);
+
+	
+	
 
 	Acquire(senatorOutsideLineLock);
 	Acquire(senatorInsideLock);
@@ -245,32 +213,151 @@ void runCustomer() {
 
 void runPassportClerk() {
 	int i;
+
+	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
-	Print("running passportClerk: %i\n",i);
-	initPassportClerk(i);	
-	
 	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/
+	Release(passportClerkIndexLock);
+
+	Print("running PassportClerk: %i\n",i);
+	initClerk(i);	
+	
+	
 	Exit(0);
 }
 
 void runApplicationClerk() {
 	int i;
+
+	Print("before acquire app clerk index lock \n",0);
+	Acquire(applicationClerkIndexLock);
 	i = nextAvailableApplicationClerkIndex;
-	Print("running applicationClerk: %i\n",i);
-	initApplicationClerk(i);
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1; /*temporary keeping track of index*/
+	Release(applicationClerkIndexLock);
+	Print("after release app clerk index lock \n",0);
+
+	Print("running ApplicationClerk: %i\n",i);
+	initClerk(i);
+	
 
 	Exit(0);
 }
 
 void runPictureClerk() {
-	int i;
+	int i, wait, k;
+	Print("before acquire picture clerk index lock \n",0);
+	Acquire(pictureClerkIndexLock);
 	i = nextAvailablePictureClerkIndex;
-	Print("running applicationClerk: %i\n",i);
-	initApplicationClerk(i);
 	nextAvailablePictureClerkIndex = nextAvailablePictureClerkIndex + 1; /*temporary keeping track of index*/
+	Release(pictureClerkIndexLock);
+	Print("after release picture clerk index lock \n",0);
 
+	Print("running PictureClerk: %i\n",i);
+	initClerk(i);
+	
+
+	while(true) {
+    	if(pictureClerks[i].senatorLineLength > 0) {
+    		Acquire(pictureClerks[i].senatorLineLock);
+            Signal(pictureClerks[i].senatorLineCV,pictureClerks[i].senatorLineLock);     /* Signal Customer to exit line */
+            Acquire(pictureClerks[i].clerkLock); 
+            Release(pictureClerks[i].senatorLineLock);
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for customer to get ready for picture */
+            Print("PictureClerk %i ", i);
+            Print("has recieved SSN %i",pictureClerks[i].customer.SSN);
+            Print("from Senator %i\n",pictureClerks[i].customer.SSN);
+            Print("PictureClerk %i ", i);
+            Print("has taken a picture of Senator %i\n",pictureClerks[i].customer.SSN);
+            Signal(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);    /* Give picture back */
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for Customer to accept picture */
+            if(pictureClerks[i].customer.likedPic) {
+            	Print("PictureClerk %i ",i);
+            	Print("has been told that Senator %i does like their picture\n",pictureClerks[i].customer.SSN);
+                wait = Rand() % ((100 - 20) + 1) + 20;
+                for(k = 0; k < wait; k++)               /* Process picture */
+                    Yield();
+            }else{
+            	Print("PictureClerk %i ",i);
+            	Print("has been told that Senator %i does not like their picture\n",pictureClerks[i].customer.SSN);
+            }
+            /*pictureClerks[i].customer = NULL;  no null in C? */
+            Release(pictureClerks[i].clerkLock);
+            pictureClerks[i].state = FREE;
+    	}
+        if(pictureClerks[i].bribeLineLength > 0) {
+            Acquire(pictureClerks[i].bribeLineLock);
+            Signal(pictureClerks[i].bribeLineCV,pictureClerks[i].bribeLineLock);     /* Signal Customer to exit line */
+            Acquire(pictureClerks[i].clerkLock); 
+            Release(pictureClerks[i].bribeLineLock);
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for customer to get ready for picture */
+            Print("PictureClerk %i ", i);
+            Print("has recieved SSN %i",pictureClerks[i].customer.SSN);
+            Print("from Customer %i\n",pictureClerks[i].customer.SSN);
+            Print("PictureClerk %i ", i);
+            Print("has taken a picture of Customer %i\n",pictureClerks[i].customer.SSN);
+            Signal(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);    /* Give picture back */
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for Customer to accept picture */
+            if(pictureClerks[i].customer.likedPic) {
+                Print("PictureClerk %i ",i);
+            	Print("has been told that Customer %i does like their picture\n",pictureClerks[i].customer.SSN);
+                wait = Rand() % ((100 - 20) + 1) + 20;
+                for(k = 0; k < wait; k++)               /* Process picture */
+                    Yield();
+            }else{
+            	Print("PictureClerk %i ",i);
+            	Print("has been told that Customer %i does not like their picture\n",pictureClerks[i].customer.SSN);
+                }
+            /*pictureClerks[i].customer = NULL; no null in C? */
+            Release(pictureClerks[i].clerkLock);
+            pictureClerks[i].state = FREE;
+        } else if(pictureClerks[i].lineLength > 0) {
+            Acquire(pictureClerks[i].lineLock);
+            Signal(pictureClerks[i].lineCV,pictureClerks[i].lineLock);     /* Signal Customer to exit line */
+            Acquire(pictureClerks[i].clerkLock); 
+            Release(pictureClerks[i].lineLock);
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for customer to get ready for picture */
+            Print("PictureClerk %i ", i);
+            Print("has recieved SSN %i",pictureClerks[i].customer.SSN);
+            Print("from Customer %i\n",pictureClerks[i].customer.SSN);
+            Print("PictureClerk %i ", i);
+            Print("has taken a picture of Customer %i\n",pictureClerks[i].customer.SSN);
+            Signal(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);    /* Give picture back */
+            Wait(pictureClerks[i].clerkCV,pictureClerks[i].clerkLock);      /* Wait for Customer to accept picture */
+            if(pictureClerks[i].customer.likedPic) {
+                Print("PictureClerk %i ",i);
+            	Print("has been told that Customer %i does like their picture\n",pictureClerks[i].customer.SSN);
+                wait = Rand() % ((100 - 20) + 1) + 20;
+                for(k = 0; k < wait; k++)               /* Process picture */
+                    Yield();
+            }else{
+            	Print("PictureClerk %i ",i);
+            	Print("has been told that Customer %i does not like their picture\n",pictureClerks[i].customer.SSN);
+                }
+            /* pictureClerks[i].customer = NULL;  no null in c? */
+            Release(pictureClerks[i].clerkLock);
+            pictureClerks[i].state = FREE;
+        } else {
+            Acquire(pictureClerks[i].clerkLock);
+            pictureClerks[i].state = BREAK;
+            Print("PictureClerk %i taking a break\n",i);
+            Wait(pictureClerks[i].breakCV,pictureClerks[i].clerkLock);
+            Print("PictureClerk %i back from break\n",i);
+            Release(pictureClerks[i].clerkLock);
+            pictureClerks[i].state = FREE;
+        }
+    }
+	
 	Exit(0);
+}
+
+void test(){
+	Acquire(senatorOutsideLineLock);
+	Wait(senatorOutsideLineCV, senatorOutsideLineLock);
+	Release(senatorOutsideLineLock);
+}
+
+void test1(){
+	Print("inside test1",0);
 }
 
 int main() {
@@ -280,13 +367,27 @@ int main() {
 	senatorInsideLock = CreateLock();
 	customerOutsideLineLock = CreateLock();
 	customerOutsideLineCV = CreateCondition();
+	customerIndexLock = CreateLock();
+	applicationClerkIndexLock = CreateLock();
+	pictureClerkIndexLock = CreateLock();
+	passportClerkIndexLock = CreateLock();
+	senatorIndexLock = CreateLock();
+	cashierClerkIndexLock = CreateLock();
 	
 	numCustomers = 10;
 	numPassportClerks = 3;
 	numPictureClerks = 3;
 	numApplicationClerks = 3;
 
+	/*
+	Print("before test\n",0);
+	Fork(&test);
+	Print("after test\n",0);
+	Fork(&test1);
+	*/
 
+	
+	
 	for(k = 0 ; k < numPassportClerks ; k++) {
 		Fork(&runPassportClerk);
 	}

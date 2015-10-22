@@ -161,11 +161,13 @@ int Exec_Syscall(unsigned int vaddr, int len) {
 
 int CreateLock_Syscall() {
 	KernelLock *lock = new KernelLock();
+	lock->space = currentThread->space;
 	lockTable->tableLock->Acquire();
 	int key = lockTable->index;
 	lockTable->locks[key] = lock;
 	lockTable->index++;
-	cout << "Created lock with key: " << key << endl;
+	DEBUG('l', "Created lock with key %i\n",key);
+	//cout << "Created lock with key: " << key << endl;
 	lockTable->tableLock->Release();
 	return key;
 }
@@ -193,7 +195,8 @@ void Acquire_Syscall(unsigned int key) {
 		cout << "Attempt to acquire lock that doesn't exist" << endl;
 	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Acquire();
-		cout << "Acquired lock with key: " << key << endl;
+		DEBUG('l', "Acquired lock with key %i\n",key);
+		//cout << "Acquired lock with key: " << key << endl;
 	}
 	lockTable->tableLock->Release();
 }
@@ -207,18 +210,21 @@ void Release_Syscall(unsigned int key) {
 		cout << "Attempt to release lock that doesn't exist" << endl;
 	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Release();
-		cout << "Released lock with key: " << key << endl;
+		DEBUG('l', "Released lock with key %i\n",key);
+		//cout << "Released lock with key: " << key << endl;
 	}
 	lockTable->tableLock->Release();
 }
 
 int CreateCondition_Syscall() {
 	KernelCondition *condition = new KernelCondition();
+	condition->space = currentThread->space;
 	conditionTable->tableLock->Acquire();
 	int key = conditionTable->index;
 	conditionTable->conditions[key] = condition;
 	conditionTable->index++;
-	cout << "Created condition with key: " << key << endl;
+	DEBUG('c', "Created condition with key %i\n",key);
+	//cout << "Created condition with key: " << key << endl;
 	conditionTable->tableLock->Release();
 	return key;
 }
@@ -252,7 +258,8 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 		cout << "Condition trying to wait owns lock that doesn't exist" << endl;
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Wait(lock->lock);
-		cout << "Waiting on condition with key: " << conditionKey << endl;
+		DEBUG('c', "Waiting on condition with key %i\n",conditionKey);
+		//cout << "Waiting on condition with key: " << conditionKey << endl;
 	}
 	lockTable->tableLock->Release();
 	conditionTable->tableLock->Release();
