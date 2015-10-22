@@ -30,9 +30,11 @@ SynchDisk   *synchDisk;
 Machine *machine;	// user program memory and registers
 LockTable *lockTable;
 ConditionTable *conditionTable;
-BitMap *mmBitMap;
-Lock *mmBitMapLock;
-Lock *mmLock;
+BitMap *memoryBitMap;
+Lock *memoryBitMapLock;
+//Lock *mmLock;
+ProcessTable *processTable;
+Lock *processTableLock;
 #endif
 
 #ifdef NETWORK
@@ -151,9 +153,11 @@ Initialize(int argc, char **argv) {
     machine = new Machine(debugUserProg);	// this must come first
     lockTable = new LockTable();
     conditionTable = new ConditionTable();
-    mmBitMap = new BitMap(NumPhysPages);
-    mmBitMapLock = new Lock();
-    mmLock = new Lock();
+    memoryBitMap = new BitMap(NumPhysPages);
+    memoryBitMapLock = new Lock();
+    //mmLock = new Lock();
+    processTable = new ProcessTable();
+    processTableLock = new Lock();
 #endif
 
 #ifdef FILESYS
@@ -184,9 +188,11 @@ Cleanup() {
     delete machine; 
     delete lockTable;
     delete conditionTable;
-    delete mmBitMap;
-    delete mmBitMapLock;
-    delete mmLock;
+    delete memoryBitMap;
+    delete memoryBitMapLock;
+    //delete mmLock;
+    delete processTable;
+    delete processTableLock;
 #endif
 
 #ifdef FILESYS_NEEDED

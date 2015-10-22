@@ -26,22 +26,29 @@ extern void InitProcess(Process* process);
 // 	Run a user program.  Open the executable, load it into
 //	memory, and jump to it.
 //----------------------------------------------------------------------
-void
-StartProcess(char *filename) {
+void StartProcess(char *filename) {
+    processTableLock->Acquire();
+    DEBUG('t', "In StartProcess()\n");
     OpenFile *executable = fileSystem->Open(filename);
-    AddrSpace *space;
     if(executable == NULL) {
 	   printf("Unable to open file %s\n", filename);
 	   return;
     }
-    InitExceptions();
-    space = new AddrSpace(executable);
+    AddrSpace *space = new AddrSpace(executable);
     currentThread->space = space;
-    Process *process = new Process(filename);
-    InitProcess(process);
+    space->CreateStack(currentThread);
+    space->processThread = currentThread;
+    space->numThreads++;
+    //space.threads.push_back(currentThread);
+    space->spaceID = processTable->processID;
+    processTable->processID++;
+    processTable->processes[space->spaceID] = space;
+    processTable->numProcesses++;
     delete executable;			// close file
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
+    processTableLock->Release();
+    //DEBUG('t', "End StartProcess()\n");
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
 	// the address space exits by doing the syscall "exit"

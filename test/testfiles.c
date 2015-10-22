@@ -1,21 +1,21 @@
 #include "syscall.h"
 
 void test() {
-	Write("Inside forked function #1\n", 27, ConsoleOutput);
+	Write("Starting test\n", 14, ConsoleOutput);
   Yield();
-  Exit(0);
-    
+  Exit(0);   
 }
 
-void test2(){
-  Write("Inside forked function #2\n", 27, ConsoleOutput);
+void test2() {
+  Write("Starting test2\n", 15, ConsoleOutput);
   Yield();
-  Exit(0);
+  Exit(0);  
 }
 
 int main() {
-	Write("Before Fork\n", 14, ConsoleOutput);
+	Write("Starting main\n", 14, ConsoleOutput);
   Fork(&test);
   Fork(&test2);
+  Exit(0);
 }
 

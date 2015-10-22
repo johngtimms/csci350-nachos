@@ -85,8 +85,8 @@ Thread::~Thread()
 void 
 Thread::Fork(VoidFunctionPtr func, int arg)
 {
-    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n",
-	  name, (int) func, arg);
+    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n", name, (int) func, arg);
+
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -244,7 +244,6 @@ void
 Thread::StackAllocate (VoidFunctionPtr func, int arg)
 {
     stack = (int *) AllocBoundedArray(StackSize * sizeof(int));
-
 #ifdef HOST_SNAKE
     // HP stack works from low addresses to high addresses
     stackTop = stack + 16;	// HP requires 64-byte frame marker

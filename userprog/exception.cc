@@ -32,46 +32,20 @@
 
 using namespace std;
 
-struct ProcessTable {
-	spaceId processCount;
-	Lock *tableLock;
-	map<spaceId, Process*> processes;
-	//map<spaceId, AddrSpace*> processes;
-	ProcessTable() {
-		processCount = 0;
-		tableLock = new Lock("processTableLock");
-	}
-
-};
-
-Process *currentProcess;
-ProcessTable processTable;
-
 int copyin(unsigned int vaddr, int len, char *buf);
 int copyout(unsigned int vaddr, int len, char *buf);
-
-void InitExceptions() {
-	//cout << "INIT EXCEPTIONS CALLED" << endl;
-}
-
-void InitProcess(Process* process) {
-	processTable.tableLock->Acquire();
-	processTable.processes[process->processID] = process;
-	currentProcess = process;
-	currentProcess->threads->push_back(currentThread);
-    currentProcess->threadCount++;
-	processTable.tableLock->Release();
-}
+void Create_Syscall(unsigned int vaddr, int len);
+int Open_Syscall(unsigned int vaddr, int len);
+void Write_Syscall(unsigned int vaddr, int len, int id);
+int Read_Syscall(unsigned int vaddr, int len, int id);
+void Close_Syscall(int fd);
 
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
+	DEBUG('t', "In ForkUserThread\n");
   	DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
 	// Set the program counter to the appropriate place indicated by funcPtr...
 	machine->WriteRegister(PCReg, functionPtr);
-	//int vpn = functionPtr/PageSize;
-	//bool valid = currentThread->space->pageTable[vpn].valid;
-	//DEBUG('t', "vpn: %i,valid: %i\n",vpn,valid);
-	//DEBUG('t', "setting pc reg with virtual page number: %d\n",(functionPtr)/PageSize);
 	machine->WriteRegister(NextPCReg, functionPtr + 4);
 	currentThread->space->RestoreState();
 	// update the stack register
@@ -82,234 +56,107 @@ void ForkUserThread(int functionPtr) {
 }
 
 void Fork_Syscall(int functionPtr) {
+	processTableLock->Acquire();
 	DEBUG('t', "In Fork_Syscall\n");
-    currentProcess->threadCount++;
-	Thread *kernelThread = new Thread(currentProcess->name);
-	kernelThread->space = currentThread->space;
-	
-	  // if this fails then delete thread and exit function
-  	if(kernelThread->space->CreateStack(kernelThread) == false) {
-  		delete kernelThread;
-    	printf("Create stack failed - not enough memory available.\n");
-    	return;
-	}
-	currentProcess->threads->push_back(kernelThread);
-	kernelThread->Fork(ForkUserThread, functionPtr);
+	Thread *thread;
+	thread = new Thread("Forked Thread");
+	//currentThread->space.threads.push_back(thread);
+	thread->space = currentThread->space;
+  	thread->space->CreateStack(thread);
+  	thread->space->numThreads++;
+  	processTableLock->Release();
+	thread->Fork((VoidFunctionPtr)ForkUserThread, functionPtr);
+	currentThread->Yield();
 }
 
 void Exit_Syscall(int status) {
+	processTableLock->Acquire();
 	DEBUG('t', "In Exit_Syscall\n");
-	processTable.tableLock->Acquire();
-	if(processTable.processes.size() == 1 && currentProcess->threadCount == 1) {
-   		// CASE: The exiting thread is execThread of the last process running - exit Nachos
+	DEBUG('t', "currentThread = %s\n", currentThread->getName());
+	DEBUG('t', "processTable->numProcesses = %i\n", processTable->numProcesses);
+	DEBUG('t', "currentThread->space->numThreads = %i\n", currentThread->space->numThreads);
+	// CASE 1: The exiting thread is execThread of the last process running - exit Nachos
+	if(processTable->numProcesses == 1 && currentThread->space->numThreads == 1) {
    		// Clear all the physical pages used in the AddrSpace of this process
 		for(unsigned int i = 0; i < currentThread->space->GetNumPages(); i++)
-			currentThread->space->ClearPhysicalPage(i); 	
-		//delete currentThread->space; 
-        processTable.tableLock->Release();	
-		DEBUG('t', "Exiting last thread of Nachos\n");
+				currentThread->space->ClearPhysicalPage(i);
+		//delete currentThread->space;
+		//currentThread->space = NULL; 
+        processTableLock->Release();
+        // delete kernelLockTable & kernelCVTable
+		DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
 		interrupt->Halt();
-    } else if(processTable.processes.size() > 1 && currentProcess->threadCount == 1) {
-   		// CASE: The exiting thread is the process' execThread (last thread) - exit the process 
-		processTable.processes.erase(currentProcess->processID);
-		delete currentThread->space; // Clear all the physical pages used in the AddrSpace of this process
-		currentThread->space = NULL;	           
-        processTable.tableLock->Release();	
-		DEBUG('t', "Exiting from last thread in a Process\n");
+    } 
+	// CASE 2: The exiting thread is a process' last running thread - exit the process 
+    else if(processTable->numProcesses > 1 && currentThread->space->numThreads == 1) {
+		processTable->processes.erase(currentThread->space->spaceID);
+		processTable->numProcesses--;
+		delete currentThread->space; 
+		// Clear all the physical pages used in the AddrSpace of this process
+		currentThread->space = NULL;
+		// Delete KernelLocks & KernelCVs belonging to this space
+        processTableLock->Release();	
+		DEBUG('t', "Exit_Syscall Case 2 (Last thread belonging to process called Exit)\n");
 		currentThread->Finish();
-    } else {
-   		// CASE: The exiting thread is a thread that was forked in a process
-	    // currentThread->space->ClearStack(currentThread->stackStart);
-        for(vector<Thread*>::iterator iter = currentProcess->threads->begin(); iter != currentProcess->threads->end(); ++iter) {
-			if(*iter == currentThread) {
-				currentProcess->threads->erase( iter );
-				break;
-			}
-		}
-		currentProcess->threadCount--;
-		processTable.tableLock->Release();	
-		DEBUG('t', "Exiting from forked thread\n");
+    } 
+	// CASE 3: The exiting thread is a thread that was forked in a process
+    else if (processTable->numProcesses >= 1 && currentThread->space->numThreads > 1) {
+	    currentThread->space->ClearStack(currentThread->stackStart);
+		currentThread->space->numThreads--;
+		// Delete currentThread from currentThread->space->threads;
+		processTableLock->Release();	
+		DEBUG('t', "Exit_Syscall Case 3 (Forked thread called Exit)\n");
 		currentThread->Finish();	
-	}	
+	} else
+		DEBUG('t', "IN ELSE\n");
 }
 
-void ExecUserThread(spaceId processID) {
+void ExecUserThread(int processID) {
 	DEBUG('t', "In ExecUserSyscall\n");
+	// Initialize registers for new file
 	currentThread->space->InitRegisters();	
 	currentThread->space->RestoreState();
 	machine->Run();
 }
 
-spaceId Exec_Syscall(unsigned int vaddr, int len) {
+int Exec_Syscall(unsigned int vaddr, int len) {
+	processTableLock->Acquire();
 	DEBUG('t', "In Exec_Syscall\n");
-	OpenFile *executable;
-	char *buf = new char[len+1];
-    if(!buf) 
-    	return -1;
+	if(len <= 0) 
+    	printf("len <= 0 in Exec_Syscall\n");
+	char *buf = new char[len + 1];
     if(copyin(vaddr, len, buf) == -1) {
-		cout << "" << endl;
+		printf("copyin() failed in Exec_Syscall\n");
 		delete buf;
 		return -1;
     }
-    buf[len]='\0';
-	executable = fileSystem->Open(buf);
+    buf[len] = '\0';
+	OpenFile *executable = fileSystem->Open(buf);
 	if(executable == NULL) {
 	    cout << "Unable to open file: " << buf << endl;
 	    return -1;
     }
-    // Create an AddrSpace for new file
+    // Create an AddrSpace (Process) for new file
     AddrSpace *space = new AddrSpace(executable);
+    // Create "main" Thread of new process
     Thread *thread = new Thread(buf);
-    space->CreateStack(thread); // So that a thread can keep track of its8 pages of stack in AddrSpace->pageTable ??
+    // New process bookkeeping
     thread->space = space;
-    InitExceptions();
-    Process *process = new Process(buf);
-    process->space = space;
-    process->processThread = thread;
+    thread->space->CreateStack(thread);
+    space->processThread = thread;
+    space->numThreads++;
+    space->spaceID = processTable->processID;
+	//space.threads.push_back(thread);
+    // Update Process Table
+	processTable->processID++;
+	processTable->processes[space->spaceID] = space;
+    processTable->numProcesses++;
 	delete executable;
-    InitProcess(process);
-	thread->Fork((VoidFunctionPtr)ExecUserThread, process->processID);
-    return process->processID;
-}
-
-void Create_Syscall(unsigned int vaddr, int len) {
-    // Create the file with the name in the user buffer pointed to by
-    // vaddr.  The file name is at most MAXFILENAME chars long.  No
-    // way to return errors, though...
-    char *buf = new char[len+1];	// Kernel buffer to put the name in
-
-    if (!buf) 
-    	return;
-    if( copyin(vaddr,len,buf) == -1 ) {
-		printf("%s","Bad pointer passed to Create\n");
-		delete buf;
-		return;
-    }
-    buf[len]='\0';
-    fileSystem->Create(buf,0);
-    delete[] buf;
-    return;
-}
-
-int Open_Syscall(unsigned int vaddr, int len) {
-    // Open the file with the name in the user buffer pointed to by
-    // vaddr.  The file name is at most MAXFILENAME chars long.  If
-    // the file is opened successfully, it is put in the address
-    // space's file table and an id returned that can find the file
-    // later.  If there are any errors, -1 is returned.
-    char *buf = new char[len+1];	// Kernel buffer to put the name in
-    OpenFile *f;			// The new open file
-    int id;				// The openfile id
-
-    if(!buf) {
-		printf("%s","Can't allocate kernel buffer in Open\n");
-		return -1;
-    }
-    if(copyin(vaddr, len, buf) == -1) {
-		printf("%s","Bad pointer passed to Open\n");
-		delete[] buf;
-		return -1;
-    }
-
-    buf[len]='\0';
-
-    f = fileSystem->Open(buf);
-    delete[] buf;
-
-    if(f) {
-		if((id = currentThread->space->fileTable.Put(f)) == -1)
-	    	delete f;
-		return id;
-    }
-    else
-		return -1;
-}
-
-void Write_Syscall(unsigned int vaddr, int len, int id) {
-    // Write the buffer to the given disk file.  If ConsoleOutput is
-    // the fileID, data goes to the synchronized console instead.  If
-    // a Write arrives for the synchronized Console, and no such
-    // console exists, create one. For disk files, the file is looked
-    // up in the current address space's open file table and used as
-    // the target of the write.
-    char *buf;		// Kernel buffer for output
-    OpenFile *f;	// Open file for output
-
-    if(id == ConsoleInput) 
-    	return;
-    if(!(buf = new char[len])) {
-		printf("%s","Error allocating kernel buffer for write!\n");
-		return;
-    } else {
-        if (copyin(vaddr,len,buf) == -1) {
-	    	printf("%s","Bad pointer passed to to write: data not written\n");
-	    	delete[] buf;
-	    	return;
-		}
-    }
-    if(id == ConsoleOutput) {
-      	for (int ii=0; ii<len; ii++) {
-			printf("%c",buf[ii]);
-      }
-
-    } else {
-		if ((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
-	    	f->Write(buf, len);
-		} else {
-	    	printf("%s","Bad OpenFileId passed to Write\n");
-	    	len = -1;
-		}
-    }
-    delete[] buf;
-}
-
-int Read_Syscall(unsigned int vaddr, int len, int id) {
-    // Write the buffer to the given disk file.  If ConsoleOutput is
-    // the fileID, data goes to the synchronized console instead.  If
-    // a Write arrives for the synchronized Console, and no such
-    // console exists, create one.    We reuse len as the number of bytes
-    // read, which is an unnessecary savings of space.
-    char *buf;		// Kernel buffer for input
-    OpenFile *f;	// Open file for output
-
-    if(id == ConsoleOutput) 
-    	return -1;
-    if(!(buf = new char[len])) {
-		printf("%s","Error allocating kernel buffer in Read\n");
-		return -1;
-    }
-    if(id == ConsoleInput) {
-      	//Reading from the keyboard
-      	scanf("%s", buf);
-      	if(copyout(vaddr, len, buf) == -1 ) {
-			printf("%s","Bad pointer passed to Read: data not copied\n");
-      	}
-    } else {
-		if((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
-	    	len = f->Read(buf, len);
-	    	if(len > 0) {
-	        	//Read something from the file. Put into user's address space
-  	        	if(copyout(vaddr, len, buf) == -1) {
-		    	printf("%s","Bad pointer passed to Read: data not copied\n");
-				}
-	    	}
-		} else {
-	    	printf("%s","Bad OpenFileId passed to Read\n");
-	    	len = -1;
-		}
-    }
-    delete[] buf;
-    return len;
-}
-
-void Close_Syscall(int fd) {
-    // Close the file associated with id fd.  No error reporting.
-    OpenFile *f = (OpenFile *) currentThread->space->fileTable.Remove(fd);
-    if(f) {
-      	delete f;
-    } else {
-      	printf("%s","Tried to close an unopen file\n");
-    }
+	processTableLock->Release();
+	// Fork new process
+	thread->Fork((VoidFunctionPtr)ExecUserThread, space->spaceID);
+	currentThread->Yield();
+    return space->spaceID;
 }
 
 int CreateLock_Syscall() {
@@ -454,7 +301,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 }
 
 void Print_Syscall(int text, int num) {
-	DEBUG('x', "In Print_Syscall\n");
+	DEBUG('t', "In Print_Syscall\n");
 	char *buf = new char[100+1];
 	if(!buf) 
   		DEBUG('a', "Unable to allocate buffer in Print_Syscall\n");
@@ -483,7 +330,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_Exec:
 				DEBUG('a', "Exec.\n");
-				rv = Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(4));
+				rv = Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Join:
 				DEBUG('a', "Join.\n");
@@ -559,29 +406,14 @@ void ExceptionHandler(ExceptionType which) {
 		}
 		// Put in the return value and increment the PC
 		machine->WriteRegister(2, rv);
-		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(PCReg) + 4);
 		return;
     } else {
-      	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
+      	cout << "Unexpected user mode exception - which:" << which << "  type:" << type << endl;
       	interrupt->Halt();
     }
-}
-
-Process::Process(char *processName) {
-	name = processName;
-	processTable.tableLock->Acquire();
-	processID = processTable.processCount;
-	processTable.processCount++;
-	processTable.tableLock->Release();
-	processThread = currentThread;
-	threads = new vector<Thread*>;
-	threadCount = 0;
-}
-
-Process::~Process() {
-	delete threads;
 }
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -627,4 +459,144 @@ int copyout(unsigned int vaddr, int len, char *buf) {
       	vaddr++;
     }
     return n;
+}
+
+void Create_Syscall(unsigned int vaddr, int len) {
+    // Create the file with the name in the user buffer pointed to by
+    // vaddr.  The file name is at most MAXFILENAME chars long.  No
+    // way to return errors, though...
+    char *buf = new char[len+1];	// Kernel buffer to put the name in
+
+    if (!buf) 
+    	return;
+    if( copyin(vaddr,len,buf) == -1 ) {
+		printf("%s","Bad pointer passed to Create\n");
+		delete buf;
+		return;
+    }
+    buf[len]='\0';
+    fileSystem->Create(buf,0);
+    delete[] buf;
+    return;
+}
+
+int Open_Syscall(unsigned int vaddr, int len) {
+    // Open the file with the name in the user buffer pointed to by
+    // vaddr.  The file name is at most MAXFILENAME chars long.  If
+    // the file is opened successfully, it is put in the address
+    // space's file table and an id returned that can find the file
+    // later.  If there are any errors, -1 is returned.
+    char *buf = new char[len+1];	// Kernel buffer to put the name in
+    OpenFile *f;			// The new open file
+    int id;				// The openfile id
+
+    if(!buf) {
+		printf("%s","Can't allocate kernel buffer in Open\n");
+		return -1;
+    }
+    if(copyin(vaddr, len, buf) == -1) {
+		printf("%s","Bad pointer passed to Open\n");
+		delete[] buf;
+		return -1;
+    }
+
+    buf[len]='\0';
+
+    f = fileSystem->Open(buf);
+    delete[] buf;
+
+    if(f) {
+		if((id = currentThread->space->fileTable.Put(f)) == -1)
+	    	delete f;
+		return id;
+    }
+    else
+		return -1;
+}
+
+void Write_Syscall(unsigned int vaddr, int len, int id) {
+    // Write the buffer to the given disk file.  If ConsoleOutput is
+    // the fileID, data goes to the synchronized console instead.  If
+    // a Write arrives for the synchronized Console, and no such
+    // console exists, create one. For disk files, the file is looked
+    // up in the current address space's open file table and used as
+    // the target of the write.
+    char *buf;		// Kernel buffer for output
+    OpenFile *f;	// Open file for output
+
+    if(id == ConsoleInput) 
+    	return;
+    if(!(buf = new char[len])) {
+		printf("%s","Error allocating kernel buffer for write!\n");
+		return;
+    } else {
+        if (copyin(vaddr,len,buf) == -1) {
+	    	printf("%s","Bad pointer passed to to write: data not written\n");
+	    	delete[] buf;
+	    	return;
+		}
+    }
+    if(id == ConsoleOutput) {
+      	for (int ii=0; ii<len; ii++) {
+			printf("%c",buf[ii]);
+      }
+
+    } else {
+		if ((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
+	    	f->Write(buf, len);
+		} else {
+	    	printf("%s","Bad OpenFileId passed to Write\n");
+	    	len = -1;
+		}
+    }
+    delete[] buf;
+}
+
+int Read_Syscall(unsigned int vaddr, int len, int id) {
+    // Write the buffer to the given disk file.  If ConsoleOutput is
+    // the fileID, data goes to the synchronized console instead.  If
+    // a Write arrives for the synchronized Console, and no such
+    // console exists, create one.    We reuse len as the number of bytes
+    // read, which is an unnessecary savings of space.
+    char *buf;		// Kernel buffer for input
+    OpenFile *f;	// Open file for output
+
+    if(id == ConsoleOutput) 
+    	return -1;
+    if(!(buf = new char[len])) {
+		printf("%s","Error allocating kernel buffer in Read\n");
+		return -1;
+    }
+    if(id == ConsoleInput) {
+      	//Reading from the keyboard
+      	scanf("%s", buf);
+      	if(copyout(vaddr, len, buf) == -1 ) {
+			printf("%s","Bad pointer passed to Read: data not copied\n");
+      	}
+    } else {
+		if((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
+	    	len = f->Read(buf, len);
+	    	if(len > 0) {
+	        	//Read something from the file. Put into user's address space
+  	        	if(copyout(vaddr, len, buf) == -1) {
+		    	printf("%s","Bad pointer passed to Read: data not copied\n");
+				}
+	    	}
+		} else {
+	    	printf("%s","Bad OpenFileId passed to Read\n");
+	    	len = -1;
+		}
+    }
+    delete[] buf;
+    return len;
+}
+
+void Close_Syscall(int fd) {
+    // Close the file associated with id fd.  No error reporting.
+    OpenFile *f = (OpenFile *) currentThread->space->fileTable.Remove(fd);
+    if(f) {
+      	delete f;
+    } else {
+      	printf("%s","Tried to close an unopen file\n");
+    }
 }

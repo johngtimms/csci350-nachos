@@ -213,8 +213,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     ASSERT(tlb == NULL || pageTable == NULL);	
     ASSERT(tlb != NULL || pageTable != NULL);	
 
-// calculate the virtual page number, and offset within the page,
-// from the virtual address
+// calculate the virtual page number, and offset within the page, from the virtual address
     vpn = (unsigned) virtAddr / PageSize;
     offset = (unsigned) virtAddr % PageSize;
     
@@ -224,11 +223,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 			virtAddr, pageTableSize);
 	    return AddressErrorException;
 	} else if (!pageTable[vpn].valid) {
-	    DEBUG('t', "virtual page # %d, with vpn: %i is not valid!, page size: %d\n",
-			virtAddr, vpn, PageSize);
-        for(int k = 0; k < pageTableSize ; k ++){
-            DEBUG('t', "number #%i valid:%i\n",k,pageTable[k].valid);
-        }
+	    DEBUG('t', "virtual page # %d, with vpn: %i is not valid!, page size: %d\n", virtAddr, vpn, PageSize);
+        for(int x = 0; x < pageTableSize; x++)
+            DEBUG('t', "machine->pageTable[%i].valid = %i\n", x, pageTable[x].valid);
 	    return PageFaultException;
 	}
 	entry = &pageTable[vpn];

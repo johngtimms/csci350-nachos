@@ -31,15 +31,19 @@ class AddrSpace {
     void InitRegisters();		// Initialize user-level CPU registers, before jumping to user code
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
-    Table fileTable;			// Table of openfiles
     unsigned int GetNumPages();
-    bool CreateStack(Thread* thread);
+    void CreateStack(Thread* thread);
     void ClearStack(unsigned int stackStart);
     void ClearPhysicalPage(int i);
-
+    Table fileTable;            // Table of openfiles
+    int spaceID;
+    unsigned int numThreads;
+    Thread* processThread;
+    //vector<Thread*> threads;
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation for now!
     unsigned int numPages;		// Number of pages in the virtual address space
+    
 };
 
 #endif // ADDRSPACE_H

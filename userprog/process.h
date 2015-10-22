@@ -8,7 +8,7 @@ using namespace std;
 class Process {
 public:
 	AddrSpace* space;
-	spaceId processID;
+	int processID;
 	Thread* processThread;
 	char *name;
 	int threadCount;

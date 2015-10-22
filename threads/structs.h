@@ -64,4 +64,16 @@ struct ConditionTable {
 	}
 };
 
+struct ProcessTable {
+	int processID;
+	//Lock *tableLock;
+	int numProcesses;
+	map<int, AddrSpace*> processes;
+	ProcessTable() {
+		processID = 0;
+		numProcesses = 0;
+		//tableLock = new Lock("processTableLock");
+	}
+
+};
 #endif
