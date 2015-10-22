@@ -25,7 +25,7 @@ int nextAvailablePictureClerkIndex = 0;
 int nextAvailableSenatorIndex = 0;
 int nextAvailableApplicationClerkIndex = 0;
 
-int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock;
+int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
 
 bool runningTest1 = false;
 bool runningTest2 = false;
@@ -74,6 +74,7 @@ typedef struct Clerk {
 } Clerk;
 
 Customer customers[10];
+Clerk cashiers[3];
 Clerk passportClerks[3];
 Clerk pictureClerks[3];
 Clerk applicationClerks[3];
@@ -346,14 +347,20 @@ void runPictureClerk() {
 	Exit(0);
 }
 
-void test(){
+void test1() {
+	Print("inside test1\n",0);
 	Acquire(senatorOutsideLineLock);
 	Wait(senatorOutsideLineCV, senatorOutsideLineLock);
 	Release(senatorOutsideLineLock);
+	Exit(0);
 }
 
-void test1(){
-	Print("inside test1",0);
+void test2() {
+	Print("inside test2\n",0);
+	Acquire(senatorOutsideLineLock);
+	/*Wait(senatorOutsideLineCV, senatorOutsideLineLock);*/
+	Release(senatorOutsideLineLock);
+	Exit(0);
 }
 
 int main() {
@@ -368,22 +375,21 @@ int main() {
 	pictureClerkIndexLock = CreateLock();
 	passportClerkIndexLock = CreateLock();
 	senatorIndexLock = CreateLock();
-	cashierClerkIndexLock = CreateLock();
+	cashierIndexLock = CreateLock();
 	
 	numCustomers = 10;
 	numPassportClerks = 3;
 	numPictureClerks = 3;
 	numApplicationClerks = 3;
 
-	/*
-	Print("before test\n",0);
-	Fork(&test);
-	Print("after test\n",0);
+	
 	Fork(&test1);
-	*/
+	Fork(&test2);
+	Signal(senatorOutsideLineCV, senatorOutsideLineLock);
+	
 
 	
-	
+	/*
 	for(k = 0 ; k < numPassportClerks ; k++) {
 		Fork(&runPassportClerk);
 	}
@@ -399,17 +405,19 @@ int main() {
 	for(k = 0 ; k < numCustomers ; k++) {
 		Fork(&runCustomer);
 	}
+	*/
 }
 
-clerkID chooseLine(int ssn, ClerkType clerkType) {
+int chooseLine(int ssn, ClerkType clerkType) {
 	int i, minLength, clerkID;
 	bool canBribe;
 	minLength = 51;
 	canBribe = false;
 
-	if(customers[ssn].money > 500) 
+	if(customers[ssn].money > 500) {
 		canBribe = true;
-	// Choose the shortest line possible
+	}
+	/* Choose the shortest line possible */
 	switch(clerkType) {
 		case APPLICATION_CLERK:
 			for(i = 0; i < numApplicationClerks; i++) {
@@ -478,17 +486,16 @@ clerkID chooseLine(int ssn, ClerkType clerkType) {
 	}
 }
 
-/* ONLY COMPLETE FOR APPLICATIONCLERK */
-bool enterLine(int ssn, ClerkType clerkType, int clerkID) { 
-	// Stand in line
+bool enterApplicationLine(int ssn, int clerkID) { 
+	/* Stand in line */
 	if(applicationClerks[clerkID].state != FREE) {
 		if(customers[ssn].isSenator) {
 			Acquire(applicationClerks[clerkID].senatorLineLock);
 			applicationClerks[clerkID].senatorLineLength++;
-			/*printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());*/
+			/*Print("Customer %i has gotten in senator line for %s.\n", ssn, clerk->getName());*/
 			Wait(applicationClerks[clerkID].senatorLineCV, applicationClerks[clerkID].senatorLineLock);
 			applicationClerks[clerkID].senatorLineLength--;
-		} else if (didBribe) {
+		} else if (customers[ssn].didBribe) {
 			Acquire(applicationClerks[clerkID].bribeLineLock);
 			applicationClerks[clerkID].bribeLineLength++;
 			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
@@ -526,9 +533,166 @@ bool enterLine(int ssn, ClerkType clerkType, int clerkID) {
 	}
 }
 
+bool enterPictureLine(int ssn, int clerkID) { 
+	/* Stand in line */
+	if(pictureClerks[clerkID].state != FREE) {
+		if(customers[ssn].isSenator) {
+			Acquire(pictureClerks[clerkID].senatorLineLock);
+			pictureClerks[clerkID].senatorLineLength++;
+			/*printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(pictureClerks[clerkID].senatorLineCV, pictureClerks[clerkID].senatorLineLock);
+			pictureClerks[clerkID].senatorLineLength--;
+		} else if (customers[ssn].didBribe) {
+			Acquire(pictureClerks[clerkID].bribeLineLock);
+			pictureClerks[clerkID].bribeLineLength++;
+			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(pictureClerks[clerkID].bribeLineCV, pictureClerks[clerkID].bribeLineLock);
+			pictureClerks[clerkID].bribeLineLength--;
+		} else {
+			Acquire(pictureClerks[clerkID].lineLock);
+			pictureClerks[clerkID].lineLength++;
+			/*printf("%s has gotten in regular line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(pictureClerks[clerkID].lineCV, pictureClerks[clerkID].lineLock);
+			pictureClerks[clerkID].lineLength--;
+		}
+	}
+	/* Called out of line, make sure it wasn't because of a senator */
+	Acquire(senatorInsideLock);
+	if(senatorInside && !customers[ssn].isSenator) {
+		Release(senatorInsideLock);
+		Release(pictureClerks[clerkID].bribeLineLock);
+		Release(pictureClerks[clerkID].lineLock);
+		Acquire(customerOutsideLineLock);
+		/*printf("%s is going outside the Passport Office because there is a Senator present.\n", currentThread->getName());*/
+		customersOutside += 1;
+		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		customersOutside -= 1;
+		Release(customerOutsideLineLock);
+		return true;
+	} else {
+		Release(senatorInsideLock);
+		/* Change the clerk to BUSY before releasing the clerk's line lock */
+		pictureClerks[clerkID].state = BUSY;
+		Release(pictureClerks[clerkID].bribeLineLock);
+		Release(pictureClerks[clerkID].lineLock);
+		Release(pictureClerks[clerkID].senatorLineLock);
+		return false;
+	}
+}
+
+bool enterPassportLine(int ssn, int clerkID) { 
+	/* Stand in line */
+	if(passportClerks[clerkID].state != FREE) {
+		if(customers[ssn].isSenator) {
+			Acquire(passportClerks[clerkID].senatorLineLock);
+			passportClerks[clerkID].senatorLineLength++;
+			/*printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(passportClerks[clerkID].senatorLineCV, passportClerks[clerkID].senatorLineLock);
+			passportClerks[clerkID].senatorLineLength--;
+		} else if(customers[ssn].didBribe) {
+			Acquire(passportClerks[clerkID].bribeLineLock);
+			passportClerks[clerkID].bribeLineLength++;
+			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(passportClerks[clerkID].bribeLineCV, passportClerks[clerkID].bribeLineLock);
+			passportClerks[clerkID].bribeLineLength--;
+		} else {
+			Acquire(passportClerks[clerkID].lineLock);
+			passportClerks[clerkID].lineLength++;
+			/*printf("%s has gotten in regular line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(passportClerks[clerkID].lineCV, passportClerks[clerkID].lineLock);
+			passportClerks[clerkID].lineLength--;
+		}
+	}
+	/* Called out of line, make sure it wasn't because of a senator */
+	Acquire(senatorInsideLock);
+	if(senatorInside && !customers[ssn].isSenator) {
+		Release(senatorInsideLock);
+		Release(passportClerks[clerkID].bribeLineLock);
+		Release(passportClerks[clerkID].lineLock);
+		Acquire(customerOutsideLineLock);
+		/*printf("%s is going outside the Passport Office because there is a Senator present.\n", currentThread->getName());*/
+		customersOutside += 1;
+		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		customersOutside -= 1;
+		Release(customerOutsideLineLock);
+		return true;
+	} else {
+		Release(senatorInsideLock);
+		/* Change the clerk to BUSY before releasing the clerk's line lock */
+		passportClerks[clerkID].state = BUSY;
+		Release(passportClerks[clerkID].bribeLineLock);
+		Release(passportClerks[clerkID].lineLock);
+		Release(passportClerks[clerkID].senatorLineLock);
+		return false;
+	}
+}
+
+bool enterCashierLine(int ssn, int clerkID) { 
+	/* Stand in line */
+	if(cashiers[clerkID].state != FREE) {
+		if(customers[ssn].isSenator) {
+			Acquire(cashiers[clerkID].senatorLineLock);
+			cashiers[clerkID].senatorLineLength++;
+			/*printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(cashiers[clerkID].senatorLineCV, cashiers[clerkID].senatorLineLock);
+			cashiers[clerkID].senatorLineLength--;
+		} else if(customers[ssn].didBribe) {
+			Acquire(cashiers[clerkID].bribeLineLock);
+			cashiers[clerkID].bribeLineLength++;
+			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(cashiers[clerkID].bribeLineCV, cashiers[clerkID].bribeLineLock);
+			cashiers[clerkID].bribeLineLength--;
+		} else {
+			Acquire(cashiers[clerkID].lineLock);
+			cashiers[clerkID].lineLength++;
+			/*printf("%s has gotten in regular line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(cashiers[clerkID].lineCV, cashiers[clerkID].lineLock);
+			cashiers[clerkID].lineLength--;
+		}
+	}
+	/* Called out of line, make sure it wasn't because of a senator */
+	Acquire(senatorInsideLock);
+	if(senatorInside && !customers[ssn].isSenator) {
+		Release(senatorInsideLock);
+		Release(cashiers[clerkID].bribeLineLock);
+		Release(cashiers[clerkID].lineLock);
+		Acquire(customerOutsideLineLock);
+		/*printf("%s is going outside the Passport Office because there is a Senator present.\n", currentThread->getName());*/
+		customersOutside += 1;
+		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		customersOutside -= 1;
+		Release(customerOutsideLineLock);
+		return true;
+	} else {
+		Release(senatorInsideLock);
+		/* Change the clerk to BUSY before releasing the clerk's line lock */
+		cashiers[clerkID].state = BUSY;
+		Release(cashiers[clerkID].bribeLineLock);
+		Release(cashiers[clerkID].lineLock);
+		Release(cashiers[clerkID].senatorLineLock);
+		return false;
+	}
+}
+
+bool enterLine(int ssn, ClerkType clerkType, int clerkID) { 
+	switch(clerkType) {
+		case APPLICATION_CLERK:
+			return enterApplicationLine(ssn, clerkID);
+			break;
+		case PICTURE_CLERK:
+			return enterPictureLine(ssn, clerkID);
+			break;
+		case PASSPORT_CLERK:
+			return enterPassportLine(ssn, clerkID);
+			break;
+		case CASHIER:
+			return enterCashierLine(ssn, clerkID);
+			break;
+		}
+}
 
 void waitInLine(int ssn, ClerkType clerkType) {
-	bool senatord
+	bool senatord;
 	int clerkID;
 	senatord = false;
 	chooseLine(ssn, clerkType);
@@ -539,7 +703,7 @@ void waitInLine(int ssn, ClerkType clerkType) {
 		senatord = enterLine(ssn, clerkType, clerkID);
 	}
 	if(customers[ssn].didBribe) {
-		customers[ssn].money = customers[ssn] - 500;
+		customers[ssn].money = customers[ssn].money - 500;
 		switch(clerkType) {
 			case APPLICATION_CLERK:
 				Acquire(applicationClerks[clerkID].moneyLock);

@@ -49,10 +49,8 @@ void ForkUserThread(int functionPtr) {
 	machine->WriteRegister(NextPCReg, functionPtr + 4);
 	currentThread->space->RestoreState();
 	// update the stack register
-	machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16);
-	DEBUG('t', "After big write registers\n");  
+	machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16); 
 	machine->Run();
-	DEBUG('t', "After machine run\n");
 }
 
 void Fork_Syscall(int functionPtr) {
@@ -85,6 +83,7 @@ void Exit_Syscall(int status) {
         processTableLock->Release();
         // delete kernelLockTable & kernelCVTable
 		DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
+		printf("Terminating Nachos\n");
 		interrupt->Halt();
     } 
 	// CASE 2: The exiting thread is a process' last running thread - exit the process 
@@ -166,8 +165,7 @@ int CreateLock_Syscall() {
 	int key = lockTable->index;
 	lockTable->locks[key] = lock;
 	lockTable->index++;
-	DEBUG('l', "Created lock with key %i\n",key);
-	//cout << "Created lock with key: " << key << endl;
+	DEBUG('l', "Created lock with key: %i\n",key);
 	lockTable->tableLock->Release();
 	return key;
 }
@@ -178,10 +176,10 @@ void DestroyLock_Syscall(unsigned int key) {
 	if(key >= 0 && key < lockTable->locks.size())
 		lock = lockTable->locks[key];
 	else
-		cout << "Attempt to destroy lock that doesn't exist" << endl;
+		DEBUG('l', "Attempt to destroy lock that doesn't exist\n");
 	if(lock != NULL && lock->space == currentThread->space) {
 		lockTable->locks.erase(key);
-		cout << "Destroyed lock with key: " << key << endl;
+		DEBUG('l', "Destroyed lock with key: %i\n", key);
 	}
 	lockTable->tableLock->Release();
 }
@@ -192,11 +190,10 @@ void Acquire_Syscall(unsigned int key) {
 	if(key >= 0 && key < lockTable->locks.size())
 		lock = lockTable->locks[key];
 	else
-		cout << "Attempt to acquire lock that doesn't exist" << endl;
+		DEBUG('l', "Attempt to acquire lock that doesn't exist\n");
 	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Acquire();
-		DEBUG('l', "Acquired lock with key %i\n",key);
-		//cout << "Acquired lock with key: " << key << endl;
+		DEBUG('l', "Acquired lock with key: %i\n",key);
 	}
 	lockTable->tableLock->Release();
 }
@@ -207,11 +204,10 @@ void Release_Syscall(unsigned int key) {
 	if(key >= 0 && key < lockTable->locks.size())
 		lock = lockTable->locks[key];
 	else
-		cout << "Attempt to release lock that doesn't exist" << endl;
+		DEBUG('l', "Attempt to release lock that doesn't exist\n");
 	if(lock != NULL && lock->space == currentThread->space) {
 		lock->lock->Release();
-		DEBUG('l', "Released lock with key %i\n",key);
-		//cout << "Released lock with key: " << key << endl;
+		DEBUG('l', "Released lock with key: %i\n",key);
 	}
 	lockTable->tableLock->Release();
 }
@@ -223,8 +219,7 @@ int CreateCondition_Syscall() {
 	int key = conditionTable->index;
 	conditionTable->conditions[key] = condition;
 	conditionTable->index++;
-	DEBUG('c', "Created condition with key %i\n",key);
-	//cout << "Created condition with key: " << key << endl;
+	DEBUG('l', "Created condition with key: %i\n", key);
 	conditionTable->tableLock->Release();
 	return key;
 }
@@ -235,10 +230,10 @@ void DestroyCondition_Syscall(unsigned int key) {
 	if(key >= 0 && key < conditionTable->conditions.size())
 		condition = conditionTable->conditions[key];
 	else
-		cout << "Attempt to destroy condition that doesn't exist" << endl;
+		DEBUG('l', "Attempt to destroy condition that doesn't exist\n");
 	if(condition != NULL && condition->space == currentThread->space) {
 		conditionTable->conditions.erase(key);
-		cout << "Destroyed condition with key: " << key << endl;
+		DEBUG('l', "Destroyed condition with key: %i\n", key);
 	}
 	conditionTable->tableLock->Release();
 }
@@ -251,18 +246,17 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
 		condition = conditionTable->conditions[conditionKey];
 	else
-		cout << "Attempt to wait by condition that doesn't exist" << endl;
+		DEBUG('l', "Attempt to wait by condition that doesn't exist\n");
 	if(lockKey >= 0 && lockKey < lockTable->locks.size())
 		lock = lockTable->locks[lockKey];
 	else
-		cout << "Condition trying to wait owns lock that doesn't exist" << endl;
+		DEBUG('l', "Condition trying to wait owns lock that doesn't exist\n");
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
+		lockTable->tableLock->Release();
+		conditionTable->tableLock->Release();
+		DEBUG('l', "Waiting on condition with key %i\n", conditionKey);
 		condition->condition->Wait(lock->lock);
-		DEBUG('c', "Waiting on condition with key %i\n",conditionKey);
-		//cout << "Waiting on condition with key: " << conditionKey << endl;
 	}
-	lockTable->tableLock->Release();
-	conditionTable->tableLock->Release();
 }
 
 void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -273,14 +267,14 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
 		condition = conditionTable->conditions[conditionKey];
 	else
-		cout << "Attempt to signal by condition that doesn't exist" << endl;
+		DEBUG('l', "Attempt to signal by condition that doesn't exist\n");
 	if(lockKey >= 0 && lockKey < lockTable->locks.size())
 		lock = lockTable->locks[lockKey];
 	else
-		cout << "Condition trying to signal owns lock that doesn't exist" << endl;
+		DEBUG('l', "Condition trying to signal owns lock that doesn't exist\n");
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Signal(lock->lock);
-		cout << "Condition with key " << conditionKey <<  " signalling" << endl;
+		DEBUG('l', "Condition with key %i signalling\n", conditionKey);
 	}
 	lockTable->tableLock->Release();
 	conditionTable->tableLock->Release();
@@ -294,14 +288,14 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
 		condition = conditionTable->conditions[conditionKey];
 	else
-		cout << "Attempt to broadcast by condition that doesn't exist" << endl;
+		DEBUG('l', "Attempt to broadcast by condition that doesn't exist\n");
 	if(lockKey >= 0 && lockKey < lockTable->locks.size())
 		lock = lockTable->locks[lockKey];
 	else
-		cout << "Condition trying to broadcast owns lock that doesn't exist" << endl;
+		DEBUG('l', "Condition trying to broadcast owns lock that doesn't exist\n");
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		condition->condition->Broadcast(lock->lock);
-		cout << "Condition with key " << conditionKey << " broadcasting" << endl;
+		DEBUG('l', "Condition with key %i broadcasting\n", conditionKey);
 	}
 	lockTable->tableLock->Release();
 	conditionTable->tableLock->Release();
@@ -309,11 +303,11 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
 void Print_Syscall(int text, int num) {
 	DEBUG('t', "In Print_Syscall\n");
-	char *buf = new char[100+1];
+	char *buf = new char[100 + 1];
 	if(!buf) 
-  		DEBUG('a', "Unable to allocate buffer in Print_Syscall\n");
+  		DEBUG('t', "Unable to allocate buffer in Print_Syscall\n");
 	if(copyin(text, 100, buf) == -1) {	
-		DEBUG('a', "Unable to print in Print_Syscall\n");
+		DEBUG('t', "Unable to print in Print_Syscall\n");
 		delete[] buf;
 	}
 	buf[100] = '\0';
