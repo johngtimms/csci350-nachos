@@ -1,5 +1,5 @@
-Title: Writeup for Assignment 1, Fall 2015
-Date:  09/20/15
+Title: Writeup for Assignment 2, Fall 2015
+Date:  10/19/15
 Group: Name					Email
 	   Nicholas Roubal		nroubal@usc.edu
 	   Yetsebaot Sisay		sisay@usc.edu
@@ -9,136 +9,86 @@ I. Requirements:
 
 	Part 1:
 
-		Part 1 requires implementing the Lock and Condition classes in threads/synch.h and 
-		threads/synch.cc. Locks and conditions should be implemented according to the designs
-		discussed in class and in the course textbook. Furthermore, the code should prevent
-		misuses of locks and conditions (such as a thread releasing a lock it does not hold).
-		Finally, tests from test_code.cc (on Blackboard) should be placed in threadtest.cc so
-		that they can be run to demonstrate functionality.
+		Part 1 requires implementing system calls and exception handling (the ability for Nachos to
+		'take over' in kernel mode in case a user program makes a system call or experiences an error).
 
 	Part 2:
 
-		Part 2 requires writing code (which we elected to place in threadtest.cc) to simulate a
-		passport office, which will demonstrate understanding of thread synchronization principles
-		including locks and condition variables.
+		Part 2 requires implementing multiprogramming (the ability for multiple Nachos user programs
+		to run at once).
 
-		The passport office is to consist of threads acting out the roles of customer, application
-		clerk, picture clerk, passport clerk, cashier, manager, and senator. Multiple instances of
-		each role can exist, except for the manager.
+	Part 3:
 
-		Customers progress from station to station until they have completed all tasks. Customers 
-		have money which they may use to jump ahead in the lines at each station, and they will
-		always choose the shortest line possible. After visiting a station, the station will 
-		"process" their file after a "processing time" delay.
-
-		Certain roles have special behavior. The picture clerk will allow a customer to keep re-
-		taking their picture until they "like" it. The passport clerk and cashier will refuse to 
-		serve a customer if previous stations are not finished processing their file.
-
-		Stations can take breaks if they don't have customers to serve, the manager tells clerks to 
-		go back to their stations if customers begin queueing. The manager also checks on the money
-		collected by each station and "reports" the totals. 
-
-		The senator behaves just like a customer, except that when a senator enters the office all
-		customers queueing must exit and queue outside until the senator leaves. Likewise, all 
-		customers at a station must leave and queue outside once their transaction is finished.
-
-		In addition to the application code, the assignment requires writing a testing menu that 
-		allows a user to run the passport office with various numbers of each role. The menu should
-		also allow executing pre-defined tests to demonstrate specific functionality.
-
-		All the behavior must be "thread safe" meaning data cannot be corrupted and race conditions
-		must be prevented. Details for these requirements have been posted on Blackboard and Piazza.
+		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of multithreaded
+		Nachos user programs. This will require using the Lock and Condition system calls from Part 1.
 
 II. Assumptions:
 
 	Part 1:
 
-		(none)
-
 	Part 2:
 
-		Customers and senators can be implemented with the same class. Likewise, all clerks 
-		(including cashiers, but not the manager) can be implemented with a single class.
-
-		Multiple senators can arrive at the passport office at once. In this case, senators will
-		queue outside the office and enter one by one. 
-
-		Station queues are implemented grocery store-style rather than bank-style. Each clerk
-		has their own queues for regular customers, bribe customers, and senators.
-
-		Senators have their own line separate from regular customers and bribe customers to prevent
-		senators being kicked out of the office when a new senator arrives outside. Senators call
-		Broadcast() on all lines to kick customers outside, so a senator itself should never be in
-		one of those lines.
+	Part 3:
 
 III. Design:
 
 	Part 1:
 
-		Locks can either be FREE or BUSY. The lock should store the thread that has Acquire()d it
-		most recently, and the lock should keep a queue of threads waiting to Acquire() it.
-
-		Condition variables ("conditions") keep a queue of threads waiting for the condition to 
-		change, and they track a lock that active threads hold in order to modify the variable.
-
-		When Acquire()ing and Release()ing locks, disable/enable interrupts as apropriate to make
-		these actions atomic. The same will be done for conditions Wait(), Signal(), and Broadcast()
-		functions because the tracked lock must be released when the thread Wait()s and acquired
-		again when the thread is Signal()ed or marked ready after Broadcast() was called.
-
 	Part 2:
 
-		When called from main.cc, Problem2() creates default numbers of each role, then shows
-		a menu by calling printMenu(). The menu allows changing the numbers of each role, running
-		predefined tests, running the overall simulation, or exiting. The overall simulation is 
-		run by calling PassportOffice().
-
-		PassportOffice() creates each role and uses Fork() to start each thread. Each role has
-		its own code, runCustomer(), runsSenator(), runApplicationClerk(), runPictureClerk(),
-		runPassportClerk(), runCashier(), and runManager(). As stated in the assumptions, the 7 
-		roles are implemented with 3 classes.
-
-		runCustomer() checks for senators, and queues outside the office if necessary. When it 
-		enters, it chooses randomly between filing the application and taking the picture. After
-		both have been completed, the customer goes to the passport clerk and then to the cashier.
-
-		runCustomer() accomplishes these actions by executing doApplication(), doPicture(), 
-		doPassport(), and doCashier(). At the start of each of these functions, the customer
-		calls waitInLine() with arguments specifying the type of clerk the customer wishes to queue
-		for. 
-
-		waitInLine() and its associated functions ensure that the customer chooses the shortest
-		line, taking into account whether the customer can pay a bribe. We do not assume that the
-		bribe line is always the shortest. This code also allows handling senators. When
-		runSenator() enters, it sends a Broadcast() to every customer line after setting
-		senatorInside = true. The waitInLine() functions respond to either the senator's Broadcast()
-		or the clerks' Signal() and respond by either allowing the do...() functions to proceed or
-		taking the customer outside. This code can handle the customer being sent outside repeatedly
-		and the customer will always return to the apropriate, shortest line, even if the shortest
-		line is different from before.
-
-		The customer do...() functions handle interacting with each clerk. They handle special cases
-		like rejecting a picture (and waiting in line again) and handling the penalty for arriving
-		at a passport clerk or cashier station without already being in posession of the necessary
-		documents.
-
-		Likewise, the run...Clerk() functions handle calling customers out of line and interacting
-		with them. They will also send the clerks on break as they are allowed to. runManager() 
-		starts the manager running in an infinite loop. The manager will send clerks back out off
-		break as necessary, and also collects (in a thread-safe way) money totals from each clerk
-		and reports them on the console.
+	Part 3:
 
 IV. Implementation:
 
 	Files Modified:
-		main.cc
-		synch.h
-		synch.cc
-		threadtest.cc
+		machine/machine.h
+		machine/translate.cc (TODO CHANGE THIS BACK BEFORE SUBMITTING)
+		test/Makefile
+		test/start.s
+		test/testfiles.c
+		threads/main.cc (TODO verify only changes are cosmetic before submitting)
+		threads/synch.cc (TODO can we change this back to Peppy's code w/out issue?)
+		threads/synch.h (TODO can we change this back to Peppy's code w/out issue?)
+		threads/system.cc (TODO are we allowed to change this?)
+		threads/system.h (TODO are we allowed to change this?)
+		threads/thread.cc (TODO revert cosmetic changes back?)
+		threads/thread.h (TODO are we allowed to change this?)
+		userprog/addrspace.cc
+		userprog/addrspace.h
+		userprog/bitmap.cc (TODO can this be reverted back?)
+		userprog/bitmap.h (TODO can this be reverted back?)
+		userprog/exception.cc
+		userprog/progtest.cc
+		userprog/synchconsole.cc (TODO can this be reverted back?)
+		userprog/synchconsole.h (TODO can this be reverted back?)
+		userprog/syscall.h
+		userprog/table.h (TODO can this be reverted back?)
+		vm/Makefile (TODO verify only changes are automatic before submitting)
 
 	Files Added:
-		(none)
+		test/passportOffice.c
+		test/tester.c (TODO CHANGE THIS)
+		test/tester2.c (TODO CHANGE THIS)
+		test/testexec.c (TODO CHANGE THIS)
+		threads/Makefile (TODO verify only changes are automatic before submitting)
+		threads/structs.h
+		userprog/Makefile (TODO verify only changes are automatic before submitting)
+		userprog/process.h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	Data Structures Added:
 		class Customer 				in threads/threadtest.cc
@@ -181,7 +131,6 @@ IV. Implementation:
 		TestSuite()					in threads/threadtest.cc
 		printTestMenu()				in threads/threadtest.cc
 		printTest7Menu()			in threads/threadtest.cc
-		
 
 	Functions Modified:
 		main()						in threads/main.cc

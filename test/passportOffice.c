@@ -18,18 +18,14 @@ int customerOutsideLineCV;
 int customersOutside = 0;
 int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
 
-int customerIndexLock;
 int nextAvailableCustomerIndex = 0;
-int passportClerkIndexLock;
 int nextAvailablePassportClerkIndex = 0;
-int cashierClerkIndexLock;
 int nextAvailableCashierClerkIndex = 0;
-int pictureClerkIndexLock;
 int nextAvailablePictureClerkIndex = 0;
-int senatorIndexLock;
 int nextAvailableSenatorIndex = 0;
-int applicationClerkIndexLock;
 int nextAvailableApplicationClerkIndex = 0;
+
+int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock;
 
 bool runningTest1 = false;
 bool runningTest2 = false;
@@ -403,28 +399,168 @@ int main() {
 	for(k = 0 ; k < numCustomers ; k++) {
 		Fork(&runCustomer);
 	}
-	
-	
+}
 
+clerkID chooseLine(int ssn, ClerkType clerkType) {
+	int i, minLength, clerkID;
+	bool canBribe;
+	minLength = 51;
+	canBribe = false;
+
+	if(customers[ssn].money > 500) 
+		canBribe = true;
+	// Choose the shortest line possible
+	switch(clerkType) {
+		case APPLICATION_CLERK:
+			for(i = 0; i < numApplicationClerks; i++) {
+				if(applicationClerks[i].lineLength < minLength) {
+					customers[ssn].clerkID = i;
+					minLength = applicationClerks[i].lineLength;
+					customers[ssn].didBribe = false;
+				}
+				if(canBribe) {
+					if(applicationClerks[i].bribeLineLength < minLength) {
+						customers[ssn].clerkID = i;
+						minLength = applicationClerks[i].bribeLineLength;
+						customers[ssn].didBribe = true;
+					}
+				}
+			}
+			break;
+		case PICTURE_CLERK:
+			for(i = 0; i < numPictureClerks; i++) {
+				if(pictureClerks[i].lineLength < minLength) {
+					customers[ssn].clerkID = i;
+					minLength = pictureClerks[i].lineLength;
+					customers[ssn].didBribe = false;
+				}
+				if(canBribe) {
+					if(pictureClerks[i].bribeLineLength < minLength) {
+						customers[ssn].clerkID = i;
+						minLength = pictureClerks[i].bribeLineLength;
+						customers[ssn].didBribe = true;
+					}
+				}
+			}
+			break;
+		case PASSPORT_CLERK:
+			for(i = 0; i < numPassportClerks; i++) {
+				if(passportClerks[i].lineLength < minLength) {
+					customers[ssn].clerkID = i;
+					minLength = passportClerks[i].lineLength;
+					customers[ssn].didBribe = false;
+				}
+				if(canBribe) {
+					if(passportClerks[i].bribeLineLength < minLength) {
+						customers[ssn].clerkID = i;
+						minLength = passportClerks[i].bribeLineLength;
+						customers[ssn].didBribe = true;
+					}
+				}
+			}
+			break;
+		case CASHIER:
+			for(i = 0; i < numCashiers; i++) {
+				if(cashiers[i].lineLength < minLength) {
+					customers[ssn].clerkID = i;
+					minLength = cashiers[i].lineLength;
+					customers[ssn].didBribe = false;
+				}
+				if(canBribe) {
+					if(cashiers[i].bribeLineLength < minLength) {
+						customers[ssn].clerkID = i;
+						minLength = cashiers[i].bribeLineLength;
+						customers[ssn].didBribe = true;
+					}
+				}
+			}
+			break;
+	}
+}
+
+/* ONLY COMPLETE FOR APPLICATIONCLERK */
+bool enterLine(int ssn, ClerkType clerkType, int clerkID) { 
+	// Stand in line
+	if(applicationClerks[clerkID].state != FREE) {
+		if(customers[ssn].isSenator) {
+			Acquire(applicationClerks[clerkID].senatorLineLock);
+			applicationClerks[clerkID].senatorLineLength++;
+			/*printf("%s has gotten in senator line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(applicationClerks[clerkID].senatorLineCV, applicationClerks[clerkID].senatorLineLock);
+			applicationClerks[clerkID].senatorLineLength--;
+		} else if (didBribe) {
+			Acquire(applicationClerks[clerkID].bribeLineLock);
+			applicationClerks[clerkID].bribeLineLength++;
+			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(applicationClerks[clerkID].bribeLineCV, applicationClerks[clerkID].bribeLineLock);
+			applicationClerks[clerkID].bribeLineLength--;
+		} else {
+			Acquire(applicationClerks[clerkID].lineLock);
+			applicationClerks[clerkID].lineLength++;
+			/*printf("%s has gotten in regular line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Wait(applicationClerks[clerkID].lineCV, applicationClerks[clerkID].lineLock);
+			applicationClerks[clerkID].lineLength--;
+		}
+	}
+	/* Called out of line, make sure it wasn't because of a senator */
+	Acquire(senatorInsideLock);
+	if(senatorInside && !customers[ssn].isSenator) {
+		Release(senatorInsideLock);
+		Release(applicationClerks[clerkID].bribeLineLock);
+		Release(applicationClerks[clerkID].lineLock);
+		Acquire(customerOutsideLineLock);
+		/*printf("%s is going outside the Passport Office because there is a Senator present.\n", currentThread->getName());*/
+		customersOutside += 1;
+		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		customersOutside -= 1;
+		Release(customerOutsideLineLock);
+		return true;
+	} else {
+		Release(senatorInsideLock);
+		/* Change the clerk to BUSY before releasing the clerk's line lock */
+		applicationClerks[clerkID].state = BUSY;
+		Release(applicationClerks[clerkID].bribeLineLock);
+		Release(applicationClerks[clerkID].lineLock);
+		Release(applicationClerks[clerkID].senatorLineLock);
+		return false;
+	}
 }
 
 
-
-/*
-
-void waitInLine(Customer customer, Clerk** clerks, int numClerks){
-
+void waitInLine(int ssn, ClerkType clerkType) {
+	bool senatord
+	int clerkID;
+	senatord = false;
+	chooseLine(ssn, clerkType);
+	clerkID = customers[ssn].clerkID;
+	senatord = enterLine(ssn, clerkType, clerkID);
+	while(senatord) {
+		clerkID = chooseLine(ssn, clerkType);
+		senatord = enterLine(ssn, clerkType, clerkID);
+	}
+	if(customers[ssn].didBribe) {
+		customers[ssn].money = customers[ssn] - 500;
+		switch(clerkType) {
+			case APPLICATION_CLERK:
+				Acquire(applicationClerks[clerkID].moneyLock);
+				applicationClerks[clerkID].money = applicationClerks[clerkID].money + 500;
+				Release(applicationClerks[clerkID].moneyLock);
+				break;
+			case PICTURE_CLERK:
+				Acquire(pictureClerks[clerkID].moneyLock);
+				pictureClerks[clerkID].money = pictureClerks[clerkID].money + 500;
+				Release(pictureClerks[clerkID].moneyLock);
+				break;
+			case PASSPORT_CLERK:
+				Acquire(passportClerks[clerkID].moneyLock);
+				passportClerks[clerkID].money = passportClerks[clerkID].money + 500;
+				Release(passportClerks[clerkID].moneyLock);
+				break;
+			case CASHIER:
+				Acquire(cashiers[clerkID].moneyLock);
+				cashiers[clerkID].money = cashiers[clerkID].money + 500;
+				Release(cashiers[clerkID].moneyLock);
+				break;
+		}
+	}
 }
-void chooseLine(Clerk** clerks, int numClerks){
-
-}
-bool enterLine(Clerk* clerk){
-
-}
-
-
-*/
-
-
-
-
