@@ -37,6 +37,7 @@
 #define	SC_Signal			18
 #define SC_Broadcast		19
 #define SC_Print			20
+#define SC_Rand       		21
 
 #define MAXFILENAME 256
 
@@ -126,6 +127,7 @@ void Wait(int conditionKey, int lockKey);
 void Signal(int conditionKey, int lockKey);
 void Broadcast(int conditionKey, int lockKey);
 void Print(int text, int num);
+int Rand();
 
 #endif /* IN_ASM */
 #endif /* SYSCALL_H */
