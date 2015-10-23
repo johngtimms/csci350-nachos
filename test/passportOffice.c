@@ -1017,6 +1017,9 @@ int main() {
 	
 	for(k = 0 ; k < numApplicationClerks ; k++)
 		Fork(&runApplicationClerk);
+
+	for(k = 0 ; k < numCashiers ; k++)
+		Fork(&runCashier);
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
