@@ -1077,7 +1077,7 @@ int main() {
 	Print("Number of PictureClerks: %i\n", numCustomers);
 	Print("Number of PassportClerks: %i\n", numCustomers);
 	Print("Number of Cashiers: %i\n", numCustomers);
-	Print("Number of Senators is random\n", 0);
+	Print("Number of Senators: %i\n", numSenators);
 	*/
 	
 	for(k = 0 ; k < numPassportClerks ; k++)
