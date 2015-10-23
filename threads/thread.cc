@@ -54,13 +54,14 @@ Thread::Thread(char* threadName)
 //      because we didn't allocate it -- we got it automatically
 //      as part of starting up Nachos.
 //----------------------------------------------------------------------
+
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     ASSERT(this != currentThread);
-    if(stack != NULL)
-	   DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    if (stack != NULL)
+	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
 }
 
 //----------------------------------------------------------------------
@@ -82,11 +83,13 @@ Thread::~Thread()
 //	"func" is the procedure to run concurrently.
 //	"arg" is a single argument to be passed to the procedure.
 //----------------------------------------------------------------------
+
 void 
 Thread::Fork(VoidFunctionPtr func, int arg)
 {
-    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n", name, (int) func, arg);
-
+    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n",
+	  name, (int) func, arg);
+    
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -109,6 +112,7 @@ Thread::Fork(VoidFunctionPtr func, int arg)
 // 	overflows by not putting large data structures on the stack.
 // 	Don't do this: void foo() { int bigArray[10000]; ... }
 //----------------------------------------------------------------------
+
 void
 Thread::CheckOverflow()
 {
@@ -134,12 +138,16 @@ Thread::CheckOverflow()
 // 	NOTE: we disable interrupts, so that we don't get a time slice 
 //	between setting threadToBeDestroyed, and going to sleep.
 //----------------------------------------------------------------------
+
+//
 void
 Thread::Finish ()
 {
     (void) interrupt->SetLevel(IntOff);		
     ASSERT(this == currentThread);
+    
     DEBUG('t', "Finishing thread \"%s\"\n", getName());
+    
     threadToBeDestroyed = currentThread;
     Sleep();					// invokes SWITCH
     // not reached
@@ -162,8 +170,9 @@ Thread::Finish ()
 //
 // 	Similar to Thread::Sleep(), but a little different.
 //----------------------------------------------------------------------
+
 void
-Thread::Yield()
+Thread::Yield ()
 {
     Thread *nextThread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -244,6 +253,7 @@ void
 Thread::StackAllocate (VoidFunctionPtr func, int arg)
 {
     stack = (int *) AllocBoundedArray(StackSize * sizeof(int));
+
 #ifdef HOST_SNAKE
     // HP stack works from low addresses to high addresses
     stackTop = stack + 16;	// HP requires 64-byte frame marker
@@ -284,11 +294,12 @@ Thread::StackAllocate (VoidFunctionPtr func, int arg)
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine saves the former.
 //----------------------------------------------------------------------
+
 void
 Thread::SaveUserState()
 {
     for (int i = 0; i < NumTotalRegs; i++)
-	   userRegisters[i] = machine->ReadRegister(i);
+	userRegisters[i] = machine->ReadRegister(i);
 }
 
 //----------------------------------------------------------------------
@@ -299,6 +310,7 @@ Thread::SaveUserState()
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine restores the former.
 //----------------------------------------------------------------------
+
 void
 Thread::RestoreUserState()
 {

@@ -107,8 +107,9 @@ main(int argc, char **argv)
 	        ConsoleTest(*(argv + 1), *(argv + 2));
 	        argCount = 3;
 	    }
-	    interrupt->Halt();		
-	    // once we start the console, then Nachos will loop forever waiting for console input
+	    interrupt->Halt();		// once we start the console, then 
+					// Nachos will loop forever waiting 
+					// for console input
 	}
 #endif // USER_PROGRAM
 #ifdef FILESYS
@@ -143,8 +144,8 @@ main(int argc, char **argv)
         }
 #endif // NETWORK
     }
-    currentThread->Finish();	
-    			// NOTE: if the procedure "main" 
+
+    currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program
 				// would).  But there may be other
