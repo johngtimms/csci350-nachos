@@ -397,7 +397,6 @@ void runSenator() {
 		Broadcast(customerOutsideLineCV,customerOutsideLineLock);
 	}
 	Release(customerOutsideLineLock);
-	
 }
 
 void runApplicationClerk() {
@@ -414,7 +413,7 @@ void runApplicationClerk() {
     	if(applicationClerks[i].senatorLineLength > 0) {
     		Acquire(applicationClerks[i].senatorLineLock);
             Signal(applicationClerks[i].senatorLineCV, applicationClerks[i].senatorLineLock);     /* Signal Customer to exit line */
-            Print("ApplicationClerk %i has signalled a Senator to come to their counter", i);
+            Print("ApplicationClerk %i has signalled a Senator to come to their counter\n", i);
             Acquire(applicationClerks[i].clerkLock); 
             Release(applicationClerks[i].senatorLineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to give application */
@@ -432,7 +431,7 @@ void runApplicationClerk() {
     	} else if(applicationClerks[i].bribeLineLength > 0) {
             Acquire(applicationClerks[i].bribeLineLock);
             Signal(applicationClerks[i].bribeLineCV, applicationClerks[i].bribeLineLock);     /* Signal Customer to exit line */
-            Print("ApplicationClerk %i has signalled a Customer to come to their counter", i);
+            Print("ApplicationClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(applicationClerks[i].clerkLock); 
             Release(applicationClerks[i].bribeLineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to give application */
@@ -449,7 +448,7 @@ void runApplicationClerk() {
         } else if(applicationClerks[i].lineLength > 0) {
             Acquire(applicationClerks[i].lineLock);
             Signal(applicationClerks[i].lineCV, applicationClerks[i].lineLock);     /* Signal Customer to exit line */
-            Print("ApplicationClerk %i has signalled a Customer to come to their counter", i);
+            Print("ApplicationClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(applicationClerks[i].clerkLock); 
             Release(applicationClerks[i].lineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to gve application */
@@ -490,7 +489,7 @@ void runPictureClerk() {
     	if(pictureClerks[i].senatorLineLength > 0) {
     		Acquire(pictureClerks[i].senatorLineLock);
             Signal(pictureClerks[i].senatorLineCV,pictureClerks[i].senatorLineLock);     /* Signal Senator to exit line */
-            Print("PictureClerk %i has signalled a Senator to come to their counter", i);
+            Print("PictureClerk %i has signalled a Senator to come to their counter\n", i);
             Acquire(pictureClerks[i].clerkLock); 
             Release(pictureClerks[i].senatorLineLock);
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for Senator to get ready for picture */
@@ -518,7 +517,7 @@ void runPictureClerk() {
     	} else if(pictureClerks[i].bribeLineLength > 0) {
             Acquire(pictureClerks[i].bribeLineLock);
             Signal(pictureClerks[i].bribeLineCV, pictureClerks[i].bribeLineLock);     /* Signal Customer to exit line */
-            Print("PictureClerk %i has signalled a Customer to come to their counter", i);
+            Print("PictureClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(pictureClerks[i].clerkLock); 
             Release(pictureClerks[i].bribeLineLock);
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for customer to get ready for picture */
@@ -546,7 +545,7 @@ void runPictureClerk() {
         } else if(pictureClerks[i].lineLength > 0) {
             Acquire(pictureClerks[i].lineLock);
             Signal(pictureClerks[i].lineCV, pictureClerks[i].lineLock);     /* Signal Customer to exit line */
-            Print("PictureClerk %i has signalled a Customer to come to their counter", i);
+            Print("PictureClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(pictureClerks[i].clerkLock); 
             Release(pictureClerks[i].lineLock);
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for customer to get ready for picture */
@@ -599,7 +598,7 @@ void runPassportClerk() {
     	if(passportClerks[i].senatorLineLength > 0) {
     		Acquire(passportClerks[i].senatorLineLock);
             Signal(passportClerks[i].senatorLineCV, passportClerks[i].senatorLineLock);     /* Signal Senator to exit line */
-            Print("PassportClerk %i has signalled a Senator to come to their counter", i);
+            Print("PassportClerk %i has signalled a Senator to come to their counter\n", i);
             Acquire(passportClerks[i].clerkLock); 
             Release(passportClerks[i].senatorLineLock);
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Senator to hand over picture and application */
@@ -628,7 +627,7 @@ void runPassportClerk() {
     	} else if(passportClerks[i].bribeLineLength > 0) {
             Acquire(passportClerks[i].bribeLineLock);
             Signal(passportClerks[i].bribeLineCV, passportClerks[i].bribeLineLock);     /* Signal Customer to exit line */
-            Print("PassportClerk %i has signalled a Customer to come to their counter", i);
+            Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(passportClerks[i].clerkLock); 
             Release(passportClerks[i].bribeLineLock);
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);       /* Wait for Customer to hand over picture and application */
@@ -657,7 +656,7 @@ void runPassportClerk() {
         } else if(passportClerks[i].lineLength > 0) {
             Acquire(passportClerks[i].lineLock);
             Signal(passportClerks[i].lineCV, passportClerks[i].lineLock);     /* Signal Customer to exit line */
-            Print("PassportClerk %i has signalled a Customer to come to their counter", i);
+            Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);
             Acquire(passportClerks[i].clerkLock); 
             Release(passportClerks[i].lineLock);
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to hand over picture and application */
@@ -710,7 +709,7 @@ void runCashier() {
     	if(cashiers[i].senatorLineLength > 0) {
     		Acquire(cashiers[i].senatorLineLock);
             Signal(cashiers[i].senatorLineCV, cashiers[i].senatorLineLock);     /* Signal Customer to exit line */
-            Print("Cashier %i has signalled a Senator to come to their counter", i);
+            Print("Cashier %i has signalled a Senator to come to their counter\n", i);
             Acquire(cashiers[i].clerkLock); 
             Release(cashiers[i].senatorLineLock);
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);      /* Wait for customer to give application */
@@ -753,7 +752,7 @@ void runCashier() {
         if(cashiers[i].bribeLineLength > 0) {
             Acquire(cashiers[i].bribeLineLock);
             Signal(cashiers[i].bribeLineCV, cashiers[i].bribeLineLock);     /* Signal Customer to exit line */
-            Print("Cashier %i has signalled a Customer to come to their counter", i);
+            Print("Cashier %i has signalled a Customer to come to their counter\n", i);
             Acquire(cashiers[i].clerkLock); 
             Release(cashiers[i].bribeLineLock);
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);      /* Wait for customer to give application */
@@ -795,7 +794,7 @@ void runCashier() {
         } else if(cashiers[i].lineLength > 0) {
             Acquire(cashiers[i].lineLock);
             Signal(cashiers[i].lineCV, cashiers[i].lineLock);     /* Signal Customer to exit line */
-            Print("Cashier %i has signalled a Customer to come to their counter", i);
+            Print("Cashier %i has signalled a Customer to come to their counter\n", i);
             Acquire(cashiers[i].clerkLock); 
             Release(cashiers[i].lineLock);
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);      /* Wait for customer to gve application */
@@ -993,28 +992,20 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-<<<<<<< HEAD
 	numCustomers = 3;
+	numSenators = 3;
 	numApplicationClerks = 1;
-	numPictureClerks= 0;
+	numPictureClerks = 0;
 	numPassportClerks = 0;
 	numCashiers = 0;
-=======
-	numCustomers = 10;
-	numSenators = 3;
-	numApplicationClerks = 3;
-	numPictureClerks = 3;
-	numPassportClerks = 3;
-	numCashiers = 3;
 
->>>>>>> origin/nick
 	/*
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numCustomers);
 	Print("Number of PictureClerks: %i\n", numCustomers);
 	Print("Number of PassportClerks: %i\n", numCustomers);
 	Print("Number of Cashiers: %i\n", numCustomers);
-	Print("Number of Senators is random\n", 0);
+	Print("Number of Senators: %i\n", numSenators);
 	*/
 	/*
 	for(k = 0 ; k < numPassportClerks ; k++)
@@ -1031,14 +1022,11 @@ int main() {
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
-
-<<<<<<< HEAD
-	Fork(&runManager);
-=======
+	/*
 	for(k = 0 ; k < numSenators ; k++)
 		Fork(&runSenator);
-
->>>>>>> origin/nick
+	*/
+	Fork(&runManager);
 	
 	Exit(0);
 }

@@ -124,9 +124,8 @@ void Lock::Release() {
             scheduler->ReadyToRun(lockOwner);
             //printf(">Thread %s has acquired %s\n", lockOwner->getName(), name);
         }
-    } else {
+    } else
         printf("Warning: %s hasn't acquired %s\n", currentThread->getName(), name);
-    }
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -160,12 +159,10 @@ void Condition::Wait(Lock* conditionLock) {
             lock->Release();                            // release waitingLock
             currentThread->Sleep();                     // put currentThread to sleep (wait for condition variable to signal)
             lock->Acquire();                            // reacquire waitingLock
-        } else {
+        } else
             printf("Warning: Incorrect Lock\n");
-        }
-    } else {
+    } else
         printf("Warning: conditionLock pointer is NULL\n");
-    }
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -176,9 +173,8 @@ void Condition::Signal(Lock* conditionLock) {
         thread = (Thread*) queue->Remove();     // remove one waiting thread from queue
         scheduler->ReadyToRun(thread);          // wake up waiting thread
         //printf(">Condition %s has signalled Thread %s\n", name, thread->getName());
-    } else {
+    } else
         printf("Warning: Condition signalling wrong lock\n");
-    }
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -186,7 +182,6 @@ void Condition::Broadcast(Lock* conditionLock) {
     if(lock != NULL && conditionLock == lock) {
         while(!queue->IsEmpty())            // signal all threads waiting 
             Signal(conditionLock);
-    } else {
+    } else
         printf("Warning: Condition signalling wrong lock\n");
-    }
 }
