@@ -4,12 +4,12 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			6
-#define NUM_APPLICATION_CLERKS	2
-#define NUM_PICTURE_CLERKS		0
-#define NUM_PASSPORT_CLERKS		0
-#define NUM_CASHIERS			0
-#define NUM_SENATORS			0
+#define NUM_CUSTOMERS			1
+#define NUM_APPLICATION_CLERKS	1
+#define NUM_PICTURE_CLERKS		1
+#define NUM_PASSPORT_CLERKS		1
+#define NUM_CASHIERS			1
+#define NUM_SENATORS			3
 
 struct Customer;
 struct Clerk;
@@ -1027,6 +1027,7 @@ int main() {
 	Print("Number of Cashiers: %i\n", numCashiers);
 	Print("Number of Senators: %i\n", numSenators);
 	
+	runningTest7a = true;
 	
 	for(k = 0 ; k < numCashiers ; k++)
 		Fork(&runCashier);
