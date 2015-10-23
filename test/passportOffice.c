@@ -4,11 +4,11 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			3
+#define NUM_CUSTOMERS			5
 #define NUM_APPLICATION_CLERKS	1
-#define NUM_PICTURE_CLERKS		0
-#define NUM_PASSPORT_CLERKS		0
-#define NUM_CASHIERS			0
+#define NUM_PICTURE_CLERKS		1
+#define NUM_PASSPORT_CLERKS		1
+#define NUM_CASHIERS			1
 #define NUM_SENATORS			0
 
 struct Customer;
