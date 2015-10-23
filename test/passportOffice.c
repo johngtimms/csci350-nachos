@@ -69,11 +69,11 @@ typedef struct Clerk {
 	int lineCV, bribeLineCV, senatorLineCV, clerkCV, breakCV;
 } Clerk;
 
-Customer customers[10];
-Clerk cashiers[3];
-Clerk passportClerks[3];
-Clerk pictureClerks[3];
-Clerk applicationClerks[3];
+Customer customers[50];
+Clerk cashiers[10];
+Clerk passportClerks[10];
+Clerk pictureClerks[10];
+Clerk applicationClerks[10];
 
 void waitInLine(int ssn, ClerkType clerkType);
 bool enterLine(int ssn, ClerkType clerkType, int clerkID);
@@ -227,33 +227,61 @@ void doPicture(int ssn){
         Release(pictureClerks[clerkID].clerkLock);
     }
 }
-void doPassport(int id){
-	/*
-	waitInLine(customer, passportClerks, numPassportClerks);
-	Clerk* clerk = passportClerks[clerkID];
-	cout<<clerk.getName()<<" has signalled "<<this.getName()<<" to come to their counter."<<endl;
-	clerk.clerkLock.Acquire();
-    clerk.customerID this;
-    //cout << getName() << " currently with " << clerk.getName() << endl;
-    clerk.clerkCV.Signal(clerk.clerkLock); 
-    clerk.clerkCV.Wait(clerk.clerkLock); 
-    if(hasApp && hasPic) {
-        //cout << getName() << " accepted passport from " << clerk.getName() << endl;
-        //certifiedByPassportClerk = true; passport clerk should be setting this
-        //cout << getName() << " finished with " << clerk.getName() << endl;
-        clerk.clerkCV.Signal(clerk.clerkLock);
-        clerk.clerkLock.Release();
+void doPassport(int ssn){
+	int clerkID, wait, k;
+	waitInLine(ssn, PASSPORT_CLERK);
+	clerkID = customers[ssn].clerkID;
+	Print("Passport Clerk %i has signalled ", clerkID);
+	Print("Customer %i to come to their counter\n", ssn);
+	Acquire(passportClerks[clerkID].clerkLock);
+    passportClerks[clerkID].customerID = ssn;
+    /*cout << getName() << " currently with " << clerk->getName() << endl;*/
+    Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock); 
+    Wait(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock); 
+    if(customers[ssn].hasApp && customers[ssn].hasPic) {
+        /*cout << getName() << " accepted passport from " << clerk->getName() << endl;*/
+        /*certifiedByPassportClerk = true; passport clerk should be setting this*/
+        /*cout << getName() << " finished with " << clerk->getName() << endl;*/
+        Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock);
+        Release(passportClerks[clerkID].clerkLock);
     } else {
-        clerk.clerkCV.Signal(clerk.clerkLock);
-        clerk.clerkLock.Release();
-        int wait = rand() % ((100 - 20) + 1) + 20;
-        for(int i = 0; i < wait; i++) 
+        Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock);
+        Release(passportClerks[clerkID].clerkLock);
+        wait = Rand() % ((100 - 20) + 1) + 20;
+        for(k = 0; k < wait; k++) 
             Yield();
     }
-    */
 }
 
-void doCashier(int id) {}
+void doCashier(int ssn) {
+	int clerkID, wait, k;
+	waitInLine(ssn, CASHIER);	
+	clerkID = customers[ssn].clerkID;
+	Print("Cashier %i has signalled ", clerkID);
+	Print("Customer %i to come to their counter\n", ssn);
+	   /* Interaction with cashier */
+    Acquire(cashiers[clerkID].clerkLock);
+    cashiers[clerkID].customerID = ssn;
+    /*cout << getName() << " currently with " << clerk->getName() << endl; */
+    Signal(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock);
+    Wait(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock); 
+    if(customers[ssn].certifiedByPassportClerk && customers[ssn].hasPaidForPassport) {
+    	Print("Cashier %i has recorded that ", clerkID);
+		Print("Customer %i has been given their completed passport.\n", ssn);	
+        customers[ssn].money = customers[ssn].money - 100;
+        customers[ssn].hasPassport = true;
+        /*cout << getName() << " finished with " << clerk->getName() << endl; */
+        Signal(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock);
+        Release(cashiers[clerkID].clerkLock);
+        Print("Customer %i is leaving the passport office.\n", ssn);
+    } else {
+        Signal(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock);
+        Release(cashiers[clerkID].clerkLock);
+        wait = Rand() % ((100 - 20) + 1) + 20;
+        for(k = 0; k < wait; k++) 
+            Yield();
+    }
+}
 
 void runCustomer() {
 	int i;
@@ -941,12 +969,14 @@ void runManager() {
 			Yield();
 		if(runningTest5 || runningTest7a || runningTest7b)
 			continue;
+		/*
 		Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PassportClerks\n", passportClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);
 		totalMoneyMade = applicationClerkMoneyTotal + pictureClerkMoneyTotal + passportClerkMoneyTotal + cashierMoneyTotal;
 		Print("Manager has counted a total of $%i for the Passport Office\n", totalMoneyMade);
+		*/
 		if(runningTest2)
 			break;
 	}
@@ -992,12 +1022,13 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-	numCustomers = 3;
-	numSenators = 3;
+	numCustomers = 10;
+	numSenators = 0;
 	numApplicationClerks = 1;
-	numPictureClerks = 0;
-	numPassportClerks = 0;
-	numCashiers = 0;
+	numPictureClerks = 1;
+	numPassportClerks = 1;
+	numCashiers = 1;
+
 
 	/*
 	Print("Number of Customers: %i\n", numCustomers);
@@ -1007,13 +1038,13 @@ int main() {
 	Print("Number of Cashiers: %i\n", numCustomers);
 	Print("Number of Senators: %i\n", numSenators);
 	*/
-	/*
+	
 	for(k = 0 ; k < numPassportClerks ; k++)
 		Fork(&runPassportClerk);
 
 	for(k = 0 ; k < numPictureClerks ; k++)
 		Fork(&runPictureClerk);
-	*/
+	
 	for(k = 0 ; k < numApplicationClerks ; k++)
 		Fork(&runApplicationClerk);
 
@@ -1022,12 +1053,12 @@ int main() {
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
-	/*
+
 	for(k = 0 ; k < numSenators ; k++)
 		Fork(&runSenator);
-	*/
+
 	Fork(&runManager);
-	
+
 	Exit(0);
 }
 
