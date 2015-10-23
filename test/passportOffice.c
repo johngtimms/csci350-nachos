@@ -16,16 +16,14 @@ int customerOutsideLineLock;
 int customerOutsideLineCV;
 int customersOutside = 0;
 int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
-int totalMoneyMade;
 int nextAvailableCustomerIndex = 0;
 int nextAvailablePictureClerkIndex = 0;
 int nextAvailablePassportClerkIndex = 0;
 int nextAvailableCashierIndex = 0;
 int nextAvailableSenatorIndex = 0;
 int nextAvailableApplicationClerkIndex = 0;
-
 int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
-
+int totalMoneyMade;
 bool runningTest1 = false;
 bool runningTest2 = false;
 bool runningTest3 = false;
@@ -311,13 +309,13 @@ void runCustomer() {
 
 void runApplicationClerk() {
 	int i, myCustomer;
-	Print("Before Acquire(applicationClerkIndexLock);\n", 0);
+	/*Print("Before Acquire(applicationClerkIndexLock);\n", 0);*/
 	Acquire(applicationClerkIndexLock);
 	i = nextAvailableApplicationClerkIndex;
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
 	Release(applicationClerkIndexLock);
-	Print("After Release(applicationClerkIndexLock);\n", 0);
-	Print("running ApplicationClerk: %i\n",i);
+	/*Print("After Release(applicationClerkIndexLock);\n", 0);*/
+	Print("Running ApplicationClerk: %i\n",i);
 	initClerk(APPLICATION_CLERK, i);
 	while(true) {
     	if(applicationClerks[i].senatorLineLength > 0) {
@@ -387,12 +385,12 @@ void runApplicationClerk() {
 
 void runPictureClerk() {
 	int i, wait, k, myCustomer;
-	Print("Before Acquire(pictureClerkIndexLock);\n",0);
+	/*Print("Before Acquire(pictureClerkIndexLock);\n",0);*/
 	Acquire(pictureClerkIndexLock);
 	i = nextAvailablePictureClerkIndex;
 	nextAvailablePictureClerkIndex = nextAvailablePictureClerkIndex + 1;
 	Release(pictureClerkIndexLock);
-	Print("After Release(pictureClerkIndexLock);\n",0);
+	/*Print("After Release(pictureClerkIndexLock);\n",0);*/
 	Print("Running PictureClerk: %i\n",i);
 	initClerk(PICTURE_CLERK, i);
 	while(true) {
@@ -496,12 +494,12 @@ void runPictureClerk() {
 
 void runPassportClerk() {
 	int i, wait, k, myCustomer;
-	Print("Before Acquire(passportClerkIndexLock);\n", 0);
+	/*Print("Before Acquire(passportClerkIndexLock);\n", 0);*/
 	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
 	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/
 	Release(passportClerkIndexLock);
-	Print("After Release(passportClerkIndexLock);\n", 0);
+	/*Print("After Release(passportClerkIndexLock);\n", 0);*/
 	Print("Running PassportClerk: %i\n",i);
 	initClerk(PASSPORT_CLERK, i);
 	while(true) {
@@ -607,13 +605,13 @@ void runPassportClerk() {
 
 void runCashier() {
 	int i, myCustomer;
-	Print("Before Acquire(cashierIndexLock);\n", 0);
+	/*Print("Before Acquire(cashierIndexLock);\n", 0);*/
 	Acquire(cashierIndexLock);
 	i = nextAvailableCashierIndex;
 	nextAvailableCashierIndex = nextAvailableCashierIndex + 1;
 	Release(cashierIndexLock);
-	Print("After Release(cashierIndexLock);\n", 0);
-	Print("running Cashier: %i\n", i);
+	/*Print("After Release(cashierIndexLock);\n", 0);*/
+	Print("Running Cashier: %i\n", i);
 	initClerk(CASHIER, i);
 	while(true) {
     	if(cashiers[i].senatorLineLength > 0) {
@@ -882,6 +880,13 @@ void test2() {
 	Exit(0);
 }
 
+void test3() {
+	Acquire(senatorOutsideLineLock);
+	Broadcast(senatorOutsideLineCV, senatorOutsideLineLock);
+	Release(senatorOutsideLineLock);
+	Exit(0);
+}
+
 int main() {
 	int k;
 	senatorOutsideLineLock = CreateLock();
@@ -896,11 +901,11 @@ int main() {
 	senatorIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-	numCustomers = 10;
-	numApplicationClerks = 3;
-	numPictureClerks = 3;
-	numPassportClerks = 3;
-	numCashiers = 3;
+	numCustomers = 3;
+	numApplicationClerks = 1;
+	numPictureClerks= 0;
+	numPassportClerks = 0;
+	numCashiers = 0;
 	/*
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numCustomers);
@@ -909,22 +914,22 @@ int main() {
 	Print("Number of Cashiers: %i\n", numCustomers);
 	Print("Number of Senators is random\n", 0);
 	*/
-	
-	
+	/*
 	for(k = 0 ; k < numPassportClerks ; k++)
 		Fork(&runPassportClerk);
 
 	for(k = 0 ; k < numPictureClerks ; k++)
 		Fork(&runPictureClerk);
-	
+	*/
 	for(k = 0 ; k < numApplicationClerks ; k++)
 		Fork(&runApplicationClerk);
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
 
+	Fork(&runManager);
 	
-
+	Exit(0);
 }
 
 int chooseLine(int ssn, ClerkType clerkType) {
