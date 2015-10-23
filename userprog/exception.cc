@@ -254,7 +254,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		lockTable->tableLock->Release();
 		conditionTable->tableLock->Release();
-		DEBUG('l', "Waiting on condition with key %i\n", conditionKey);
+		DEBUG('l', "Waiting on condition with key: %i, and lock key: %i\n", conditionKey,lockKey);
 		condition->condition->Wait(lock->lock);
 	}
 }
