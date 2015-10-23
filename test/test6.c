@@ -4,7 +4,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			5
+#define NUM_CUSTOMERS			10
 #define NUM_APPLICATION_CLERKS	1
 #define NUM_PICTURE_CLERKS		1
 #define NUM_PASSPORT_CLERKS		1
@@ -1013,6 +1013,8 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
+	runningTest6 = true;
+
 	numCustomers = NUM_CUSTOMERS;
 	numApplicationClerks = NUM_APPLICATION_CLERKS;
 	numPictureClerks = NUM_PICTURE_CLERKS;
@@ -1403,3 +1405,4 @@ void waitInLine(int ssn, ClerkType clerkType) {
 		}
 	}
 }
+

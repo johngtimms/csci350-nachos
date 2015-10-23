@@ -102,6 +102,14 @@ IV. Implementation:
 
 	Files Added:
 		test/passportOffice.c
+		test/test1.c
+		test/test2.c
+		test/test3.c
+		test/test4.c
+		test/test5.c
+		test/test6.c
+		test/test7a.c
+		test/test7b.c
 		test/tester.c
 		test/tester2.c
 		test/testexec.c
@@ -233,13 +241,16 @@ V. Testing:
 			The behavior of this tesk is consistent with the behavior described in the Assignment 1
 			writeup.
 
-	Test Output:
+			To run our main passport office: nachos -x ../test/passportOffice
 
-		Part 1:
-
-		Part 2:
-
-		Part 3:
+			To run Test 1: nachos -x ../test/test1
+			To run Test 2: nachos -x ../test/test2
+			To run Test 3: nachos -x ../test/test3
+			To run Test 4: nachos -x ../test/test4
+			To run Test 5: nachos -x ../test/test5
+			To run Test 6: nachos -x ../test/test6
+			To run Test 7a: nachos -x ../test/test7a
+			To run Test 7b: nachos -x ../test/test7b
 
 			Output is the same as Assignment 1 output / requirements.
 
@@ -255,4 +266,17 @@ VI: Discussion:
 
 VII. Miscellaneous:
 
-	(none)
+	Exit: 3 Exit Cases
+
+	1) A thread calls Exit - not the last executing thread in the process
+		- Reclaim 8 pages of stack, vpn, ppn - memoryBitMap->Clear(ppn), valid = false
+	2) Last executing thread in last process
+		- interrupt->Halt();
+	3) Last executing thread in a process - not last process
+		- Reclaim all unreclaimed memory
+		- locks/CVs (match AddrSpace* w/Process Table)
+
+	Fork: Creates a new thread, whose address space starts as as an exact copy of the caller
+	plus eight additional pages newly allocated to the Page Table.
+
+	Exec: Replaces the current process with a new process executing program from a a file.
