@@ -10,7 +10,8 @@ I. Requirements:
 	Part 1:
 
 		Part 1 requires implementing system calls and exception handling (the ability for Nachos to
-		'take over' in kernel mode in case a user program makes a system call or experiences an error).
+		'take over' in kernel mode in case a user program makes a system call or experiences an
+		error).
 
 	Part 2:
 
@@ -19,8 +20,9 @@ I. Requirements:
 
 	Part 3:
 
-		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of multithreaded
-		Nachos user programs. This will require using the Lock and Condition system calls from Part 1.
+		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of
+		multithreaded Nachos user programs. This will require using the Lock and Condition system
+		calls from Part 1.
 
 II. Assumptions:
 
@@ -70,81 +72,119 @@ IV. Implementation:
 		test/tester.c (TODO CHANGE THIS)
 		test/tester2.c (TODO CHANGE THIS)
 		test/testexec.c (TODO CHANGE THIS)
+		test/testoffice (TODO what's this?)
 		threads/Makefile (TODO verify only changes are automatic before submitting)
 		threads/structs.h
 		userprog/Makefile (TODO verify only changes are automatic before submitting)
 		userprog/process.h
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	Data Structures Added:
-		class Customer 				in threads/threadtest.cc
-		class Clerk 				in threads/threadtest.cc
-		class Manager 				in threads/threadtest.cc
+		struct Customer 				in test/passportOffice.c
+		struct Clerk 					in test/passportOffice.c
+		struct Customer 				in test/testoffice
+		struct Clerk 					in test/testoffice
+		struct Manager 					in test/testoffice
+		struct KernelLock				in threads/structs.h
+		struct KernelCondition			in threads/structs.h
+		struct LockTable				in threads/structs.h
+		struct ConditionTable			in threads/structs.h
+		struct ProcessTable				in threads/structs.h
+		class Process 					in userprog/process.h
 
 	Data Structures Modified:
-		class Lock 					in threads/synch.h
-		class Condition 			in threads/synch.h
+		class Lock 						in threads/synch.h
+		class Condition 				in threads/synch.h
+		class Thread 					in threads/thread.h
+		class AddrSpace 				in userprog/addrspace.h
 
 	Functions Added:
-		Customer::Customer()		in threads/threadtest.cc
-		Customer::doApplication()	in threads/threadtest.cc
-		Customer::doPicture()		in threads/threadtest.cc
-		Customer::doPassport()		in threads/threadtest.cc
-		Customer::doCashier()		in threads/threadtest.cc
-		Customer::waitInLine()		in threads/threadtest.cc
-		Customer::chooseLine()		in threads/threadtest.cc
-		Customer::enterLine()		in threads/threadtest.cc
-		Clerk::Clerk()				in threads/threadtest.cc
-		Manager::Manager()			in threads/threadtest.cc
-		Manager::managerMain()		in threads/threadtest.cc
-		runCustomer()				in threads/threadtest.cc
-		runSenator()				in threads/threadtest.cc
-		runApplicationClerk()		in threads/threadtest.cc
-		runPictureClerk()			in threads/threadtest.cc
-		runPassportClerk()			in threads/threadtest.cc
-		runCashier()				in threads/threadtest.cc
-		runManager()				in threads/threadtest.cc
-		PassportOffice()			in threads/threadtest.cc
-		Problem2()					in threads/threadtest.cc
-		printMenu()					in threads/threadtest.cc
-		Test1()						in threads/threadtest.cc
-		Test2()						in threads/threadtest.cc
-		Test3()						in threads/threadtest.cc
-		Test4()						in threads/threadtest.cc
-		Test5()						in threads/threadtest.cc
-		Test6()						in threads/threadtest.cc
-		Test7()						in threads/threadtest.cc
-		TestSuite()					in threads/threadtest.cc
-		printTestMenu()				in threads/threadtest.cc
-		printTest7Menu()			in threads/threadtest.cc
+		initCustomer()					in test/passportOffice.c
+		initClerk()						in test/passportOffice.c
+		doApplication()					in test/passportOffice.c
+		doPicture()						in test/passportOffice.c
+		doPassport()					in test/passportOffice.c
+		doCashier()						in test/passportOffice.c
+		runCustomer()					in test/passportOffice.c
+		runSenator()					in test/passportOffice.c
+		runApplicationClerk()			in test/passportOffice.c
+		runPictureClerk()				in test/passportOffice.c
+		runPassportClerk()				in test/passportOffice.c
+		runCashier()					in test/passportOffice.c
+		runManager()					in test/passportOffice.c
+		test1()							in test/passportOffice.c
+		test2()							in test/passportOffice.c
+		test3()							in test/passportOffice.c
+		main()							in test/passportOffice.c
+		chooseLine()					in test/passportOffice.c
+		enterApplicationLine()			in test/passportOffice.c
+		enterPictureLine()				in test/passportOffice.c
+		enterPassportLine()				in test/passportOffice.c
+		enterCashierLine()				in test/passportOffice.c
+		enterLine()						in test/passportOffice.c
+		waitInLine()					in test/passportOffice.c
+		CreateLock 						in test/start.s (ASM)
+		DestroyLock 					in test/start.s (ASM)
+		Acquire 						in test/start.s (ASM)
+		Release 						in test/start.s (ASM)
+		CreateCondition 				in test/start.s (ASM)
+		DestroyCondition 				in test/start.s (ASM)
+		Wait 							in test/start.s (ASM)
+		Signal 							in test/start.s (ASM)
+		Broadcast 						in test/start.s (ASM)
+		Print 							in test/start.s (ASM)
+		Rand 							in test/start.s (ASM)
+		test()							in test/tester.c
+		main()							in test/tester.c
+		test2()							in test/tester2.c
+		main()							in test/tester2.c
+		main()							in test/testexec.c
+		test()							in test/testfiles.c
+		test2()							in test/testfiles.c
+				SKIPPING TEST/TESTOFFICE
+		Lock::Lock()					in threads/synch.cc (empty argument)
+		Lock::isHeldByCurrentThread()	in threads/synch.cc
+		Condition::Condition()			in threads/synch.cc (empty argument)
+		AddrSpace::CreateStack()		in userprog/addrspace.cc
+		AddrSpace::ClearStack()			in userprog/addrspace.cc
+		AddrSpace::GetNumPages()		in userprog/addrspace.cc
+		AddrSpace::ClearPhysicalPage()	in userprog/addrspace.cc
+		ForkUserThread()				in userprog/exception.cc
+		Fork_Syscall()					in userprog/exception.cc
+		Exit_Syscall()					in userprog/exception.cc
+		ExecUserThread()				in userprog/exception.cc
+		Exec_Syscall()					in userprog/exception.cc
+		CreateLock_Syscall()			in userprog/exception.cc
+		DestroyLock_Syscall()			in userprog/exception.cc
+		Acquire_Syscall()				in userprog/exception.cc
+		Release_Syscall()				in userprog/exception.cc
+		CreateCondition_Syscall()		in userprog/exception.cc
+		DestroyCondition_Syscall()		in userprog/exception.cc
+		Wait_Syscall()					in userprog/exception.cc
+		Signal_Syscall()				in userprog/exception.cc
+		Broadcast_Syscall()				in userprog/exception.cc
+		Print_Syscall()					in userprog/exception.cc
+		Rand_Syscall()					in userprog/exception.cc
+
 
 	Functions Modified:
-		main()						in threads/main.cc
-		Lock::Lock()				in threads/synch.cc
-		Lock::~Lock()				in threads/synch.cc
-		Lock::Acquire()				in threads/synch.cc
-		Lock::Release()				in threads/synch.cc
-		Condition::Condition()		in threads/synch.cc
-		Condition::~Condition()		in threads/synch.cc
-		Condition::Wait()			in threads/synch.cc
-		Condition::Signal()			in threads/synch.cc
-		Condition::Broadcast()		in threads/synch.cc
-		SimpleThread()				in threads/threadtest.cc (removed)
-		ThreadTest()				in threads/threadtest.cc (removed)
+		Machine::Translate()			in machine/translate.cc (TODO can we revert?)
+		main()							in test/testfiles.c
+				SKIPPING TEST/TESTOFFICE
+		Lock::Lock()					in threads/synch.cc (with argument)
+		Lock::~Lock()					in threads/synch.cc
+		Lock::Acquire()					in threads/synch.cc
+		Lock::Release()					in threads/synch.cc
+		Condition::Condition()			in threads/synch.cc (with argument)
+		Condition::~Condition()			in threads/synch.cc
+		Condition::Wait()				in threads/synch.cc
+		Condition::Signal()				in threads/synch.cc
+		Condition::Broadcast()			in threads/synch.cc
+		Initialize()					in threads/system.cc
+		Cleanup()						in threads/system.cc
+		AddrSpace::AddrSpace()			in userprog/addrspace.cc
+		AddrSpace::~AddrSpace()			in userprog/addrspace.cc
+		ExceptionHandler()				in userprog/exception.cc
+		StartProcess()					in userprog/progtest.cc
 
 V. Testing:
 
@@ -152,64 +192,18 @@ V. Testing:
 
 		Part 1:
 
-			Run threads/nachos with -T to execute the professor-provided test suite.
-
 		Part 2:
 
-			(none)
+		Part 3:
 
 	Test Output:
 
 		Part 1:
 
-			Please compare the test output with the professor's expected output.
-
 		Part 2:
 
-			Test 1:
-
-				Customers are sent in to the office with a restricted number of clerks at one 
-				station. You will see that customers alternate evenly between clerks.
-
-			Test 2:
-
-				You will see the manager report each figure sequentially. The manager code in 
-				runManager() checks with each clerk and acquires the clerk's lock before getting 
-				their individual money amount, then releases the lock.
-
-			Test 3:
-
-				You will see customers go to the cashier, transact, and then wait to leave. The 
-				cashier will then begin serving another customer.
-
-			Test 4:
-
-				You will see clerks going on break because they have no customers to serve.
-
-			Test 5:
-
-				You will see managers put clerks back on duty after customers get in line.
-
-			Test 6:
-
-				You will see multiple customers update the Clerk's total money and the Manager will print them out.
-
-			Test 7:
-
-				Test 7 has two parts. The first the Senator enters the Passport Office without any customers inside.
-				The second the Senator enters the Passport Office with customers inside.
+		Part 3:
 
 VI: Discussion:
 
-	The locks and conditions were expected to behave according to conventional expectations, and the
-	passport office was expected to function rationally without data corruption or endless loops.
-
-	The majority of the work on this project was implementing the Part 2 requirements and the 
-	customer's flow through the passport office. By using locks for every type of data change that
-	took place, we avoided data corruption. Condition variables were used to allow customers to
-	queue, and Broadcast() was particularly useful for handling when senators arrived and left and
-	customers needed to change from "inside" to "outside" and back.
-
 VII. Miscellaneous:
-
-	(none)
