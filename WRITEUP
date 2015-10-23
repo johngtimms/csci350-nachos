@@ -11,71 +11,101 @@ I. Requirements:
 
 		Part 1 requires implementing system calls and exception handling (the ability for Nachos to
 		'take over' in kernel mode in case a user program makes a system call or experiences an
-		error).
+		error). Implement Exit and Yield, allow calling Exec and Fork (actual implementation will
+		be done in Part 2). Also implement Acquire, Release, Wait, Signal, Broadcast, CreateLock,
+		DestroyLock, CreateCondition, DestroyCondition, and Print system calls. Finally, write a set
+		of Nachos user programs that can test / demonstrate this functionality.
 
 	Part 2:
 
 		Part 2 requires implementing multiprogramming (the ability for multiple Nachos user programs
-		to run at once).
+		to run at once). This includes completing the implementation of the Exec and Fork system
+		calls from Part 1. Allocate physical memory frames so that multiple programs can be loaded
+		at once, and allow data to be copied between the kernel and a user program's virtual address
+		space. Write a set of Nachos user programs that test / demonstrate Fork and Exec functionality.
 
 	Part 3:
 
 		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of
 		multithreaded Nachos user programs. This will require using the Lock and Condition system
-		calls from Part 1.
+		calls from Part 1. Use the Fork system call to create all threads. Also port the Assignment 
+		1 Part 2 test suite, and ensure that the Passport Office provides the same text output.
 
 II. Assumptions:
 
 	Part 1:
 
+		None. Functionality implemented according to detailed design documents in Blackboard.
+
 	Part 2:
 
+		None. Functionality implemented according to detailed design documents in Blackboard.
+
 	Part 3:
+
+		Please see assumptions listed in the Assignment 1 writeup.
 
 III. Design:
 
 	Part 1:
 
+		Nachos user programs make calls into the kernel through the functions in exception.cc.
+		ExceptionHandler() receives the calls and directs the apropriate response. Design of calls
+		related to Locks and Conditions is straightforward, since they use the same underlying code
+		that was created for Assignment 1. Extra management functionality is placed on top (see 
+		structs.h) so that these kernel objects play nicely with multiprogramming. For instance,
+		different tables track the Locks and Conditions that exist.
+
+		Yield has straightforward implementation. Exit requires considering the state of the user
+		program and the emulated OS, since Nachos should close after the last program Exits.
+
 	Part 2:
 
+		Part 2 introduces the complex design of Exec and Fork. This involves significant implementation
+		steps in exception.cc, progtest.cc, and addrspace.cc. progtest.cc must be changed so that
+		Nachos is aware of multiprogramming when starting user programs. The address space set aside
+		for the program gets tracked in the process table. In addrspace.cc, functions for creating
+		and clearing the stack (and associated page manipulations) are added, and memory is tracked
+		in a bit map.
+
+		The Fork syscall manages the address space associated with the process. The Exec syscall
+		uses a modified series of steps based on how progtest.cc starts Nachos user programs to
+		create an address space and main thread for a new process which is then forked from the
+		current program.
+
 	Part 3:
+
+		For a detailed explanation of the design, please see the Assignment 1 Part 2 writeup. We
+		changed the Passport Office to work as a Nachos user program, meaning that it uses system
+		calls for Fork, Condition, and Lock. Also, because of the limitations of Nachos user programs,
+		it was re-written to not use pointers, and Customer/Clerk/Manager classes were re-written
+		as structs.
 
 IV. Implementation:
 
 	Files Modified:
 		machine/machine.h
-		machine/translate.cc (TODO CHANGE THIS BACK BEFORE SUBMITTING)
+		machine/translate.cc
 		test/Makefile
 		test/start.s
 		test/testfiles.c
-		threads/main.cc (TODO verify only changes are cosmetic before submitting)
-		threads/synch.cc (TODO can we change this back to Peppy's code w/out issue?)
-		threads/synch.h (TODO can we change this back to Peppy's code w/out issue?)
-		threads/system.cc (TODO are we allowed to change this?)
-		threads/system.h (TODO are we allowed to change this?)
-		threads/thread.cc (TODO revert cosmetic changes back?)
-		threads/thread.h (TODO are we allowed to change this?)
+		threads/synch.cc 
+		threads/synch.h
+		threads/system.cc
+		threads/system.h
+		threads/thread.h
 		userprog/addrspace.cc
 		userprog/addrspace.h
-		userprog/bitmap.cc (TODO can this be reverted back?)
-		userprog/bitmap.h (TODO can this be reverted back?)
 		userprog/exception.cc
 		userprog/progtest.cc
-		userprog/synchconsole.cc (TODO can this be reverted back?)
-		userprog/synchconsole.h (TODO can this be reverted back?)
 		userprog/syscall.h
-		userprog/table.h (TODO can this be reverted back?)
-		vm/Makefile (TODO verify only changes are automatic before submitting)
 
 	Files Added:
 		test/passportOffice.c
-		test/tester.c (TODO CHANGE THIS)
-		test/tester2.c (TODO CHANGE THIS)
-		test/testexec.c (TODO CHANGE THIS)
-		test/testoffice (TODO what's this?)
-		threads/Makefile (TODO verify only changes are automatic before submitting)
+		test/tester.c
+		test/tester2.c
+		test/testexec.c
 		threads/structs.h
-		userprog/Makefile (TODO verify only changes are automatic before submitting)
 		userprog/process.h
 
 	Data Structures Added:
@@ -140,7 +170,6 @@ IV. Implementation:
 		main()							in test/testexec.c
 		test()							in test/testfiles.c
 		test2()							in test/testfiles.c
-				SKIPPING TEST/TESTOFFICE
 		Lock::Lock()					in threads/synch.cc (empty argument)
 		Lock::isHeldByCurrentThread()	in threads/synch.cc
 		Condition::Condition()			in threads/synch.cc (empty argument)
@@ -165,11 +194,9 @@ IV. Implementation:
 		Print_Syscall()					in userprog/exception.cc
 		Rand_Syscall()					in userprog/exception.cc
 
-
 	Functions Modified:
-		Machine::Translate()			in machine/translate.cc (TODO can we revert?)
+		Machine::Translate()			in machine/translate.cc
 		main()							in test/testfiles.c
-				SKIPPING TEST/TESTOFFICE
 		Lock::Lock()					in threads/synch.cc (with argument)
 		Lock::~Lock()					in threads/synch.cc
 		Lock::Acquire()					in threads/synch.cc
@@ -192,9 +219,19 @@ V. Testing:
 
 		Part 1:
 
+			Test Part 1 by running the 'testexec' Nachos user program in the test directory.
+			This test demonstrates Exit, Exec, Yield, and Fork system calls.
+
 		Part 2:
 
+			See tests for Part 1 above, which demonstrate that multiprogramming is functional
+			using Exec and Fork.
+
 		Part 3:
+
+			Test Part 3 by running the 'passportOffice' Nachos user program in the test directory.
+			The behavior of this tesk is consistent with the behavior described in the Assignment 1
+			writeup.
 
 	Test Output:
 
@@ -204,6 +241,18 @@ V. Testing:
 
 		Part 3:
 
+			Output is the same as Assignment 1 output / requirements.
+
 VI: Discussion:
 
+	Implementing the Lock and Condition (and Print, etc.) basic system calls was fairly straightforward,
+	although it required that we consider the multiprogramming requirement and add a way to manage
+	these between processes, done using Fork and Condition tables.
+
+	As promised, Exec and Fork were difficult to get working, and you will note a lot of debugging
+	statements in our code that we used to prove to ourselves that the system calls were behaving
+	apropriately.
+
 VII. Miscellaneous:
+
+	(none)
