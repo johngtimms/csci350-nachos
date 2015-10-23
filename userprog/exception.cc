@@ -254,7 +254,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	if(condition != NULL && lock != NULL && condition->space == currentThread->space && lock->space == currentThread->space) {
 		lockTable->tableLock->Release();
 		conditionTable->tableLock->Release();
-		DEBUG('l', "Waiting on condition with key %i\n", conditionKey);
+		DEBUG('l', "Waiting on condition with key: %i, and lock key: %i\n", conditionKey,lockKey);
 		condition->condition->Wait(lock->lock);
 	}
 }
@@ -387,7 +387,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_CreateCondition:
 				DEBUG('a', "CreateCondition syscall.\n");
-				CreateCondition_Syscall();
+				rv = CreateCondition_Syscall();
 				break;
 			case SC_DestroyCondition:
 				DEBUG('a', "DestroyCondition syscall.\n");

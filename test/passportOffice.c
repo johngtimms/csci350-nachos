@@ -114,12 +114,14 @@ void initClerk(int i){
 	applicationClerks[i].lineLock = CreateLock();
 	applicationClerks[i].bribeLineLock = CreateLock();
 	applicationClerks[i].senatorLineLock = CreateLock();
+	applicationClerks[i].clerkLock = CreateLock();
 	applicationClerks[i].moneyLock = CreateLock();
 	applicationClerks[i].lineCV = CreateCondition();
 	applicationClerks[i].bribeLineCV = CreateCondition();
 	applicationClerks[i].senatorLineCV = CreateCondition();
 	applicationClerks[i].clerkCV = CreateCondition();
 	applicationClerks[i].breakCV = CreateCondition();
+
 	
 
 }
@@ -144,8 +146,38 @@ void doApplication(int ssn){
     customers[ssn].hasApp = true;
     Release(applicationClerks[clerkID].clerkLock);
 }
-void doPicture(int id){
-	/*waitInLine(id,pictureClerks);*/
+void doPicture(int ssn){
+	int clerkID;
+	waitInLine(ssn, PICTURE_CLERK);
+	clerkID = customers[ssn].clerkID;
+	Print("Picture Clerk %i has signalled ", clerkID);
+	Print("Customer %i to come to their counter", ssn);
+    /* Interaction with clerk */
+    /* JGT- didn't make any changes here, but recursivly calling doPicture() isn't a good solution */
+    customers[ssn].seenPic = false;
+    Acquire(pictureClerks[clerkID].clerkLock);
+    pictureClerks[clerkID].customerID = ssn;
+    Signal(pictureClerks[clerkID].clerkCV,pictureClerks[clerkID].clerkLock); /* Customer with Clerk */
+    Print("Customer %i has given SSN ",ssn);
+    Print("%i to ",ssn);
+    Print("Picture Clerk %i",clerkID);
+    Wait(pictureClerks[clerkID].clerkCV,pictureClerks[clerkID].clerkLock);   /* Wait for Picture Clerk */
+    customers[ssn].seenPic = true;
+    if(Rand() % 4 == 0 && !senatorInside) { /* Customer decides whether they don't like picture */
+        customers[ssn].likedPic = false;
+    	Print("Customer %i does not like their picture from ",ssn);
+    	Print("Picture Clerk %i\n",clerkID);
+    	Signal(pictureClerks[clerkID].clerkCV,pictureClerks[clerkID].clerkLock);
+        Release(pictureClerks[clerkID].clerkLock);
+        doPicture(ssn);
+    } else {
+        customers[ssn].likedPic = true;
+        Print("Customer %i does like their picture from ",ssn);
+    	Print("Picture Clerk %i\n",clerkID);
+        Signal(pictureClerks[clerkID].clerkCV,pictureClerks[clerkID].clerkLock);
+        customers[ssn].hasPic = true;
+        Release(pictureClerks[clerkID].clerkLock);
+    }
 }
 void doPassport(int id){
 	/*
@@ -429,9 +461,7 @@ int main() {
 	}
 
 	*/
-	Fork(&runApplicationClerk);
-	Fork(&runCustomer);
-	Fork(&runCustomer);
+
 	
 	
 }
