@@ -648,7 +648,7 @@ void runPictureClerk() {
             Acquire(pictureClerks[i].clerkLock);
             pictureClerks[i].state = BREAK;
             Print("PictureClerk %i is going on break\n", i);
-            Wait(pictureClerks[i].breakCV,pictureClerks[i].clerkLock);
+            Wait(pictureClerks[i].breakCV, pictureClerks[i].clerkLock);
             Print("PictureClerk %i is coming off break\n",i);
             Release(pictureClerks[i].clerkLock);
             pictureClerks[i].state = FREE;
@@ -1080,6 +1080,9 @@ int main() {
 	Print("Number of Senators: %i\n", numSenators);
 	*/
 	
+	for(k = 0 ; k < numCashiers ; k++)
+		Fork(&runCashier);
+
 	for(k = 0 ; k < numPassportClerks ; k++)
 		Fork(&runPassportClerk);
 
@@ -1088,9 +1091,6 @@ int main() {
 	
 	for(k = 0 ; k < numApplicationClerks ; k++)
 		Fork(&runApplicationClerk);
-
-	for(k = 0 ; k < numCashiers ; k++)
-		Fork(&runCashier);
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
