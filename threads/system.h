@@ -37,7 +37,7 @@ extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
 extern BitMap *memoryBitMap;	// BitMap representing physical memory
 extern Lock *memoryBitMapLock;	// Lock for mmBitMap
-//extern Lock *mmLock;		// Lock for machine memory
+extern Lock *forkLock;
 extern ProcessTable *processTable;
 extern Lock *processTableLock;
 #endif

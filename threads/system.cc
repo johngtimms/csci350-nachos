@@ -32,7 +32,7 @@ LockTable *lockTable;
 ConditionTable *conditionTable;
 BitMap *memoryBitMap;
 Lock *memoryBitMapLock;
-//Lock *mmLock;
+Lock *forkLock;
 ProcessTable *processTable;
 Lock *processTableLock;
 #endif
@@ -155,7 +155,7 @@ Initialize(int argc, char **argv) {
     conditionTable = new ConditionTable();
     memoryBitMap = new BitMap(NumPhysPages);
     memoryBitMapLock = new Lock();
-    //mmLock = new Lock();
+    forkLock = new Lock();
     processTable = new ProcessTable();
     processTableLock = new Lock();
 #endif
@@ -190,7 +190,7 @@ Cleanup() {
     delete conditionTable;
     delete memoryBitMap;
     delete memoryBitMapLock;
-    //delete mmLock;
+    delete forkLock;
     delete processTable;
     delete processTableLock;
 #endif

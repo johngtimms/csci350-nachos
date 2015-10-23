@@ -42,6 +42,7 @@ void Close_Syscall(int fd);
 
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
+	forkLock->Acquire();
 	DEBUG('t', "In ForkUserThread\n");
   	DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
 	// Set the program counter to the appropriate place indicated by funcPtr...
@@ -50,11 +51,12 @@ void ForkUserThread(int functionPtr) {
 	currentThread->space->RestoreState();
 	// update the stack register
 	machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16); 
+	forkLock->Release();
 	machine->Run();
 }
 
 void Fork_Syscall(int functionPtr) {
-	processTableLock->Acquire();
+	//processTableLock->Acquire();
 	DEBUG('t', "In Fork_Syscall\n");
 	Thread *thread;
 	thread = new Thread("Forked Thread");
@@ -62,7 +64,7 @@ void Fork_Syscall(int functionPtr) {
 	thread->space = currentThread->space;
   	thread->space->CreateStack(thread);
   	thread->space->numThreads++;
-  	processTableLock->Release();
+  	//processTableLock->Release();
 	thread->Fork((VoidFunctionPtr)ForkUserThread, functionPtr);
 	currentThread->Yield();
 }
