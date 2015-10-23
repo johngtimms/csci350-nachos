@@ -21,14 +21,10 @@ int nextAvailablePictureClerkIndex = 0;
 int nextAvailablePassportClerkIndex = 0;
 int nextAvailableCashierIndex = 0;
 int nextAvailableApplicationClerkIndex = 0;
-<<<<<<< HEAD
+
 int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
 int totalMoneyMade;
-=======
 
-int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock;
-
->>>>>>> origin/nick
 bool runningTest1 = false;
 bool runningTest2 = false;
 bool runningTest3 = false;
@@ -412,11 +408,7 @@ void runApplicationClerk() {
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
 	Release(applicationClerkIndexLock);
 	/*Print("After Release(applicationClerkIndexLock);\n", 0);*/
-<<<<<<< HEAD
 	Print("Running ApplicationClerk: %i\n",i);
-=======
-	Print("running ApplicationClerk: %i\n",i);
->>>>>>> origin/nick
 	initClerk(APPLICATION_CLERK, i);
 	while(true) {
     	if(applicationClerks[i].senatorLineLength > 0) {
@@ -595,20 +587,12 @@ void runPictureClerk() {
 
 void runPassportClerk() {
 	int i, wait, k, myCustomer;
-<<<<<<< HEAD
 	/*Print("Before Acquire(passportClerkIndexLock);\n", 0);*/
-=======
-	/*Print("Before Acquire(passportClerkIndexLock);\n", 0); */
->>>>>>> origin/nick
 	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
 	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/
 	Release(passportClerkIndexLock);
-<<<<<<< HEAD
-	/*Print("After Release(passportClerkIndexLock);\n", 0);*/
-=======
 	/*Print("After Release(passportClerkIndexLock);\n", 0); */
->>>>>>> origin/nick
 	Print("Running PassportClerk: %i\n",i);
 	initClerk(PASSPORT_CLERK, i);
 	while(true) {
@@ -720,11 +704,7 @@ void runCashier() {
 	nextAvailableCashierIndex = nextAvailableCashierIndex + 1;
 	Release(cashierIndexLock);
 	/*Print("After Release(cashierIndexLock);\n", 0);*/
-<<<<<<< HEAD
 	Print("Running Cashier: %i\n", i);
-=======
-	Print("running Cashier: %i\n", i);
->>>>>>> origin/nick
 	initClerk(CASHIER, i);
 	while(true) {
     	if(cashiers[i].senatorLineLength > 0) {
