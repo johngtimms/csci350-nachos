@@ -64,6 +64,7 @@ typedef struct Clerk {
 	int bribeLineLength;
 	int senatorLineLength;
 	int money;
+	int customerID;
 
 	ClerkState state;
 	Customer customer;	
@@ -78,6 +79,14 @@ Clerk cashiers[3];
 Clerk passportClerks[3];
 Clerk pictureClerks[3];
 Clerk applicationClerks[3];
+
+void waitInLine(int ssn, ClerkType clerkType);
+bool enterLine(int ssn, ClerkType clerkType, int clerkID);
+bool enterCashierLine(int ssn, int clerkID);
+bool enterPassportLine(int ssn, int clerkID);
+bool enterPictureLine(int ssn, int clerkID);
+bool enterApplicationLine(int ssn, int clerkID);
+int chooseLine(int ssn, ClerkType clerkType);
 
 void initCustomer(int i, bool _isSenator){
 	customers[i].isSenator = _isSenator;
@@ -116,7 +125,24 @@ void initClerk(int i){
 }
 
 
-void doApplication(int id){
+void doApplication(int ssn){
+	int clerkID;
+	waitInLine(ssn, APPLICATION_CLERK);
+	clerkID = customers[ssn].clerkID;
+	Print("Application Clerk %i has signalled ", clerkID);
+	Print("Customer %i to come to their counter", ssn);
+	applicationClerks[clerkID].customerID = ssn;
+	/* Interaction with clerk */
+	Acquire(applicationClerks[clerkID].clerkLock);
+    Signal(applicationClerks[clerkID].clerkCV,applicationClerks[clerkID].clerkLock); /* Give incomplete application to Application Clerk */
+    Print("Customer %i has given SSN ",ssn);
+    Print("%i to ",ssn);
+    Print("Application Clerk %i",clerkID);
+    Wait(applicationClerks[clerkID].clerkCV,applicationClerks[clerkID].clerkLock);   /* Wait for Application Clerk */
+    Signal(applicationClerks[clerkID].clerkCV,applicationClerks[clerkID].clerkLock); /* Accept completed application */
+
+    customers[ssn].hasApp = true;
+    Release(applicationClerks[clerkID].clerkLock);
 }
 void doPicture(int id){
 	/*waitInLine(id,pictureClerks);*/
@@ -210,7 +236,6 @@ void runCustomer() {
 
 void runApplicationClerk() {
 	int i;
-
 	Print("Before Acquire(applicationClerkIndexLock);\n", 0);
 	Acquire(applicationClerkIndexLock);
 	i = nextAvailableApplicationClerkIndex;
@@ -391,8 +416,7 @@ void runPictureClerk() {
 
 
 void runPassportClerk() {
-	int i, wait, j;
-
+	int i, wait, k;
 	Print("Before Acquire(passportClerkIndexLock);\n", 0);
 	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
@@ -416,7 +440,7 @@ void runPassportClerk() {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customer.SSN);
             	 wait = Rand() % ((100 - 20) + 1) + 20; 
-                for(j = 0; j < wait; j++) {             // Process application and picture
+                for(k = 0; k < wait; k++) {             // Process application and picture
                     Yield();
                 }
 				Print("PassportClerk %i has recorded ", i);
@@ -445,7 +469,7 @@ void runPassportClerk() {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customer.SSN);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
-                for(j = 0; j < wait; j++) {             // Process application and picture
+                for(k = 0; k < wait; k++) {             // Process application and picture
                     Yield();
                 }
 				Print("PassportClerk %i has recorded ", i);
@@ -474,7 +498,7 @@ void runPassportClerk() {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customer.SSN);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
-                for(j = 0; j < wait; j++) {             // Process application and picture
+                for(k = 0; k < wait; k++) {             // Process application and picture
                     Yield();
                 }
 				Print("PassportClerk %i has recorded ", i);
@@ -653,7 +677,9 @@ void runCashier() {
 void test1() {
 	Print("inside test1\n",0);
 	Acquire(senatorOutsideLineLock);
-	Wait(senatorOutsideLineCV, senatorOutsideLineLock);
+	Print("test 1 acquired lock\n",0);
+	Wait(senatorOutsideLineCV,senatorOutsideLineLock);
+	Print("test 1 is past wait\n",0);
 	Release(senatorOutsideLineLock);
 	Exit(0);
 }
@@ -661,7 +687,9 @@ void test1() {
 void test2() {
 	Print("inside test2\n",0);
 	Acquire(senatorOutsideLineLock);
+	Print("test 2 acquired lock\n",0);
 	/*Wait(senatorOutsideLineCV, senatorOutsideLineLock);*/
+	Signal(senatorOutsideLineCV,senatorOutsideLineLock);
 	Release(senatorOutsideLineLock);
 	Exit(0);
 }
@@ -686,9 +714,6 @@ int main() {
 	numApplicationClerks = 3;
 
 	
-	Fork(&test1);
-	Fork(&test2);
-	Signal(senatorOutsideLineCV, senatorOutsideLineLock);
 	
 
 	
@@ -700,15 +725,21 @@ int main() {
 	for(k = 0 ; k < numPictureClerks ; k++) {
 		Fork(&runPictureClerk);
 	}
-
+	
 	for(k = 0 ; k < numApplicationClerks ; k++) {
 		Fork(&runApplicationClerk);
 	}
-
+	
 	for(k = 0 ; k < numCustomers ; k++) {
 		Fork(&runCustomer);
 	}
+
 	*/
+	Fork(&runApplicationClerk);
+	Fork(&runCustomer);
+	Fork(&runCustomer);
+	
+	
 }
 
 int chooseLine(int ssn, ClerkType clerkType) {
@@ -791,25 +822,31 @@ int chooseLine(int ssn, ClerkType clerkType) {
 
 bool enterApplicationLine(int ssn, int clerkID) { 
 	/* Stand in line */
+	Print("Customer %i about to stand in application clerk line\n",ssn);
 	if(applicationClerks[clerkID].state != FREE) {
 		if(customers[ssn].isSenator) {
 			Acquire(applicationClerks[clerkID].senatorLineLock);
 			applicationClerks[clerkID].senatorLineLength++;
-			/*Print("Customer %i has gotten in senator line for %s.\n", ssn, clerk->getName());*/
+			Print("Senator %i has gotten in senator line for ",ssn);
+			Print("Application Clerk %i\n",clerkID);
 			Wait(applicationClerks[clerkID].senatorLineCV, applicationClerks[clerkID].senatorLineLock);
 			applicationClerks[clerkID].senatorLineLength--;
 		} else if (customers[ssn].didBribe) {
 			Acquire(applicationClerks[clerkID].bribeLineLock);
 			applicationClerks[clerkID].bribeLineLength++;
-			/*printf("%s has gotten in bribe line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Print("Customer %i has gotten in bribe line for ",ssn);
+			Print("Application Clerk %i\n",clerkID);
 			Wait(applicationClerks[clerkID].bribeLineCV, applicationClerks[clerkID].bribeLineLock);
 			applicationClerks[clerkID].bribeLineLength--;
+			Print("test? after wait",0);
 		} else {
 			Acquire(applicationClerks[clerkID].lineLock);
 			applicationClerks[clerkID].lineLength++;
-			/*printf("%s has gotten in regular line for %s.\n", currentThread->getName(), clerk->getName());*/
+			Print("Customer %i has gotten in regular line for ",ssn);
+			Print("Application Clerk %i\n",clerkID);
 			Wait(applicationClerks[clerkID].lineCV, applicationClerks[clerkID].lineLock);
 			applicationClerks[clerkID].lineLength--;
+			Print("test? after wait",0);
 		}
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
@@ -819,7 +856,7 @@ bool enterApplicationLine(int ssn, int clerkID) {
 		Release(applicationClerks[clerkID].bribeLineLock);
 		Release(applicationClerks[clerkID].lineLock);
 		Acquire(customerOutsideLineLock);
-		/*printf("%s is going outside the Passport Office because there is a Senator present.\n", currentThread->getName());*/
+		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n",ssn);
 		customersOutside += 1;
 		Wait(customerOutsideLineCV, customerOutsideLineLock);
 		customersOutside -= 1;
@@ -1000,6 +1037,8 @@ void waitInLine(int ssn, ClerkType clerkType) {
 	senatord = false;
 	chooseLine(ssn, clerkType);
 	clerkID = customers[ssn].clerkID;
+	Print("Customer %i chose ",ssn);
+	Print("Clerk %i's line\n",clerkID);
 	senatord = enterLine(ssn, clerkType, clerkID);
 	while(senatord) {
 		clerkID = chooseLine(ssn, clerkType);
