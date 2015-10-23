@@ -1002,6 +1002,7 @@ void runManager() {
 
 int main() {
 	int k;
+	runningTest1 = true;
 	senatorOutsideLineLock = CreateLock();
 	senatorOutsideLineCV = CreateCondition();
 	senatorInsideLock = CreateLock();
@@ -1013,13 +1014,13 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-	numCustomers = NUM_CUSTOMERS;
-	numApplicationClerks = NUM_APPLICATION_CLERKS;
-	numPictureClerks = NUM_PICTURE_CLERKS;
-	numPassportClerks = NUM_PASSPORT_CLERKS;
-	numCashiers = NUM_CASHIERS;
-	numSenators = NUM_SENATORS;
-
+	numCustomers = 6;
+	numApplicationClerks = 2;
+	numPictureClerks = 0;
+	numPassportClerks = 0;
+	numCashiers = 0;
+	numSenators = 0;
+	Print("Running Test 1\n",0);
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
 	Print("Number of PictureClerks: %i\n", numPictureClerks);
@@ -1046,7 +1047,7 @@ int main() {
 	for(k = 0 ; k < numSenators ; k++)
 		Fork(&runSenator);
 
-	Fork(&runManager);
+	
 
 	Exit(0);
 }

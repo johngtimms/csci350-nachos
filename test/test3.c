@@ -1002,6 +1002,8 @@ void runManager() {
 
 int main() {
 	int k;
+	runningTest3 = true;
+	
 	senatorOutsideLineLock = CreateLock();
 	senatorOutsideLineCV = CreateCondition();
 	senatorInsideLock = CreateLock();
@@ -1013,12 +1015,12 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-	numCustomers = NUM_CUSTOMERS;
-	numApplicationClerks = NUM_APPLICATION_CLERKS;
-	numPictureClerks = NUM_PICTURE_CLERKS;
-	numPassportClerks = NUM_PASSPORT_CLERKS;
-	numCashiers = NUM_CASHIERS;
-	numSenators = NUM_SENATORS;
+	numCustomers = 3;
+	numApplicationClerks = 0;
+	numPictureClerks = 0;
+	numPassportClerks = 0;
+	numCashiers = 1;
+	numSenators = 0;
 
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);

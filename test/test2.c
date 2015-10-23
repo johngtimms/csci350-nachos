@@ -1001,7 +1001,9 @@ void runManager() {
 }
 
 int main() {
+	/*//Managers only read one from one Clerk's total money received, at a time.*/
 	int k;
+	runningTest2 = true;
 	senatorOutsideLineLock = CreateLock();
 	senatorOutsideLineCV = CreateCondition();
 	senatorInsideLock = CreateLock();
@@ -1013,12 +1015,12 @@ int main() {
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
-	numCustomers = NUM_CUSTOMERS;
-	numApplicationClerks = NUM_APPLICATION_CLERKS;
-	numPictureClerks = NUM_PICTURE_CLERKS;
-	numPassportClerks = NUM_PASSPORT_CLERKS;
-	numCashiers = NUM_CASHIERS;
-	numSenators = NUM_SENATORS;
+	numCustomers = 0;
+	numApplicationClerks = 5;
+	numPictureClerks = 0;
+	numPassportClerks = 0;
+	numCashiers = 0;
+	numSenators = 0;
 
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
