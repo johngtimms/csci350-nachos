@@ -387,7 +387,7 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_CreateCondition:
 				DEBUG('a', "CreateCondition syscall.\n");
-				CreateCondition_Syscall();
+				rv = CreateCondition_Syscall();
 				break;
 			case SC_DestroyCondition:
 				DEBUG('a', "DestroyCondition syscall.\n");
