@@ -20,10 +20,15 @@ int nextAvailableCustomerIndex = 0;
 int nextAvailablePictureClerkIndex = 0;
 int nextAvailablePassportClerkIndex = 0;
 int nextAvailableCashierIndex = 0;
-int nextAvailableSenatorIndex = 0;
 int nextAvailableApplicationClerkIndex = 0;
+<<<<<<< HEAD
 int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
 int totalMoneyMade;
+=======
+
+int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock;
+
+>>>>>>> origin/nick
 bool runningTest1 = false;
 bool runningTest2 = false;
 bool runningTest3 = false;
@@ -307,6 +312,98 @@ void runCustomer() {
 	Exit(0);
 }
 
+void runSenator() {
+	int i, k;
+
+	Acquire(customerIndexLock);
+	i = nextAvailableCustomerIndex;
+	nextAvailableCustomerIndex = nextAvailableCustomerIndex + 1;
+	Release(customerIndexLock);
+
+	initCustomer(i, true);
+	Print("Running Senator %i\n",customers[i].SSN);
+	
+	Acquire(senatorOutsideLineLock);
+	Acquire(senatorInsideLock);
+
+	/* Senators wait on other senators outside */
+	if (senatorsOutside > 0 || senatorInside) {
+		senatorsOutside = senatorsOutside + 1;
+		Release(senatorInsideLock);
+		Wait(senatorOutsideLineCV,senatorOutsideLineLock);
+		Acquire(senatorInsideLock);
+		senatorsOutside = senatorsOutside - 1;
+	}
+		
+	/* NOTICE: Don't Signal() senatorOutsideLineCV except for when a senator leaves. */
+	senatorInside = true;
+	Release(senatorInsideLock);
+	Release(senatorOutsideLineLock);
+		
+	/* Senator entering, alert all lines to empty */
+	for(k = 0; k < numApplicationClerks; k++) {
+		Acquire(applicationClerks[k].lineLock);
+		Broadcast(applicationClerks[k].lineCV,applicationClerks[k].lineLock);
+		Release(applicationClerks[k].lineLock);
+		Acquire(applicationClerks[k].bribeLineLock);
+		Broadcast(applicationClerks[k].bribeLineCV,applicationClerks[k].bribeLineLock);
+		Release(applicationClerks[k].bribeLineLock);
+	}
+	
+	for(k = 0; k < numPictureClerks; k++) {
+		Acquire(pictureClerks[k].lineLock);
+		Broadcast(pictureClerks[k].lineCV,pictureClerks[k].lineLock);
+		Release(pictureClerks[k].lineLock);
+		Acquire(pictureClerks[k].bribeLineLock);
+		Broadcast(pictureClerks[k].bribeLineCV,pictureClerks[k].bribeLineLock);
+		Release(pictureClerks[k].bribeLineLock);
+	}
+		
+	for(k = 0; k < numPassportClerks; k++) {
+		Acquire(passportClerks[k].lineLock);
+		Broadcast(passportClerks[k].lineCV,passportClerks[k].lineLock);
+		Release(passportClerks[k].lineLock);
+		Acquire(passportClerks[k].bribeLineLock);
+		Broadcast(passportClerks[k].bribeLineCV,passportClerks[k].bribeLineLock);
+		Release(passportClerks[k].bribeLineLock);
+	}
+	
+	for(k = 0; k < numCashiers; k++) {
+		Acquire(cashiers[k].lineLock);
+		Broadcast(cashiers[k].lineCV,cashiers[k].lineLock);
+		Release(cashiers[k].lineLock);
+		Acquire(cashiers[k].bribeLineLock);
+		Broadcast(cashiers[k].bribeLineCV,cashiers[k].bribeLineLock);
+		Release(cashiers[k].bribeLineLock);
+	}
+	
+    /* Randomly decide whether to go to AppClerk or PicClerk first */
+    if(Rand() % 2 == 1) {
+        doApplication(customers[i].SSN);
+        doPicture(customers[i].SSN);
+    } else {
+        doPicture(customers[i].SSN);
+        doApplication(customers[i].SSN);
+    }
+	
+    doPassport(customers[i].SSN);
+    doCashier(customers[i].SSN);
+
+    /* Add code here to Broadcast() when a senator leaves */
+    Acquire(senatorOutsideLineLock);
+    Acquire(senatorInsideLock);
+    Acquire(customerOutsideLineLock);
+	senatorInside = false;
+	Broadcast(senatorOutsideLineCV,senatorOutsideLineLock);
+	Release(senatorInsideLock);
+	Release(senatorOutsideLineLock);
+	if(senatorsOutside == false) { /*if there are no other senators outside, then customers can come in */
+		Broadcast(customerOutsideLineCV,customerOutsideLineLock);
+	}
+	Release(customerOutsideLineLock);
+	
+}
+
 void runApplicationClerk() {
 	int i, myCustomer;
 	/*Print("Before Acquire(applicationClerkIndexLock);\n", 0);*/
@@ -315,7 +412,11 @@ void runApplicationClerk() {
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
 	Release(applicationClerkIndexLock);
 	/*Print("After Release(applicationClerkIndexLock);\n", 0);*/
+<<<<<<< HEAD
 	Print("Running ApplicationClerk: %i\n",i);
+=======
+	Print("running ApplicationClerk: %i\n",i);
+>>>>>>> origin/nick
 	initClerk(APPLICATION_CLERK, i);
 	while(true) {
     	if(applicationClerks[i].senatorLineLength > 0) {
@@ -494,12 +595,20 @@ void runPictureClerk() {
 
 void runPassportClerk() {
 	int i, wait, k, myCustomer;
+<<<<<<< HEAD
 	/*Print("Before Acquire(passportClerkIndexLock);\n", 0);*/
+=======
+	/*Print("Before Acquire(passportClerkIndexLock);\n", 0); */
+>>>>>>> origin/nick
 	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
 	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/
 	Release(passportClerkIndexLock);
+<<<<<<< HEAD
 	/*Print("After Release(passportClerkIndexLock);\n", 0);*/
+=======
+	/*Print("After Release(passportClerkIndexLock);\n", 0); */
+>>>>>>> origin/nick
 	Print("Running PassportClerk: %i\n",i);
 	initClerk(PASSPORT_CLERK, i);
 	while(true) {
@@ -611,7 +720,11 @@ void runCashier() {
 	nextAvailableCashierIndex = nextAvailableCashierIndex + 1;
 	Release(cashierIndexLock);
 	/*Print("After Release(cashierIndexLock);\n", 0);*/
+<<<<<<< HEAD
 	Print("Running Cashier: %i\n", i);
+=======
+	Print("running Cashier: %i\n", i);
+>>>>>>> origin/nick
 	initClerk(CASHIER, i);
 	while(true) {
     	if(cashiers[i].senatorLineLength > 0) {
@@ -880,9 +993,9 @@ void test2() {
 	Exit(0);
 }
 
+
 void test3() {
 	Acquire(senatorOutsideLineLock);
-	Broadcast(senatorOutsideLineCV, senatorOutsideLineLock);
 	Release(senatorOutsideLineLock);
 	Exit(0);
 }
@@ -898,14 +1011,23 @@ int main() {
 	applicationClerkIndexLock = CreateLock();
 	pictureClerkIndexLock = CreateLock();
 	passportClerkIndexLock = CreateLock();
-	senatorIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
 	
+<<<<<<< HEAD
 	numCustomers = 3;
 	numApplicationClerks = 1;
 	numPictureClerks= 0;
 	numPassportClerks = 0;
 	numCashiers = 0;
+=======
+	numCustomers = 10;
+	numSenators = 3;
+	numApplicationClerks = 3;
+	numPictureClerks = 3;
+	numPassportClerks = 3;
+	numCashiers = 3;
+
+>>>>>>> origin/nick
 	/*
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numCustomers);
@@ -923,11 +1045,20 @@ int main() {
 	*/
 	for(k = 0 ; k < numApplicationClerks ; k++)
 		Fork(&runApplicationClerk);
+
+	for(k = 0 ; k < numCashiers ; k++)
+		Fork(&runCashier);
 	
 	for(k = 0 ; k < numCustomers ; k++)
 		Fork(&runCustomer);
 
+<<<<<<< HEAD
 	Fork(&runManager);
+=======
+	for(k = 0 ; k < numSenators ; k++)
+		Fork(&runSenator);
+
+>>>>>>> origin/nick
 	
 	Exit(0);
 }
