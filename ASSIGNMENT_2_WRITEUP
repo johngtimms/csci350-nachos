@@ -1,0 +1,282 @@
+Title: Writeup for Assignment 2, Fall 2015
+Date:  10/19/15
+Group: Name					Email
+	   Nicholas Roubal		nroubal@usc.edu
+	   Yetsebaot Sisay		sisay@usc.edu
+	   John Timms			timms@usc.edu
+
+I. Requirements:
+
+	Part 1:
+
+		Part 1 requires implementing system calls and exception handling (the ability for Nachos to
+		'take over' in kernel mode in case a user program makes a system call or experiences an
+		error). Implement Exit and Yield, allow calling Exec and Fork (actual implementation will
+		be done in Part 2). Also implement Acquire, Release, Wait, Signal, Broadcast, CreateLock,
+		DestroyLock, CreateCondition, DestroyCondition, and Print system calls. Finally, write a set
+		of Nachos user programs that can test / demonstrate this functionality.
+
+	Part 2:
+
+		Part 2 requires implementing multiprogramming (the ability for multiple Nachos user programs
+		to run at once). This includes completing the implementation of the Exec and Fork system
+		calls from Part 1. Allocate physical memory frames so that multiple programs can be loaded
+		at once, and allow data to be copied between the kernel and a user program's virtual address
+		space. Write a set of Nachos user programs that test / demonstrate Fork and Exec functionality.
+
+	Part 3:
+
+		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of
+		multithreaded Nachos user programs. This will require using the Lock and Condition system
+		calls from Part 1. Use the Fork system call to create all threads. Also port the Assignment 
+		1 Part 2 test suite, and ensure that the Passport Office provides the same text output.
+
+II. Assumptions:
+
+	Part 1:
+
+		None. Functionality implemented according to detailed design documents in Blackboard.
+
+	Part 2:
+
+		None. Functionality implemented according to detailed design documents in Blackboard.
+
+	Part 3:
+
+		Please see assumptions listed in the Assignment 1 writeup.
+
+III. Design:
+
+	Part 1:
+
+		Nachos user programs make calls into the kernel through the functions in exception.cc.
+		ExceptionHandler() receives the calls and directs the apropriate response. Design of calls
+		related to Locks and Conditions is straightforward, since they use the same underlying code
+		that was created for Assignment 1. Extra management functionality is placed on top (see 
+		structs.h) so that these kernel objects play nicely with multiprogramming. For instance,
+		different tables track the Locks and Conditions that exist.
+
+		Yield has straightforward implementation. Exit requires considering the state of the user
+		program and the emulated OS, since Nachos should close after the last program Exits.
+
+	Part 2:
+
+		Part 2 introduces the complex design of Exec and Fork. This involves significant implementation
+		steps in exception.cc, progtest.cc, and addrspace.cc. progtest.cc must be changed so that
+		Nachos is aware of multiprogramming when starting user programs. The address space set aside
+		for the program gets tracked in the process table. In addrspace.cc, functions for creating
+		and clearing the stack (and associated page manipulations) are added, and memory is tracked
+		in a bit map.
+
+		The Fork syscall manages the address space associated with the process. The Exec syscall
+		uses a modified series of steps based on how progtest.cc starts Nachos user programs to
+		create an address space and main thread for a new process which is then forked from the
+		current program.
+
+	Part 3:
+
+		For a detailed explanation of the design, please see the Assignment 1 Part 2 writeup. We
+		changed the Passport Office to work as a Nachos user program, meaning that it uses system
+		calls for Fork, Condition, and Lock. Also, because of the limitations of Nachos user programs,
+		it was re-written to not use pointers, and Customer/Clerk/Manager classes were re-written
+		as structs.
+
+IV. Implementation:
+
+	Files Modified:
+		machine/machine.h
+		machine/translate.cc
+		test/Makefile
+		test/start.s
+		test/testfiles.c
+		threads/synch.cc 
+		threads/synch.h
+		threads/system.cc
+		threads/system.h
+		threads/thread.h
+		userprog/addrspace.cc
+		userprog/addrspace.h
+		userprog/exception.cc
+		userprog/progtest.cc
+		userprog/syscall.h
+
+	Files Added:
+		test/passportOffice.c
+		test/test1.c
+		test/test2.c
+		test/test3.c
+		test/test4.c
+		test/test5.c
+		test/test6.c
+		test/test7a.c
+		test/test7b.c
+		test/tester.c
+		test/tester2.c
+		test/testexec.c
+		threads/structs.h
+		userprog/process.h
+
+	Data Structures Added:
+		struct Customer 				in test/passportOffice.c
+		struct Clerk 					in test/passportOffice.c
+		struct Customer 				in test/testoffice
+		struct Clerk 					in test/testoffice
+		struct Manager 					in test/testoffice
+		struct KernelLock				in threads/structs.h
+		struct KernelCondition			in threads/structs.h
+		struct LockTable				in threads/structs.h
+		struct ConditionTable			in threads/structs.h
+		struct ProcessTable				in threads/structs.h
+		class Process 					in userprog/process.h
+
+	Data Structures Modified:
+		class Lock 						in threads/synch.h
+		class Condition 				in threads/synch.h
+		class Thread 					in threads/thread.h
+		class AddrSpace 				in userprog/addrspace.h
+
+	Functions Added:
+		initCustomer()					in test/passportOffice.c
+		initClerk()						in test/passportOffice.c
+		doApplication()					in test/passportOffice.c
+		doPicture()						in test/passportOffice.c
+		doPassport()					in test/passportOffice.c
+		doCashier()						in test/passportOffice.c
+		runCustomer()					in test/passportOffice.c
+		runSenator()					in test/passportOffice.c
+		runApplicationClerk()			in test/passportOffice.c
+		runPictureClerk()				in test/passportOffice.c
+		runPassportClerk()				in test/passportOffice.c
+		runCashier()					in test/passportOffice.c
+		runManager()					in test/passportOffice.c
+		test1()							in test/passportOffice.c
+		test2()							in test/passportOffice.c
+		test3()							in test/passportOffice.c
+		main()							in test/passportOffice.c
+		chooseLine()					in test/passportOffice.c
+		enterApplicationLine()			in test/passportOffice.c
+		enterPictureLine()				in test/passportOffice.c
+		enterPassportLine()				in test/passportOffice.c
+		enterCashierLine()				in test/passportOffice.c
+		enterLine()						in test/passportOffice.c
+		waitInLine()					in test/passportOffice.c
+		CreateLock 						in test/start.s (ASM)
+		DestroyLock 					in test/start.s (ASM)
+		Acquire 						in test/start.s (ASM)
+		Release 						in test/start.s (ASM)
+		CreateCondition 				in test/start.s (ASM)
+		DestroyCondition 				in test/start.s (ASM)
+		Wait 							in test/start.s (ASM)
+		Signal 							in test/start.s (ASM)
+		Broadcast 						in test/start.s (ASM)
+		Print 							in test/start.s (ASM)
+		Rand 							in test/start.s (ASM)
+		test()							in test/tester.c
+		main()							in test/tester.c
+		test2()							in test/tester2.c
+		main()							in test/tester2.c
+		main()							in test/testexec.c
+		test()							in test/testfiles.c
+		test2()							in test/testfiles.c
+		Lock::Lock()					in threads/synch.cc (empty argument)
+		Lock::isHeldByCurrentThread()	in threads/synch.cc
+		Condition::Condition()			in threads/synch.cc (empty argument)
+		AddrSpace::CreateStack()		in userprog/addrspace.cc
+		AddrSpace::ClearStack()			in userprog/addrspace.cc
+		AddrSpace::GetNumPages()		in userprog/addrspace.cc
+		AddrSpace::ClearPhysicalPage()	in userprog/addrspace.cc
+		ForkUserThread()				in userprog/exception.cc
+		Fork_Syscall()					in userprog/exception.cc
+		Exit_Syscall()					in userprog/exception.cc
+		ExecUserThread()				in userprog/exception.cc
+		Exec_Syscall()					in userprog/exception.cc
+		CreateLock_Syscall()			in userprog/exception.cc
+		DestroyLock_Syscall()			in userprog/exception.cc
+		Acquire_Syscall()				in userprog/exception.cc
+		Release_Syscall()				in userprog/exception.cc
+		CreateCondition_Syscall()		in userprog/exception.cc
+		DestroyCondition_Syscall()		in userprog/exception.cc
+		Wait_Syscall()					in userprog/exception.cc
+		Signal_Syscall()				in userprog/exception.cc
+		Broadcast_Syscall()				in userprog/exception.cc
+		Print_Syscall()					in userprog/exception.cc
+		Rand_Syscall()					in userprog/exception.cc
+
+	Functions Modified:
+		Machine::Translate()			in machine/translate.cc
+		main()							in test/testfiles.c
+		Lock::Lock()					in threads/synch.cc (with argument)
+		Lock::~Lock()					in threads/synch.cc
+		Lock::Acquire()					in threads/synch.cc
+		Lock::Release()					in threads/synch.cc
+		Condition::Condition()			in threads/synch.cc (with argument)
+		Condition::~Condition()			in threads/synch.cc
+		Condition::Wait()				in threads/synch.cc
+		Condition::Signal()				in threads/synch.cc
+		Condition::Broadcast()			in threads/synch.cc
+		Initialize()					in threads/system.cc
+		Cleanup()						in threads/system.cc
+		AddrSpace::AddrSpace()			in userprog/addrspace.cc
+		AddrSpace::~AddrSpace()			in userprog/addrspace.cc
+		ExceptionHandler()				in userprog/exception.cc
+		StartProcess()					in userprog/progtest.cc
+
+V. Testing:
+
+	How To Test:
+
+		Part 1:
+
+			Test Part 1 by running the 'testexec' Nachos user program in the test directory.
+			This test demonstrates Exit, Exec, Yield, and Fork system calls.
+
+		Part 2:
+
+			See tests for Part 1 above, which demonstrate that multiprogramming is functional
+			using Exec and Fork.
+
+		Part 3:
+
+			Test Part 3 by running the 'passportOffice' Nachos user program in the test directory.
+			The behavior of this tesk is consistent with the behavior described in the Assignment 1
+			writeup.
+
+			To run our main passport office: nachos -x ../test/passportOffice
+
+			To run Test 1: nachos -x ../test/test1
+			To run Test 2: nachos -x ../test/test2
+			To run Test 3: nachos -x ../test/test3
+			To run Test 4: nachos -x ../test/test4
+			To run Test 5: nachos -x ../test/test5
+			To run Test 6: nachos -x ../test/test6
+			To run Test 7a: nachos -x ../test/test7a
+			To run Test 7b: nachos -x ../test/test7b
+
+			Output is the same as Assignment 1 output / requirements.
+
+VI: Discussion:
+
+	Implementing the Lock and Condition (and Print, etc.) basic system calls was fairly straightforward,
+	although it required that we consider the multiprogramming requirement and add a way to manage
+	these between processes, done using Fork and Condition tables.
+
+	As promised, Exec and Fork were difficult to get working, and you will note a lot of debugging
+	statements in our code that we used to prove to ourselves that the system calls were behaving
+	apropriately.
+
+VII. Miscellaneous:
+
+	Exit: 3 Exit Cases
+
+	1) A thread calls Exit - not the last executing thread in the process
+		- Reclaim 8 pages of stack, vpn, ppn - memoryBitMap->Clear(ppn), valid = false
+	2) Last executing thread in last process
+		- interrupt->Halt();
+	3) Last executing thread in a process - not last process
+		- Reclaim all unreclaimed memory
+		- locks/CVs (match AddrSpace* w/Process Table)
+
+	Fork: Creates a new thread, whose address space starts as as an exact copy of the caller
+	plus eight additional pages newly allocated to the Page Table.
+
+	Exec: Replaces the current process with a new process executing program from a a file.
