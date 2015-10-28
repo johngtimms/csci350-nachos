@@ -35,6 +35,9 @@ class AddrSpace {
     void CreateStack(Thread* thread);
     void ClearStack(unsigned int stackStart);
     void ClearPhysicalPage(int i);
+    void AddrSpace::handlePageFault(int vaddr);
+    int AddrSpace::handleIPTMiss(int vpn);
+    int AddrSpace::handleMemoryFull();
     Table fileTable;            // Table of openfiles
     int spaceID;
     unsigned int numThreads;
@@ -43,6 +46,7 @@ class AddrSpace {
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation for now!
     unsigned int numPages;		// Number of pages in the virtual address space
+    OpenFile *executable;
     
 };
 

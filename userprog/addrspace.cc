@@ -139,12 +139,15 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	int ppn;
 	for(vpn = 0; vpn < numPages; vpn++) {
 		pageTable[vpn].virtualPage = vpn;
-		ppn = memoryBitMap->Find();		// Find a free physical page
-		if(ppn == -1) {
-			printf("Unable to find unused physical page\n");
-			interrupt->Halt();
-		}
-		pageTable[vpn].physicalPage = ppn;
+		// ppn = memoryBitMap->Find();		// Find a free physical page
+		// if(ppn == -1) {
+		// 	printf("Unable to find unused physical page\n");
+		// 	interrupt->Halt();
+		// }
+		// pageTable[vpn].physicalPage = ppn;
+		// ipt[ppn].virtualPage = vpn; 
+		// ipt[ppn].owner = this;
+		// ipt[ppn].valid = TRUE;
 		pageTable[vpn].valid = TRUE;
 		pageTable[vpn].use = FALSE;
 		pageTable[vpn].dirty = FALSE;
@@ -160,7 +163,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	for(vpn = 0; vpn < initPages; vpn++)
 		executable->ReadAt(&(machine->mainMemory[pageTable[vpn].physicalPage * PageSize]), PageSize, 40 + (vpn * PageSize));
 	//mmLock->Release();
-	
+	this->executable = executable;
 }
 
 void AddrSpace::CreateStack(Thread* thread) {
@@ -186,12 +189,15 @@ void AddrSpace::CreateStack(Thread* thread) {
     	int ppn;
     	for(vpn = numPages; vpn < numPages + 8; vpn++) {
 	    	newPageTable[vpn].virtualPage = vpn;
-			ppn = memoryBitMap->Find();
-			if(ppn == -1) {
-				printf("Unable to find unused physical page\n");
-				interrupt->Halt();
-			}
-	    	newPageTable[vpn].physicalPage = ppn;
+			// ppn = memoryBitMap->Find();
+			// if(ppn == -1) {
+			// 	printf("Unable to find unused physical page\n");
+			// 	interrupt->Halt();
+			// }
+	  //   	newPageTable[vpn].physicalPage = ppn;
+	  //   	ipt[ppn].virtualPage = vpn; 
+			// ipt[ppn].owner = this;
+			// ipt[ppn].valid = TRUE;
 	    	newPageTable[vpn].valid = TRUE;
 	    	newPageTable[vpn].use = FALSE;
 	    	newPageTable[vpn].dirty = FALSE;
@@ -292,8 +298,12 @@ void AddrSpace::SaveState() {}
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 void AddrSpace::RestoreState() {
-    machine->pageTable = pageTable;
+    //machine->pageTable = pageTable;  commented out for Project 3
     machine->pageTableSize = numPages;
+
+    for(int k = 0; k < TLBSize ; k ++ ) {
+    	machine->tlb[currentTLB].valid = FALSE;
+    }
 }
 
 unsigned int AddrSpace::GetNumPages() {
@@ -304,4 +314,40 @@ void AddrSpace::ClearPhysicalPage(int i) {
 	memoryBitMapLock->Acquire();
 	memoryBitMap->Clear(pageTable[i].physicalPage);
 	memoryBitMapLock->Release();
+}
+
+void AddrSpace::handlePageFault(int vaddr) {
+	int vpn = vaddr / PageSize;
+	
+	machine->tlb[currentTLB].valid = TRUE;
+
+	int ppn = -1;
+	for(int i = 0 ; i < NumPhysPages ; i ++) {
+		if(ipt[i].virtualPage == vpn){
+			ppn = i;
+			break;
+		}
+	}
+	if (ppn = -1) {
+        ppn = handleIPTMiss(vpn);
+    }
+	machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+	machine->tlb[currentTLB].physicalPage = ppn;
+
+	currentTLB = (currentTLB + 1) % TLBSize;
+}
+
+int AddrSpace::handleIPTMiss(int vpn) {
+	int ppn = memoryBitMap->Find();
+	if(ppn == -1) {
+		ppn = handleMemoryFull();
+	}
+	executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, 40 + (vpn * PageSize));
+	ipt[ppn].virtualPage = vpn;
+
+	return ppn;
+}
+
+int AddrSpace::handleMemoryFull() {
+
 }

@@ -35,6 +35,8 @@ Lock *memoryBitMapLock;
 Lock *forkLock;
 ProcessTable *processTable;
 Lock *processTableLock;
+int currentTLB;
+IPTEntry *ipt;
 #endif
 
 #ifdef NETWORK
@@ -158,6 +160,8 @@ Initialize(int argc, char **argv) {
     forkLock = new Lock();
     processTable = new ProcessTable();
     processTableLock = new Lock();
+    currentTLB = 0;
+    ipt = new IPTEntry[NumPhysPages];
 #endif
 
 #ifdef FILESYS
