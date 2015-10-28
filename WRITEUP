@@ -1,5 +1,5 @@
-Title: Writeup for Assignment 2, Fall 2015
-Date:  10/19/15
+Title: Writeup for Assignment 3, Fall 2015
+Date:  
 Group: Name					Email
 	   Nicholas Roubal		nroubal@usc.edu
 	   Yetsebaot Sisay		sisay@usc.edu
@@ -9,212 +9,86 @@ I. Requirements:
 
 	Part 1:
 
-		Part 1 requires implementing system calls and exception handling (the ability for Nachos to
-		'take over' in kernel mode in case a user program makes a system call or experiences an
-		error).
+		
 
 	Part 2:
 
-		Part 2 requires implementing multiprogramming (the ability for multiple Nachos user programs
-		to run at once).
+		
 
 	Part 3:
 
-		Part 3 requires re-implementing the Passport Office (from Assignment 1) as a set of
-		multithreaded Nachos user programs. This will require using the Lock and Condition system
-		calls from Part 1.
+		
 
-II. Implementation:
+II. Assumptions:
+
+	Part 1:
+
+		
+
+	Part 2:
+
+		
+
+	Part 3:
+
+		
+
+III. Design:
+
+	Part 1:
+
+		
+
+	Part 2:
+
+		
+
+	Part 3:
+
+		
+
+IV. Implementation:
 
 	Files Modified:
-		machine/machine.h
-		machine/translate.cc (TODO CHANGE THIS BACK BEFORE SUBMITTING)
+		test/halt.c
 		test/Makefile
-		test/start.s
-		test/testfiles.c
-		test/passportOffice.c
-		test/test1.c
-		test/test2.c
-		test/test3.c
-		test/test4.c
-		test/test5.c
-		test/test6.c
-		test/test7a.c
-		test/test7b.c
-		threads/main.cc (TODO verify only changes are cosmetic before submitting)
-		threads/synch.cc (TODO can we change this back to Peppy's code w/out issue?)
-		threads/synch.h (TODO can we change this back to Peppy's code w/out issue?)
-		threads/system.cc (TODO are we allowed to change this?)
-		threads/system.h (TODO are we allowed to change this?)
-		threads/thread.cc (TODO revert cosmetic changes back?)
-		threads/thread.h (TODO are we allowed to change this?)
-		userprog/addrspace.cc
-		userprog/addrspace.h
-		userprog/bitmap.cc (TODO can this be reverted back?)
-		userprog/bitmap.h (TODO can this be reverted back?)
-		userprog/exception.cc
-		userprog/progtest.cc
-		userprog/synchconsole.cc (TODO can this be reverted back?)
-		userprog/synchconsole.h (TODO can this be reverted back?)
-		userprog/syscall.h
-		userprog/table.h (TODO can this be reverted back?)
-		vm/Makefile (TODO verify only changes are automatic before submitting)
 
 	Files Added:
-		test/passportOffice.c
-		test/tester.c (TODO CHANGE THIS)
-		test/tester2.c (TODO CHANGE THIS)
-		test/testexec.c (TODO CHANGE THIS)
-		test/testoffice (TODO what's this?)
-		threads/Makefile (TODO verify only changes are automatic before submitting)
-		threads/structs.h
-		userprog/Makefile (TODO verify only changes are automatic before submitting)
-		userprog/process.h
+		test/assignmentThreeTests.c
 
 	Data Structures Added:
-		struct Customer 				in test/passportOffice.c
-		struct Clerk 					in test/passportOffice.c
-		struct Customer 				in test/testoffice
-		struct Clerk 					in test/testoffice
-		struct Manager 					in test/testoffice
-		struct KernelLock				in threads/structs.h
-		struct KernelCondition			in threads/structs.h
-		struct LockTable				in threads/structs.h
-		struct ConditionTable			in threads/structs.h
-		struct ProcessTable				in threads/structs.h
-		class Process 					in userprog/process.h
+		
 
 	Data Structures Modified:
-		class Lock 						in threads/synch.h
-		class Condition 				in threads/synch.h
-		class Thread 					in threads/thread.h
-		class AddrSpace 				in userprog/addrspace.h
+		
 
 	Functions Added:
-		initCustomer()					in test/passportOffice.c
-		initClerk()						in test/passportOffice.c
-		doApplication()					in test/passportOffice.c
-		doPicture()						in test/passportOffice.c
-		doPassport()					in test/passportOffice.c
-		doCashier()						in test/passportOffice.c
-		runCustomer()					in test/passportOffice.c
-		runSenator()					in test/passportOffice.c
-		runApplicationClerk()			in test/passportOffice.c
-		runPictureClerk()				in test/passportOffice.c
-		runPassportClerk()				in test/passportOffice.c
-		runCashier()					in test/passportOffice.c
-		runManager()					in test/passportOffice.c
-		test1()							in test/passportOffice.c
-		test2()							in test/passportOffice.c
-		test3()							in test/passportOffice.c
-		main()							in test/passportOffice.c
-		chooseLine()					in test/passportOffice.c
-		enterApplicationLine()			in test/passportOffice.c
-		enterPictureLine()				in test/passportOffice.c
-		enterPassportLine()				in test/passportOffice.c
-		enterCashierLine()				in test/passportOffice.c
-		enterLine()						in test/passportOffice.c
-		waitInLine()					in test/passportOffice.c
-		CreateLock 						in test/start.s (ASM)
-		DestroyLock 					in test/start.s (ASM)
-		Acquire 						in test/start.s (ASM)
-		Release 						in test/start.s (ASM)
-		CreateCondition 				in test/start.s (ASM)
-		DestroyCondition 				in test/start.s (ASM)
-		Wait 							in test/start.s (ASM)
-		Signal 							in test/start.s (ASM)
-		Broadcast 						in test/start.s (ASM)
-		Print 							in test/start.s (ASM)
-		Rand 							in test/start.s (ASM)
-		test()							in test/tester.c
-		main()							in test/tester.c
-		test2()							in test/tester2.c
-		main()							in test/tester2.c
-		main()							in test/testexec.c
-		test()							in test/testfiles.c
-		test2()							in test/testfiles.c
-				SKIPPING TEST/TESTOFFICE
-		Lock::Lock()					in threads/synch.cc (empty argument)
-		Lock::isHeldByCurrentThread()	in threads/synch.cc
-		Condition::Condition()			in threads/synch.cc (empty argument)
-		AddrSpace::CreateStack()		in userprog/addrspace.cc
-		AddrSpace::ClearStack()			in userprog/addrspace.cc
-		AddrSpace::GetNumPages()		in userprog/addrspace.cc
-		AddrSpace::ClearPhysicalPage()	in userprog/addrspace.cc
-		ForkUserThread()				in userprog/exception.cc
-		Fork_Syscall()					in userprog/exception.cc
-		Exit_Syscall()					in userprog/exception.cc
-		ExecUserThread()				in userprog/exception.cc
-		Exec_Syscall()					in userprog/exception.cc
-		CreateLock_Syscall()			in userprog/exception.cc
-		DestroyLock_Syscall()			in userprog/exception.cc
-		Acquire_Syscall()				in userprog/exception.cc
-		Release_Syscall()				in userprog/exception.cc
-		CreateCondition_Syscall()		in userprog/exception.cc
-		DestroyCondition_Syscall()		in userprog/exception.cc
-		Wait_Syscall()					in userprog/exception.cc
-		Signal_Syscall()				in userprog/exception.cc
-		Broadcast_Syscall()				in userprog/exception.cc
-		Print_Syscall()					in userprog/exception.cc
-		Rand_Syscall()					in userprog/exception.cc
-
+		main()							in test/assignmentThreeTests.c
+		main()							in test/halt.c
 
 	Functions Modified:
-		Machine::Translate()			in machine/translate.cc (TODO can we revert?)
-		main()							in test/testfiles.c
-				SKIPPING TEST/TESTOFFICE
-		Lock::Lock()					in threads/synch.cc (with argument)
-		Lock::~Lock()					in threads/synch.cc
-		Lock::Acquire()					in threads/synch.cc
-		Lock::Release()					in threads/synch.cc
-		Condition::Condition()			in threads/synch.cc (with argument)
-		Condition::~Condition()			in threads/synch.cc
-		Condition::Wait()				in threads/synch.cc
-		Condition::Signal()				in threads/synch.cc
-		Condition::Broadcast()			in threads/synch.cc
-		Initialize()					in threads/system.cc
-		Cleanup()						in threads/system.cc
-		AddrSpace::AddrSpace()			in userprog/addrspace.cc
-		AddrSpace::~AddrSpace()			in userprog/addrspace.cc
-		ExceptionHandler()				in userprog/exception.cc
-		StartProcess()					in userprog/progtest.cc
+		
 
 V. Testing:
 
 	How To Test:
 
-		The same tests from Project 1 are used.
+		Part 1:
 
-		To run our main passport office: nachos -x ../test/passportOffice
+			
 
-		To run Test 1: nachos -x ../test/test1
-		To run Test 2: nachos -x ../test/test2
-		To run Test 3: nachos -x ../test/test3
-		To run Test 4: nachos -x ../test/test4
-		To run Test 5: nachos -x ../test/test5
-		To run Test 6: nachos -x ../test/test6
-		To run Test 7a: nachos -x ../test/test7a
-		To run Test 7b: nachos -x ../test/test7b
+		Part 2:
 
+			
 
+		Part 3:
+
+			
 
 VI: Discussion:
-	Main difference in this project was implementing the Exec, Exit, and Fork Syscalls.
 
-	Exit: 3 Exit Cases
-
-1) A thread calls Exit - not the last executing thread in the process
-    - Reclaim 8 pages of stack, vpn, ppn - memoryBitMap->Clear(ppn), valid = false
-2) Last executing thread in last process
-    - interrupt->Halt();
-3) Last executing thread in a process - not last process
-    - Reclaim all unreclaimed memory
-    - locks/CVs (match AddrSpace* w/Process Table)
-
-	Fork: Creates a new thread, whose address space starts as as an exact copy of the caller
-	plus eight additional pages newly allocated to the Page Table.
-
-	Exec: Replaces the current process with a new process executing program from a a file.
-
+	
 
 VII. Miscellaneous:
+
+	
