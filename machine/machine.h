@@ -30,9 +30,8 @@
 using namespace std;
 // Definitions related to the size, and format of user memory
 // Set the page size equal to the disk sector size, for simplicity
-#define PageSize 	SectorSize 	
-// Changed to a large value for Assignment 2, per the assignment documentation file.
-#define NumPhysPages    2000 
+#define PageSize 	SectorSize 
+#define NumPhysPages    32
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 

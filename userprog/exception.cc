@@ -152,7 +152,7 @@ int Exec_Syscall(unsigned int vaddr, int len) {
 	processTable->processID++;
 	processTable->processes[space->spaceID] = space;
     processTable->numProcesses++;
-	delete executable;
+	//delete executable; commented out for project 3
 	processTableLock->Release();
 	// Fork new process
 	thread->Fork((VoidFunctionPtr)ExecUserThread, space->spaceID);
@@ -422,6 +422,9 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg, machine->ReadRegister(PCReg) + 4);
 		return;
+    } else if(which == PageFaultException){
+    	rv = machine->ReadRegister(BadVAddrReg);
+    	currentThread->space->handlePageFault(rv);
     } else {
       	cout << "Unexpected user mode exception - which:" << which << "  type:" << type << endl;
       	interrupt->Halt();

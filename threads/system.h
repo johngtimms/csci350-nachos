@@ -8,6 +8,7 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#include "ipt.h"
 #include "copyright.h"
 #include "utility.h"
 #include "thread.h"
@@ -40,6 +41,8 @@ extern Lock *memoryBitMapLock;	// Lock for mmBitMap
 extern Lock *forkLock;
 extern ProcessTable *processTable;
 extern Lock *processTableLock;
+extern int currentTLB;
+extern IPTEntry *ipt;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
