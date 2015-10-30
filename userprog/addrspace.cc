@@ -292,7 +292,7 @@ void AddrSpace::SaveState() {}
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 void AddrSpace::RestoreState() {
-    machine->pageTable = pageTable;
+    // machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }
 

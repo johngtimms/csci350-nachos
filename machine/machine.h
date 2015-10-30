@@ -29,30 +29,24 @@
 #include "disk.h"
 using namespace std;
 // Definitions related to the size, and format of user memory
-
-#define PageSize 	SectorSize 	// set the page size equal to
-					// the disk sector size, for
-					// simplicity
-
-#define NumPhysPages    2000 // Changed to a large value for Assignment 2, per the assignment
-                             // documentation file.
+// Set the page size equal to the disk sector size, for simplicity
+#define PageSize 	SectorSize 	
+// Changed to a large value for Assignment 2, per the assignment documentation file.
+#define NumPhysPages    2000 
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 
-enum ExceptionType { NoException,           // Everything ok!
-		     SyscallException,      // A program executed a system call.
-		     PageFaultException,    // No valid translation found
-		     ReadOnlyException,     // Write attempted to page marked 
-					    // "read-only"
-		     BusErrorException,     // Translation resulted in an 
-					    // invalid physical address
-		     AddressErrorException, // Unaligned reference or one that
-					    // was beyond the end of the
-					    // address space
-		     OverflowException,     // Integer overflow in add or sub.
-		     IllegalInstrException, // Unimplemented or reserved instr.
-		     
-		     NumExceptionTypes
+enum ExceptionType { 
+            NoException,           // (0) Everything ok!
+            SyscallException,      // (1) A program executed a system call.
+            PageFaultException,    // (2) No valid translation found
+            ReadOnlyException,     // (3) Write attempted to page marked "read-only"
+            BusErrorException,     // (4) Translation resulted in an invalid physical address
+            AddressErrorException, // (5) Unaligned reference or one that was beyond the end of the address space
+            OverflowException,     // (6) Integer overflow in add or sub.
+            IllegalInstrException, // (7) Unimplemented or reserved instr.
+		
+            NumExceptionTypes
 };
 
 // User program CPU state.  The full set of MIPS registers, plus a few
@@ -109,8 +103,8 @@ class Instruction {
 
 class Machine {
   public:
-    Machine(bool debug);	// Initialize the simulation of the hardware
-				// for running user programs
+    Machine(bool debug);	// Initialize the simulation of the hardware for running user programs
+
     ~Machine();			// De-allocate the data structures
 
 // Routines callable by the Nachos kernel
@@ -118,8 +112,8 @@ class Machine {
 
     int ReadRegister(int num);	// read the contents of a CPU register
 
-    void WriteRegister(int num, int value);
-				// store a value into a CPU register
+    void WriteRegister(int num, int value); // store a value into a CPU register
+				
 
 
 // Routines internal to the machine simulation -- DO NOT call these 
@@ -156,8 +150,7 @@ class Machine {
 // Note that *all* communication between the user program and the kernel 
 // are in terms of these data structures.
 
-    char *mainMemory;		// physical memory to store user program,
-				// code and data, while executing
+    char *mainMemory;		// physical memory to store user program, code and data, while executing
     int registers[NumTotalRegs]; // CPU registers, for executing user programs
 
 
@@ -179,19 +172,15 @@ class Machine {
 // Thus the TLB pointer should be considered as *read-only*, although 
 // the contents of the TLB are free to be modified by the kernel software.
 
-    TranslationEntry *tlb;		// this pointer should be considered 
-					// "read-only" to Nachos kernel code
-
+    TranslationEntry *tlb;		// this pointer should be considered "read-only" to Nachos kernel code
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
 
-   int getTimeUsed( int pageNo );
+    int getTimeUsed( int pageNo );
 
   private:
-    bool singleStep;		// drop back into the debugger after each
-				// simulated instruction
-    int64_t runUntilTime;		// drop back into the debugger when simulated
-				// time reaches this value
+    bool singleStep;		// drop back into the debugger after each simulated instruction
+    int64_t runUntilTime;		// drop back into the debugger when simulated time reaches this value
     int64_t lastUsed[NumPhysPages]; //This is the time stamp of when the page was last used.
 };
 
