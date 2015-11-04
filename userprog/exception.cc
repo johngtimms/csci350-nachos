@@ -26,9 +26,6 @@
 #include "syscall.h"
 #include <stdio.h>
 #include <iostream>
-#include <vector>
-#include <map>
-#include "process.h"
 
 using namespace std;
 
@@ -42,16 +39,13 @@ void Close_Syscall(int fd);
 
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
-	forkLock->Acquire();
 	DEBUG('t', "In ForkUserThread\n");
-  	DEBUG('t', "Setting machine PC to funcPtr for thread %s: 0x%x...\n", currentThread->getName(), functionPtr);
-	// Set the program counter to the appropriate place indicated by funcPtr...
+	// Set the program counter to the appropriate place indicated by funcPtr
 	machine->WriteRegister(PCReg, functionPtr);
 	machine->WriteRegister(NextPCReg, functionPtr + 4);
 	currentThread->space->RestoreState();
-	// update the stack register
-	machine->WriteRegister(StackReg, currentThread->space->GetNumPages() * PageSize - 16); 
-	forkLock->Release();
+	// Update the stack register
+	machine->WriteRegister(StackReg, (currentThread->space->GetNumPages() * PageSize) - 16); 
 	machine->Run();
 }
 
@@ -60,7 +54,6 @@ void Fork_Syscall(int functionPtr) {
 	DEBUG('t', "In Fork_Syscall\n");
 	Thread *thread;
 	thread = new Thread("Forked Thread");
-	//currentThread->space.threads.push_back(thread);
 	thread->space = currentThread->space;
   	thread->space->CreateStack(thread);
   	thread->space->numThreads++;
@@ -78,10 +71,10 @@ void Exit_Syscall(int status) {
 	// CASE 1: The exiting thread is execThread of the last process running - exit Nachos
 	if(processTable->numProcesses == 1 && currentThread->space->numThreads == 1) {
    		// Clear all the physical pages used in the AddrSpace of this process
-		for(unsigned int i = 0; i < currentThread->space->GetNumPages(); i++)
-				currentThread->space->ClearPhysicalPage(i);
-		//delete currentThread->space;
-		//currentThread->space = NULL; 
+		// for(unsigned int i = 0; i < currentThread->space->GetNumPages(); i++)
+				// currentThread->space->ClearPhysicalPage(i);
+		delete currentThread->space;
+		currentThread->space = NULL; 
         processTableLock->Release();
         // delete kernelLockTable & kernelCVTable
 		DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
@@ -92,19 +85,18 @@ void Exit_Syscall(int status) {
     else if(processTable->numProcesses > 1 && currentThread->space->numThreads == 1) {
 		processTable->processes.erase(currentThread->space->spaceID);
 		processTable->numProcesses--;
-		delete currentThread->space; 
-		// Clear all the physical pages used in the AddrSpace of this process
-		currentThread->space = NULL;
 		// Delete KernelLocks & KernelCVs belonging to this space
+		// Clear all the physical pages used in the AddrSpace of this process
+		delete currentThread->space; 
+		currentThread->space = NULL;
         processTableLock->Release();	
 		DEBUG('t', "Exit_Syscall Case 2 (Last thread belonging to process called Exit)\n");
 		currentThread->Finish();
     } 
 	// CASE 3: The exiting thread is a thread that was forked in a process
-    else if (processTable->numProcesses >= 1 && currentThread->space->numThreads > 1) {
+    else if(processTable->numProcesses >= 1 && currentThread->space->numThreads > 1) {
 	    currentThread->space->ClearStack(currentThread->stackStart);
 		currentThread->space->numThreads--;
-		// Delete currentThread from currentThread->space->threads;
 		processTableLock->Release();	
 		DEBUG('t', "Exit_Syscall Case 3 (Forked thread called Exit)\n");
 		currentThread->Finish();	
@@ -141,20 +133,19 @@ int Exec_Syscall(unsigned int vaddr, int len) {
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
     Thread *thread = new Thread(buf);
-    // New process bookkeeping
+    // New Process bookkeeping
     thread->space = space;
     thread->space->CreateStack(thread);
     space->processThread = thread;
     space->numThreads++;
     space->spaceID = processTable->processID;
-	//space.threads.push_back(thread);
     // Update Process Table
 	processTable->processID++;
 	processTable->processes[space->spaceID] = space;
     processTable->numProcesses++;
-	//delete executable; commented out for project 3
+	// delete executable; // Commented out for project 3
 	processTableLock->Release();
-	// Fork new process
+	// Fork new Process
 	thread->Fork((VoidFunctionPtr)ExecUserThread, space->spaceID);
 	currentThread->Yield();
     return space->spaceID;
@@ -554,8 +545,7 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
     if(id == ConsoleOutput) {
       	for (int ii=0; ii<len; ii++) {
 			printf("%c",buf[ii]);
-      }
-
+    	}	
     } else {
 		if ((f = (OpenFile *) currentThread->space->fileTable.Get(id))) {
 	    	f->Write(buf, len);

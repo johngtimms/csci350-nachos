@@ -30,7 +30,7 @@ include ../Makefile.dep
 #-----------------------------------------------------------------
 # DO NOT DELETE THIS LINE -- make depend uses it
 # DEPENDENCIES MUST END AT END OF FILE
-main.o: ipt.h ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
+main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
   ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
   /usr/include/stdarg.h /usr/include/iso/stdarg_iso.h \

@@ -7,10 +7,10 @@
 class IPTEntry : public TranslationEntry {
 
 public:
-	AddrSpace *owner;
+	AddrSpace *space;
 
 	IPTEntry(){
-		owner = NULL;
+		space = NULL;
 	}
 
 };

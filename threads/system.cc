@@ -17,6 +17,7 @@ Scheduler *scheduler;			// the ready list
 Interrupt *interrupt;           // interrupt status
 Statistics *stats;              // performance metrics
 Timer *timer;                   // the hardware timer device for invoking context switches
+bool fifoEviction
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -32,11 +33,13 @@ LockTable *lockTable;
 ConditionTable *conditionTable;
 BitMap *memoryBitMap;
 Lock *memoryBitMapLock;
-Lock *forkLock;
 ProcessTable *processTable;
 Lock *processTableLock;
 int currentTLB;
 IPTEntry *ipt;
+//OpenFile *swapfile;
+//BitMap *swapfileBitMap;
+//List *fifo;
 #endif
 
 #ifdef NETWORK
@@ -84,7 +87,7 @@ Initialize(int argc, char **argv) {
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
-
+    fifoEviction = true;
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 #endif
@@ -97,7 +100,7 @@ Initialize(int argc, char **argv) {
 #endif
     
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-	argCount = 1;
+	   argCount = 1;
 	if (!strcmp(*argv, "-d")) {
 	    if (argc == 1)
 		debugArgs = "+";	// turn on all debug flags
@@ -107,11 +110,14 @@ Initialize(int argc, char **argv) {
 	    }
 	} else if (!strcmp(*argv, "-rs")) {
 	    ASSERT(argc > 1);
-	    RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
-						// number generator
+        // initialize pseudo-random number generator
+	    RandomInit(atoi(*(argv + 1)));
 	    randomYield = TRUE;
 	    argCount = 2;
-	}
+	} else if (!strcmp(*argv, "-P")) {
+        if(!strcmp(*(argv + 1), "RAND"))
+            fifoEviction = false;
+    }
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
@@ -157,11 +163,13 @@ Initialize(int argc, char **argv) {
     conditionTable = new ConditionTable();
     memoryBitMap = new BitMap(NumPhysPages);
     memoryBitMapLock = new Lock();
-    forkLock = new Lock();
     processTable = new ProcessTable();
     processTableLock = new Lock();
     currentTLB = 0;
     ipt = new IPTEntry[NumPhysPages];
+    //swapfile = new OpenFile();
+    //swapfileBitMap = new BitMap(NumPhysPages);
+    //fifo = new List();
 #endif
 
 #ifdef FILESYS
@@ -194,9 +202,12 @@ Cleanup() {
     delete conditionTable;
     delete memoryBitMap;
     delete memoryBitMapLock;
-    delete forkLock;
     delete processTable;
     delete processTableLock;
+    delete ipt;
+    //delete swapfile;
+    //delete swapfileBitMap;
+    //delete fifo;
 #endif
 
 #ifdef FILESYS_NEEDED

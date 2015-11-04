@@ -12,6 +12,7 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "table.h"
+#include <stdlib.h>
 
 class Thread;
 
@@ -37,12 +38,12 @@ class AddrSpace {
     int spaceID;
     unsigned int numThreads;
     Thread* processThread;
-    //vector<Thread*> threads;
+
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation for now!
     unsigned int numPages;		// Number of pages in the virtual address space
     OpenFile *executable;
-    
+    unsigned int codeInitPages;
 };
 
 #endif // ADDRSPACE_H

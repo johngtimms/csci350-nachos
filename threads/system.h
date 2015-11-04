@@ -8,7 +8,6 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include "ipt.h"
 #include "copyright.h"
 #include "utility.h"
 #include "thread.h"
@@ -16,6 +15,8 @@
 #include "interrupt.h"
 #include "stats.h"
 #include "timer.h"
+
+#include "../vm/ipt.h"
 
 
 // Initialization and cleanup routines
@@ -28,21 +29,26 @@ extern Scheduler *scheduler;			// the ready list
 extern Interrupt *interrupt;			// interrupt status
 extern Statistics *stats;				// performance metrics
 extern Timer *timer;					// the hardware alarm clock
+extern bool fifoEviction;
 
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "structs.h"
 #include "bitmap.h"
+#include "openfile.h"
+#include "list.h"
 extern Machine *machine;	// user program memory and registers
 extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
 extern BitMap *memoryBitMap;	// BitMap representing physical memory
 extern Lock *memoryBitMapLock;	// Lock for mmBitMap
-extern Lock *forkLock;
 extern ProcessTable *processTable;
 extern Lock *processTableLock;
 extern int currentTLB;
 extern IPTEntry *ipt;
+//extern OpenFile *swapfile;
+//extern BitMap *swapfileBitMap;
+//extern List *fifo;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

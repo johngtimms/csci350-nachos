@@ -39,14 +39,13 @@ void StartProcess(char *filename) {
     space->CreateStack(currentThread);
     space->processThread = currentThread;
     space->numThreads++;
-    //space.threads.push_back(currentThread);
     space->spaceID = processTable->processID;
     processTable->processID++;
     processTable->processes[space->spaceID] = space;
     processTable->numProcesses++;
     //delete executable;			// close file, commented out for Project 3
-    space->InitRegisters();		// set the initial register values
-    space->RestoreState();		// load page table register
+    space->InitRegisters();		// Set the initial register values
+    space->RestoreState();		// Load Page Table 
     processTableLock->Release();
     //DEBUG('t', "End StartProcess()\n");
     machine->Run();			// jump to the user progam
