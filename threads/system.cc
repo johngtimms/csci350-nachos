@@ -17,7 +17,7 @@ Scheduler *scheduler;			// the ready list
 Interrupt *interrupt;           // interrupt status
 Statistics *stats;              // performance metrics
 Timer *timer;                   // the hardware timer device for invoking context switches
-bool fifoEviction
+bool fifoEviction;
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -98,7 +98,6 @@ Initialize(int argc, char **argv) {
     double rely = 1;		// network reliability
     int netname = 0;		// UNIX socket name
 #endif
-    
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	   argCount = 1;
 	if (!strcmp(*argv, "-d")) {
@@ -115,8 +114,11 @@ Initialize(int argc, char **argv) {
 	    randomYield = TRUE;
 	    argCount = 2;
 	} else if (!strcmp(*argv, "-P")) {
-        if(!strcmp(*(argv + 1), "RAND"))
+        if(!strcmp(*(argv + 1), "RAND")) {
+            printf("RAND\n");
             fifoEviction = false;
+            argCount = 2;
+        }
     }
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))

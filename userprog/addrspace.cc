@@ -21,6 +21,7 @@
 #include "noff.h"
 #include "table.h"
 #include "synch.h"
+#include <stdlib.h>
 
 extern "C" { int bzero(char *, int); };
 
@@ -168,7 +169,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	*/
 	numThreads = 0;
 	this->executable = executable;
-	codeInitPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize)
+	codeInitPages = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 }
 
 void AddrSpace::CreateStack(Thread* thread) {
@@ -327,7 +328,7 @@ void AddrSpace::handlePageFault(int vaddr) {
 	// Search IPT
 	int ppn = -1;
 	for(int i = 0 ; i < NumPhysPages; i++) {
-		if(ipt[i].virtualPage == vpn && ipt[i].valid == TRUE && ipt[i]->space == currentThread->space) {
+		if(ipt[i].virtualPage == vpn && ipt[i].valid == TRUE && ipt[i].space == currentThread->space) {
 			ppn = i;
 			break;
 		}
@@ -352,10 +353,14 @@ int AddrSpace::handleIPTMiss(int vpn) {
 	int ppn = memoryBitMap->Find();
 	if(ppn == -1)
 		ppn = handleMemoryFull();
-	//bzero(&machine->mainMemory[ppn * PageSize], PageSize);
-	// Read page from executable into memory
+	//bzero(&machine->mainMemory[ppn * PageSize], PageSize); ?
+	// If dirty, load page from swapfile into memory
+	//if(space->pageTable[vpn].dirty == TRUE)
+		// Load from SwapFile
+	// Otherwise, load page from executable into memory
 	if(vpn < codeInitPages)
 		executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, 40 + (vpn * PageSize));
+
 	// Update IPT
 	ipt[ppn].virtualPage = vpn; 
 	ipt[ppn].physicalPage = ppn;
@@ -363,7 +368,7 @@ int AddrSpace::handleIPTMiss(int vpn) {
 	ipt[ppn].use = FALSE;
 	ipt[ppn].dirty = FALSE;
 	ipt[ppn].readOnly = FALSE;
-	ipt[ppn].owner = this;
+	ipt[ppn].space = this;
 	// Update Page Table
 	pageTable[vpn].physicalPage = ppn;
 	pageTable[vpn].valid = TRUE;
@@ -373,16 +378,19 @@ int AddrSpace::handleIPTMiss(int vpn) {
 int AddrSpace::handleMemoryFull() {
 	int ppn = -1;
 	if(fifoEviction == TRUE) {
+
 		// FIFO page eviction policy
-	else
-		ppn = Rand() % NumPhysPages;
+	} else
+		ppn = rand() % NumPhysPages;
 		
 	if(ipt[ppn].valid == FALSE)
 		interrupt->Halt();
+
+	// If page is dirty, write it to the SwapFile
 	if(ipt[ppn].dirty == TRUE) {
 		// Write to SwapFile
 	}
-	// Update pageTable in page's addrSpace (dirty and valid)
+	// Update pageTable in page's addrSpace (dirty and valid bits)
 	// If page is in TLB
 		ipt[ppn].valid = FALSE;
 		// Invalidate the TLB entry

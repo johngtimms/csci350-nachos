@@ -1,12 +1,12 @@
 #include "syscall.h"
 
-void test() {
+void testMatMult() {
 	Write("Starting test\n", 14, ConsoleOutput);
   Yield();
   Exit(0);   
 }
 
-void test2() {
+void testSort() {
   Write("Starting test2\n", 15, ConsoleOutput);
   Yield();
   Exit(0);  

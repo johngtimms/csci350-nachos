@@ -413,7 +413,7 @@ void ExceptionHandler(ExceptionType which) {
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg, machine->ReadRegister(PCReg) + 4);
 		return;
-    } else if(which == PageFaultException){
+    } else if(which == PageFaultException) {
     	rv = machine->ReadRegister(BadVAddrReg);
     	currentThread->space->handlePageFault(rv);
     } else {

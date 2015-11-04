@@ -12,7 +12,6 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "table.h"
-#include <stdlib.h>
 
 class Thread;
 
