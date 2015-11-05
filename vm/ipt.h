@@ -2,7 +2,9 @@
 #define IPT_H
 
 #include "../machine/translate.h"
-#include "addrspace.h"
+#include "../userprog/addrspace.h"
+
+class AddrSpace;
 
 class IPTEntry : public TranslationEntry {
 

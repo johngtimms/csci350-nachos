@@ -135,7 +135,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 	// Set up pages for code, init data, unit data
 	memoryBitMapLock->Acquire();
-	pageTable = new TranslationEntry[numPages];
+	pageTable = new IPTEntry[numPages];
 	int ppn = -1;
 	for(vpn = 0; vpn < numPages; vpn++) {
 		/*
@@ -146,6 +146,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		 	interrupt->Halt();
 		}
 		*/
+		printf("vpn: %d\n", vpn);
 		pageTable[vpn].virtualPage = vpn;
 		//pageTable[vpn].physicalPage = ppn;
 		pageTable[vpn].valid = FALSE;
@@ -185,7 +186,7 @@ void AddrSpace::CreateStack(Thread* thread) {
   	//if(numPages + 8 <= NumPhysPages) {
   		memoryBitMapLock->Acquire();
   		unsigned int vpn;
-    	TranslationEntry *newPageTable = new TranslationEntry[numPages + 8];
+    	IPTEntry *newPageTable = new IPTEntry[numPages + 8];
         thread->stackStart = numPages;
         DEBUG('t', "thread = %s\n", thread->getName());
         DEBUG('t', "thread->stackStart = %d\n", thread->stackStart);
@@ -197,6 +198,9 @@ void AddrSpace::CreateStack(Thread* thread) {
 	    	newPageTable[vpn].use = pageTable[vpn].use;
 	    	newPageTable[vpn].dirty = pageTable[vpn].dirty;
 	    	newPageTable[vpn].readOnly = pageTable[vpn].readOnly;
+
+	    	newPageTable[vpn].byteOffset = pageTable[vpn].byteOffset;
+			newPageTable[vpn].location = pageTable[vpn].location;
 	    	// DEBUG('t', "newPageTable[%i].valid = pageTable[%i].valid = %i\n", vpn, vpn, pageTable[vpn].valid);
     	}
     	// Add 8 new pages of stack to newPageTable
@@ -215,6 +219,9 @@ void AddrSpace::CreateStack(Thread* thread) {
 	    	newPageTable[vpn].use = FALSE;
 	    	newPageTable[vpn].dirty = FALSE;
 	    	newPageTable[vpn].readOnly = FALSE;
+
+	    	newPageTable[vpn].byteOffset = -1;
+			newPageTable[vpn].location = IN_NEITHER;
 	    	// DEBUG('t', "newPageTable[%i].valid = %i\n", vpn, newPageTable[vpn].valid);
 	    	/*
 	    	// IPT population code
@@ -333,6 +340,9 @@ void AddrSpace::ClearPhysicalPage(int i) {
 
 void AddrSpace::handlePageFault(int vaddr) {
 	int vpn = vaddr / PageSize;
+	//printf("handlePageFault()\n");
+	printf("vpn: %d\n", vpn);
+	//printf("vaddr: %d\n", vaddr);
 	// Search IPT
 	int ppn = -1;
 	for(int i = 0 ; i < NumPhysPages; i++) {
@@ -343,9 +353,10 @@ void AddrSpace::handlePageFault(int vaddr) {
 	}
 	// Disable interrupts
 	IntStatus oldLevel = interrupt->SetLevel(IntOff);
-
-	if(ppn = -1)
+	if(ppn = -1) {
+		//printf("IPTMISS\n");
         ppn = handleIPTMiss(vpn);
+	}
     // Load page into TLB
 	machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
 	machine->tlb[currentTLB].physicalPage = ppn;
@@ -363,13 +374,16 @@ void AddrSpace::handlePageFault(int vaddr) {
 int AddrSpace::handleIPTMiss(int vpn) {
 	// Allocate page of memory
 	int ppn = memoryBitMap->Find();
-	if(ppn == -1)
+	if(ppn == -1) {
+
 		ppn = handleMemoryFull();
+	}
 
 	if(pageTable[vpn].location == IN_SWAPFILE) {
 		// Load from swapfile into memory
 	} else if(pageTable[vpn].location == IN_EXECUTABLE) {
 		// Otherwise, load page from executable into memory
+		printf("byteOffset: %d\n", pageTable[vpn].byteOffset);
 		executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, pageTable[vpn].byteOffset);
 		//pageTable[vpn].dirty = false;
 	}
@@ -406,6 +420,7 @@ int AddrSpace::handleMemoryFull() {
 
 	// If page is dirty, write it to the swapfile
 	if(ipt[ppn].dirty == true) {
+		printf("SWAP\n");
 		int swapIndex = swapfileBitMap->Find();
 		// Write to SwapFile
 		if(swapIndex != -1)

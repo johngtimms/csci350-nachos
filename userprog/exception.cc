@@ -416,6 +416,7 @@ void ExceptionHandler(ExceptionType which) {
     } else if(which == PageFaultException) {
     	rv = machine->ReadRegister(BadVAddrReg);
     	currentThread->space->handlePageFault(rv);
+    	//printf("rv: %d\n", rv);
     } else {
       	cout << "Unexpected user mode exception - which:" << which << "  type:" << type << endl;
       	interrupt->Halt();
