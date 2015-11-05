@@ -1,0 +1,142 @@
+In StartProcess()
+In CreateStack()
+thread = main
+thread->stackStart = 437
+End StartProcess()
+Yielding thread "main"
+Yielding thread "main"
+Yielding thread "main"
+In Print_Syscall
+Number of Customers: 3
+In Print_Syscall
+Number of ApplicationClerks: 1
+In Print_Syscall
+Number of PictureClerks: 0
+In Print_Syscall
+Number of PassportClerks: 0
+In Print_Syscall
+Number of Cashiers: 0
+In Print_Syscall
+Number of Senators: 0
+Yielding thread "main"
+In Fork_Syscall
+In CreateStack()
+thread = Forked Thread
+thread->stackStart = 445
+Forking thread "Forked Thread" with func = 0x32540, arg = 12328
+Putting thread Forked Thread on ready list.
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+In ForkUserThread
+Setting machine PC to funcPtr for thread Forked Thread: 0x3028...
+In Print_Syscall
+Running ApplicationClerk: 0
+Yielding thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+In Fork_Syscall
+In CreateStack()
+thread = Forked Thread
+thread->stackStart = 453
+Forking thread "Forked Thread" with func = 0x32540, arg = 8140
+Putting thread Forked Thread on ready list.
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Yielding thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Switching from thread "Forked Thread" to thread "Forked Thread"
+In ForkUserThread
+Setting machine PC to funcPtr for thread Forked Thread: 0x1fcc...
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+In Fork_Syscall
+In CreateStack()
+thread = Forked Thread
+thread->stackStart = 461
+Forking thread "Forked Thread" with func = 0x32540, arg = 8140
+Putting thread Forked Thread on ready list.
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Yielding thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Switching from thread "Forked Thread" to thread "Forked Thread"
+In ForkUserThread
+Setting machine PC to funcPtr for thread Forked Thread: 0x1fcc...
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+In Fork_Syscall
+In CreateStack()
+thread = Forked Thread
+thread->stackStart = 469
+Forking thread "Forked Thread" with func = 0x32540, arg = 8140
+Putting thread Forked Thread on ready list.
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Yielding thread "Forked Thread"
+Putting thread Forked Thread on ready list.
+Switching from thread "Forked Thread" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "Forked Thread"
+In ForkUserThread
+Setting machine PC to funcPtr for thread Forked Thread: 0x1fcc...
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "Forked Thread"
+Now in thread "Forked Thread"
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+In Fork_Syscall
+In CreateStack()
+thread = Forked Thread
+thread->stackStart = 477
+Forking thread "Forked Thread" with func = 0x32540, arg = 30232
+Putting thread Forked Thread on ready list.
+Yielding thread "main"
+Putting thread main on ready list.
+Switching from thread "main" to thread "Forked Thread"
+In ForkUserThread
+Setting machine PC to funcPtr for thread Forked Thread: 0x7618...
+Sleeping thread "Forked Thread"
+Switching from thread "Forked Thread" to thread "main"
+Now in thread "main"
+In Exit_Syscall
+currentThread = main
+processTable->numProcesses = 1
+currentThread->space->numThreads = 6
+In AddrSpace::ClearStack()
+stackStart: 437
+Yielding thread "main"
+Exit_Syscall Case 3 (Forked thread called Exit)
+Finishing thread "main"
+Sleeping thread "main"
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
+
+Ticks: total 1438, idle 112, system 820, user 506
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...
