@@ -8,8 +8,10 @@ class IPTEntry : public TranslationEntry {
 
 public:
 	AddrSpace *space;
+	int byteOffset;
+	int location;
 
-	IPTEntry(){
+	IPTEntry() {
 		space = NULL;
 	}
 

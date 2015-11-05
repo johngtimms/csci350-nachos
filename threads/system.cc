@@ -17,7 +17,6 @@ Scheduler *scheduler;			// the ready list
 Interrupt *interrupt;           // interrupt status
 Statistics *stats;              // performance metrics
 Timer *timer;                   // the hardware timer device for invoking context switches
-bool fifoEviction;
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -29,17 +28,28 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+
+// Locks/Conditions
 LockTable *lockTable;
 ConditionTable *conditionTable;
+
+// Physical Memory BitMap
 BitMap *memoryBitMap;
 Lock *memoryBitMapLock;
+
+// Process Table
 ProcessTable *processTable;
 Lock *processTableLock;
+
+// DPVM
 int currentTLB;
 IPTEntry *ipt;
-//OpenFile *swapfile;
-//BitMap *swapfileBitMap;
-//List *fifo;
+OpenFile *swapfile;
+BitMap *swapfileBitMap;
+
+// Eviction Policy
+bool fifoEviction;
+List *fifo;
 #endif
 
 #ifdef NETWORK
@@ -169,9 +179,8 @@ Initialize(int argc, char **argv) {
     processTableLock = new Lock();
     currentTLB = 0;
     ipt = new IPTEntry[NumPhysPages];
-    //swapfile = new OpenFile();
-    //swapfileBitMap = new BitMap(NumPhysPages);
-    //fifo = new List();
+    swapfileBitMap = new BitMap(NumPhysPages);
+    fifo = new List();
 #endif
 
 #ifdef FILESYS
@@ -180,6 +189,12 @@ Initialize(int argc, char **argv) {
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+    // Create swapfile
+    if(!fileSystem->Create("swapfile", NumPhysPages * 100 * PageSize)) {
+        printf("Could not create swapfile\n");
+        return;
+    }
+    swapfile = fileSystem->Open("swapfile");
 #endif
 
 #ifdef NETWORK
@@ -207,9 +222,9 @@ Cleanup() {
     delete processTable;
     delete processTableLock;
     delete ipt;
-    //delete swapfile;
-    //delete swapfileBitMap;
-    //delete fifo;
+    delete swapfile;
+    delete swapfileBitMap;
+    delete fifo;
 #endif
 
 #ifdef FILESYS_NEEDED

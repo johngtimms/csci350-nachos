@@ -46,9 +46,9 @@ extern ProcessTable *processTable;
 extern Lock *processTableLock;
 extern int currentTLB;
 extern IPTEntry *ipt;
-//extern OpenFile *swapfile;
-//extern BitMap *swapfileBitMap;
-//extern List *fifo;
+extern OpenFile *swapfile;
+extern BitMap *swapfileBitMap;
+extern List *fifo;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
