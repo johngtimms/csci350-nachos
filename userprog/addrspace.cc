@@ -336,7 +336,7 @@ void AddrSpace::ClearPhysicalPage(int i) {
 }
 
 void AddrSpace::handlePageFault(int vaddr) {
-	DEBUG('y', "handlePageFault()\n");
+	DEBUG('y', "\nhandlePageFault()\n");
 	int vpn = vaddr / PageSize;
 	DEBUG('y', "vpn: %d\n", vpn);
 	// Disable interrupts
@@ -361,6 +361,14 @@ void AddrSpace::handlePageFault(int vaddr) {
     	pageTable[machine->tlb[currentTLB].virtualPage].dirty = true;
   	}
 
+  	DEBUG('y', "Loading page into TLB\n");
+	DEBUG('y', "machine->tlb[currentTLB].virtualPage: %d\n", ipt[ppn].virtualPage);
+	DEBUG('y', "machine->tlb[currentTLB].physicalPage: %d\n", ppn);
+	DEBUG('y', "machine->tlb[currentTLB].valid: %d\n", 1);
+	DEBUG('y', "machine->tlb[currentTLB].use: %d\n", ipt[ppn].use);
+	DEBUG('y', "machine->tlb[currentTLB].dirty: %d\n", ipt[ppn].dirty);
+	DEBUG('y', "machine->tlb[currentTLB].readOnly: %d\n", ipt[ppn].readOnly);
+
     // Load page into TLB
 	machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
 	machine->tlb[currentTLB].physicalPage = ppn;
@@ -384,7 +392,6 @@ int AddrSpace::handleIPTMiss(int vpn) {
 		ppn = handleMemoryFull();
 
 	
-	printf("ppn: %d\n", ppn);
 	if(pageTable[vpn].location == IN_SWAPFILE) {
 		DEBUG('y', "Loading from swapfile\n");
 		DEBUG('y', "byteOffset: %d\n", pageTable[vpn].byteOffset);
@@ -404,8 +411,19 @@ int AddrSpace::handleIPTMiss(int vpn) {
 		executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, pageTable[vpn].byteOffset);
 		pageTable[vpn].dirty = false;
 	}
-	printf("ppn: %d\n", ppn);
-
+	
+	DEBUG('y', "Updating IPT\n");
+	DEBUG('y', "ipt[ppn].virtualPage: %d\n", ipt[ppn].virtualPage);
+	DEBUG('y', "ipt[ppn].physicalPage: %d\n", ppn);
+	DEBUG('y', "ipt[ppn].valid: %d\n", 1);
+	DEBUG('y', "ipt[ppn].use: %d\n", pageTable[vpn].use);
+	DEBUG('y', "ipt[ppn].dirty: %d\n", pageTable[vpn].dirty);
+	DEBUG('y', "ipt[ppn].readOnly: %d\n", pageTable[vpn].readOnly);
+	DEBUG('y', "ipt[ppn].space: %d\n", pageTable[vpn].space);
+	DEBUG('y', "ipt[ppn].location: %d\n", pageTable[vpn].location);
+	DEBUG('y', "ipt[ppn].byteOffeset: %d\n", pageTable[vpn].byteOffset);
+	
+	if(vpn >= 0 && vpn < NumPhysPages)
 	// Update IPT
 	ipt[ppn].virtualPage = vpn; 
 	ipt[ppn].physicalPage = ppn;
