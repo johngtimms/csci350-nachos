@@ -179,7 +179,7 @@ Initialize(int argc, char **argv) {
     processTableLock = new Lock();
     currentTLB = 0;
     ipt = new IPTEntry[NumPhysPages];
-    swapfileBitMap = new BitMap(NumPhysPages);
+    swapfileBitMap = new BitMap(NumPhysPages * 100);
     fifo = new List();
 #endif
 
