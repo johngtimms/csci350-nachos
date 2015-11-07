@@ -47,7 +47,6 @@ void StartProcess(char *filename) {
     space->InitRegisters();		// Set the initial register values
     space->RestoreState();		// Load Page Table 
     processTableLock->Release();
-    //DEBUG('t', "End StartProcess()\n");
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
 	// the address space exits by doing the syscall "exit"

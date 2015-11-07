@@ -43,7 +43,6 @@ class AddrSpace {
  private:
     unsigned int numPages;		// Number of pages in the virtual address space
     OpenFile *executable;
-    unsigned int codeInitPages;
 };
 
 #endif // ADDRSPACE_H

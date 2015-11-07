@@ -37,6 +37,7 @@ extern bool fifoEviction;
 #include "bitmap.h"
 #include "openfile.h"
 #include "list.h"
+#include <list.h>
 extern Machine *machine;	// user program memory and registers
 extern LockTable *lockTable;
 extern ConditionTable *conditionTable;

@@ -78,6 +78,7 @@ void Exit_Syscall(int status) {
         processTableLock->Release();
         // delete kernelLockTable & kernelCVTable
 		DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
+		printf("%d\n", machine->ReadRegister(4));
 		printf("Terminating Nachos\n");
 		interrupt->Halt();
     } 
