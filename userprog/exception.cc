@@ -385,6 +385,29 @@ void NetPrint_Netcall(int text, int num) {
     delete[] buf;
 }
 
+void NetHalt_Netcall() {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+
+    char *buf = "NoOp"; // No need to send a real message
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxNetHalt;
+    outMailHdr.from = MailboxNetHalt;
+    outMailHdr.length = strlen(buf) + 1;
+
+    // Send the message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buf); 
+
+    if ( !success ) {
+      printf("ERROR: NetHalt failed. Server misconfigured. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
+
+    delete[] buf;
+}
+
 int Rand_Syscall() {
     return rand();
 }
@@ -399,6 +422,9 @@ void ExceptionHandler(ExceptionType which) {
 	    	case SC_Halt:
 				DEBUG('a', "Shutdown, initiated by user program.\n");
 				interrupt->Halt();
+				break;
+			case SC_NetHalt:
+				NetHalt_Netcall();
 				break;
 			case SC_Exit:
 				DEBUG('a', "Exiting.\n");

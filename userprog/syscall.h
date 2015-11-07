@@ -39,6 +39,7 @@
 #define SC_Print			20
 #define SC_Rand       		21
 #define SC_NetPrint			22
+#define SC_NetHalt			23
 
 #define MAXFILENAME 256
 

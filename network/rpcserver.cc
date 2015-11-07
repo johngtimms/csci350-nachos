@@ -66,6 +66,20 @@ void RPCServer::Receive_NetPrint() {
 	}
 }
 
+void RPCServer::Receive_NetHalt() {
+	PacketHeader inPktHdr;
+	MailHeader inMailHdr;
+	char buffer[MaxMailSize];
+
+	for (;;) {
+		// Wait for a mailbox message
+		postOffice->Receive(MailboxNetHalt, &inPktHdr, &inMailHdr, buffer);
+
+		// Halt when receiving a message
+		interrupt->Halt();
+	}
+}
+
 //-----------------------------------------------------------------------------------------------//
 // Dummy functions to allow forking / callbacks (also used in post.cc)
 //-----------------------------------------------------------------------------------------------//
@@ -80,6 +94,7 @@ static void DummyReceive_Wait(int arg) { RPCServer* rpcs = (RPCServer *) arg; rp
 static void DummyReceive_Signal(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Signal(); }
 static void DummyReceive_Broadcast(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Broadcast(); }
 static void DummyReceive_NetPrint(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_NetPrint(); }
+static void DummyReceive_NetHalt(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_NetHalt(); }
 
 //-----------------------------------------------------------------------------------------------//
 // RunServer() is called from main.cc when the "--server" flag is used.
@@ -125,4 +140,7 @@ void RunServer() {
 
 	Thread *tNetPrint = new Thread("NetPrint thread");
 	tNetPrint->Fork(DummyReceive_NetPrint, (int) rpcServer);
+
+	Thread *tNetHalt = new Thread("NetHalt thread");
+	tNetHalt->Fork(DummyReceive_NetHalt, (int) rpcServer);
 }

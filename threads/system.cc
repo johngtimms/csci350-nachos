@@ -177,7 +177,7 @@ Initialize(int argc, char **argv) {
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(machineName, rely, 10);
+    postOffice = new PostOffice(machineName, rely, 20);
     rpcServer = new RPCServer();
 #endif
 }

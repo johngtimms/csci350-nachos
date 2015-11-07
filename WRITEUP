@@ -67,6 +67,7 @@ IV. Implementation:
 		test/Makefile
 		test/start.s
 		threads/main.cc
+		threads/structs.h
 		threads/synch.cc
 		threads/synch.h
 		threads/system.cc
@@ -100,6 +101,7 @@ IV. Implementation:
         RPCServer::Receive_Signal()				in network/rpcserver.cc
         RPCServer::Receive_Broadcast()			in network/rpcserver.cc 
         RPCServer::Receive_NetPrint()			in network/rpcserver.cc
+        RPCServer::Receive_NetHalt()			in network/rpcserver.cc
 		DummyReceive_CreateLock()				in network/rpcserver.cc
 		DummyReceive_DestroyLock()				in network/rpcserver.cc
 		DummyReceive_Acquire()					in network/rpcserver.cc
@@ -110,6 +112,7 @@ IV. Implementation:
 		DummyReceive_Signal()					in network/rpcserver.cc
 		DummyReceive_Broadcast()				in network/rpcserver.cc
 		DummyReceive_NetPrint()					in network/rpcserver.cc
+		DummyReceive_NetHalt()					in network/rpcserver.cc
         RunServer()								in network/rpcserver.cc
 		main()									in test/assignmentThreeTests.c
 		main()									in test/networkTests.c
@@ -124,6 +127,7 @@ IV. Implementation:
 		Signal_Netcall()						in userprog/exception.cc
 		Broadcast_Netcall()						in userprog/exception.cc
 		NetPrint_Netcall()						in userprog/exception.cc
+		NetHalt_Netcall()						in userprog/exception.cc
 
 	Functions Modified:
 		main()									in test/halt.c

@@ -17,6 +17,7 @@
 #define MailboxSignal               7
 #define MailboxBroadcast            8
 #define MailboxNetPrint             9
+#define MailboxNetHalt              10
 
 class RPCServer {
     public:
@@ -33,6 +34,7 @@ class RPCServer {
         void Receive_Signal();
         void Receive_Broadcast();
         void Receive_NetPrint();
+        void Receive_NetHalt();
 };
 
 #endif

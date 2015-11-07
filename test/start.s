@@ -218,6 +218,14 @@ NetPrint:
 	j	$31
 	.end NetPrint
 
+	.globl NetHalt
+	.ent	NetHalt
+NetHalt:
+	addiu $2,$0,SC_NetHalt
+	syscall
+	j	$31
+	.end NetHalt
+
     .globl Rand
 	.ent	Rand
 Rand:
