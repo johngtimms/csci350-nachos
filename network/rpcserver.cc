@@ -5,14 +5,50 @@
 #include "rpcserver.h"
 #include "interrupt.h"
 
-// Called from system.cc to set up an RPCServer object
-RPCServer::RPCServer() {
-	// no-op
+// Setting up an RPCServer object may be unnecessary, but I can't think of a
+// more convenient way to get the threads (started in RunServer) working.
+RPCServer::RPCServer() { }
+RPCServer::~RPCServer() { }
+
+//-----------------------------------------------------------------------------------------------//
+// Following are functions designed to be spun up as threads that 
+// respond to the networking requests.
+//-----------------------------------------------------------------------------------------------//
+
+void RPCServer::Receive_CreateLock() {
+
 }
 
-// TODO document
-RPCServer::~RPCServer() {
-	// no-op
+void RPCServer::Receive_DestroyLock() {
+
+}
+
+void RPCServer::Receive_Acquire() {
+
+}
+
+void RPCServer::Receive_Release() {
+
+}
+
+void RPCServer::Receive_CreateCondition() {
+
+}
+
+void RPCServer::Receive_DestroyCondition() {
+
+}
+
+void RPCServer::Receive_Wait() {
+
+}
+
+void RPCServer::Receive_Signal() {
+
+}
+
+void RPCServer::Receive_Broadcast() {
+
 }
 
 void RPCServer::Receive_NetPrint() {
@@ -30,8 +66,25 @@ void RPCServer::Receive_NetPrint() {
 	}
 }
 
+//-----------------------------------------------------------------------------------------------//
 // Dummy functions to allow forking / callbacks (also used in post.cc)
+//-----------------------------------------------------------------------------------------------//
+
+static void DummyReceive_CreateLock(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_CreateLock(); }
+static void DummyReceive_DestroyLock(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_DestroyLock(); }
+static void DummyReceive_Acquire(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Acquire(); }
+static void DummyReceive_Release(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Release(); }
+static void DummyReceive_CreateCondition(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_CreateCondition(); }
+static void DummyReceive_DestroyCondition(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_DestroyCondition(); }
+static void DummyReceive_Wait(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Wait(); }
+static void DummyReceive_Signal(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Signal(); }
+static void DummyReceive_Broadcast(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Broadcast(); }
 static void DummyReceive_NetPrint(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_NetPrint(); }
+
+//-----------------------------------------------------------------------------------------------//
+// RunServer() is called from main.cc when the "--server" flag is used.
+// It starts threads to handle each networked syscall. Each thread checks its assigned mailbox.
+//-----------------------------------------------------------------------------------------------//
 
 void RunServer() {
 	if (machineName > -1) {
@@ -41,172 +94,35 @@ void RunServer() {
 		interrupt->Halt();
 	}
 
-	Thread *tNetPrint = new Thread("netprint thread");
-	tNetPrint->Fork(DummyReceive_NetPrint, (int) rpcServer); // Note: rpcServer defined in system.cc
+	// Note: rpcServer defined in system.cc
 
+	Thread *tCreateLock = new Thread("CreateLock thread");
+	tCreateLock->Fork(DummyReceive_CreateLock, (int) rpcServer);
 
-	// for (;;) {
-	// 	// wait for some signal that there's a new message in ANY postoffice mailbox
-	// 	clientMessageAvailable->P();
+	Thread *tDestroyLock = new Thread("DestroyLock thread");
+	tDestroyLock->Fork(DummyReceive_DestroyLock, (int) rpcServer);
 
-	// 	// depending on the mailbox, run the apropriate syscall
-	// }
+	Thread *tAcquire = new Thread("Acquire thread");
+	tAcquire->Fork(DummyReceive_Acquire, (int) rpcServer);
+
+	Thread *tRelease = new Thread("Release thread");
+	tRelease->Fork(DummyReceive_Release, (int) rpcServer);
+
+	Thread *tCreateCondition = new Thread("CreateCondition thread");
+	tCreateCondition->Fork(DummyReceive_CreateCondition, (int) rpcServer);
+
+	Thread *tDestroyCondition = new Thread("DestroyCondition thread");
+	tDestroyCondition->Fork(DummyReceive_DestroyCondition, (int) rpcServer);
+
+	Thread *tWait = new Thread("Wait thread");
+	tWait->Fork(DummyReceive_Wait, (int) rpcServer);
+
+	Thread *tSignal = new Thread("Signal thread");
+	tSignal->Fork(DummyReceive_Signal, (int) rpcServer);
+
+	Thread *tBroadcast = new Thread("Broadcast thread");
+	tBroadcast->Fork(DummyReceive_Broadcast, (int) rpcServer);
+
+	Thread *tNetPrint = new Thread("NetPrint thread");
+	tNetPrint->Fork(DummyReceive_NetPrint, (int) rpcServer);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Receive_CreateLock() {
-
-}
-
-void Receive_DestroyLock() {
-
-}
-
-void Receive_Acquire() {
-
-}
-
-void Receive_Release() {
-
-}
-
-void Receive_CreateCondition() {
-
-}
-
-void Receive_DestroyCondition() {
-
-}
-
-void Receive_Wait() {
-
-}
-
-void Receive_Signal() {
-
-}
-
-void Receive_Broadcast() {
-
-}
-
-void Receive_NetPrint() {
-
-}
-
-
-
-
-
-
-
-
-
-// // Dummy functions (see post.cc for alternate implementation)
-// static void DummyServerHelper(int arg)
-// { RPCServer* rpcs = (RPCServer *) arg; rpcs->ServerHelper(); }
-// static void DummyReceivePacket(int arg)
-// { RPCServer* rpcs = (RPCServer *) arg; rpcs->ReceivePacket(); }
-// static void DummyPacketSent(int arg)
-// { RPCServer* rpcs = (RPCServer *) arg; rpcs->PacketSent(); }
-
-// // Called from system.cc to set up an RPCServer object
-// RPCServer::RPCServer(NetworkAddress address, double reliability) {
-// 	// These semaphores will be raised by the Network when
-// 	// appropriate, then ServerHelper will handle them
-// 	packetAvailable = new Semaphore("packet available", 0);
-// 	packetSent = new Semaphore("packet sent", 0);
-
-// 	// Set up the network
-// 	network = new Network(address, reliability, DummyReceivePacket, DummyPacketSent, (int) this);
-// }
-
-// // TODO document
-// RPCServer::~RPCServer() {
-// 	delete network;
-// 	delete packetAvailable;
-// 	delete packetSent;
-
-//     // delete sendLock; // TODO what's this for??
-// }
-
-// // TODO document
-// void RPCServer::ServerHelper() {
-// 	PacketHeader packetHeader;
-// 	char *buffer = new char[MaxPacketSize];
-// 	char *data;
-
-// 	for(;;) {
-// 		// Wait until a message is received
-// 		packetAvailable->P();
-
-// 		// Copy in the data
-// 		packetHeader = network->Receive(buffer);
-// 		data = buffer + sizeof(MailHeader);
-
-// 		// Test output
-// 		printf("From ((%d)) to ((%d)) says ((%s))\n", packetHeader.from, packetHeader.to, data);
-// 	}
-
-//  //    PacketHeader pktHdr;
-//  //    MailHeader mailHdr;
-//  //    char *buffer = new char[MaxPacketSize];
-
-//  //    for (;;) {
-//  //        // first, wait for a message
-//  //        packetAvailable->P();	
-//  //        pktHdr = network->Receive(buffer);
-
-//  //        mailHdr = *(MailHeader *)buffer;
-//  //        if (DebugIsEnabled('n')) {
-// 	//     printf("Putting mail into mailbox: ");
-// 	//     PrintHeader(pktHdr, mailHdr);
-//  //        }
-
-// 	// // check that arriving message is legal!
-// 	// ASSERT(0 <= mailHdr.to && mailHdr.to < numBoxes);
-// 	// ASSERT(mailHdr.length <= MaxMailSize);
-
-// 	// // put into mailbox
-//  //        boxes[mailHdr.to].Put(pktHdr, mailHdr, buffer + sizeof(MailHeader));
-//  //    }
-// }
-
-// // The constructor sets up the Network. When the Network gets a packet, it knows
-// // to call this function. ServerHelper() handles the packetAvailable semaphore.
-// void RPCServer::ReceivePacket() { 
-//     packetAvailable->V(); 
-// }
-
-// // The constructor sets up the Network. When the Network sends a packet, it knows
-// // to call this function. ServerHelper() handles the packetSent semaphore.
-// void RPCServer::PacketSent() { 
-//     packetSent->V();
-// }
-
-// // The server function called by main.cc
-// void RunServer() {
-// 	printf("Hello, I am a server.\n");
-
-//     Thread *t = new Thread("server helper");
-//     t->Fork(DummyServerHelper, (int) rpcServer); // Note: rpcServer defined in system.cc
-
-//     // Not sure how to handle closing the server? Is there required shut down behavior?
-// 	// interrupt->Halt();
-// }

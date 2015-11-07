@@ -30,11 +30,6 @@
 #include <map>
 #include "process.h"
 #include "network.h"
-#include "rpcserver.h"
-
-extern "C" {
-	int bcopy(char *, char *, int);
-};
 
 using namespace std;
 
@@ -366,9 +361,7 @@ void NetPrint_Netcall(int text, int num) {
     copyin(text, 100, buf);
     buf[100] = '\0';
 
-    //char *buf = "Lorem ipsum dolor sit amet turpis duis.";
-
-    // Construct packet header, mail header for original message
+    // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxNetPrint;
     outMailHdr.from = MailboxNetPrint;
@@ -380,10 +373,6 @@ void NetPrint_Netcall(int text, int num) {
     	printf("ERROR: NetPrint failed. Can't send %d bytes. Terminating Nachos.\n", outMailHdr.length);
     	interrupt->Halt();
     }
-
-    printf("About to NetPrint %d bytes\n", outMailHdr.length);
-
-    printf("Test report: machine name is %d, destination name is %d\n", machineName, destinationName);
 
     // Send the message
     bool success = postOffice->Send(outPktHdr, outMailHdr, buf); 

@@ -40,8 +40,8 @@ Lock *processTableLock;
 #ifdef NETWORK
     PostOffice *postOffice;
     RPCServer *rpcServer;
-    int machineName = 0;        // This OS's network name (UNIX socket)
-    int destinationName = 0;    // The remote OS's network name
+    int machineName;        // This OS's network name (UNIX socket)
+    int destinationName;    // The remote OS's network name
 #endif
 
 // External definition, to allow us to take a pointer to this function

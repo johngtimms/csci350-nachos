@@ -51,6 +51,7 @@ test/tester2
 test/testexec
 test/passportOffice
 test/assignmentThreeTests
+test/networkTests
 
 # MISC
 *.txt

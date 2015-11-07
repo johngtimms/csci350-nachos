@@ -23,24 +23,16 @@ class RPCServer {
         RPCServer();
         ~RPCServer();
 
+        void Receive_CreateLock();
+        void Receive_DestroyLock();
+        void Receive_Acquire();
+        void Receive_Release();
+        void Receive_CreateCondition();
+        void Receive_DestroyCondition();
+        void Receive_Wait();
+        void Receive_Signal();
+        void Receive_Broadcast();
         void Receive_NetPrint();
 };
-
-// class RPCServer {
-//     public:
-//         RPCServer(NetworkAddress address, double reliability);
-//         ~RPCServer();
-
-//         void ServerHelper();
-//         void ReceivePacket();
-//         void PacketSent();
-
-//     private:
-//         Network *network;               // Physical network connection
-//         // NetworkAddress netAddr;      // Network address of this machine
-//         Semaphore *packetAvailable;     // V'ed when packet has arrived from network
-//         Semaphore *packetSent;	        // V'ed when next message can be sent to network
-//         // Lock *sendLock;              // Only one outgoing message at a time
-// };
 
 #endif

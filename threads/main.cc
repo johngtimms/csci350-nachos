@@ -151,14 +151,6 @@ int main(int argc, char **argv) {
 		#endif
 
 		#ifdef NETWORK
-			// -o runs a simple test of the Nachos network software
-			if (!strcmp(*argv, "-o")) {
-				ASSERT(argc > 1);
-				Delay(2); // delay for 2 seconds to give the user time to start up another nachos
-				MailTest(atoi(*(argv + 1)));
-				argCount = 2;
-			}
-
 			// --server runs our server implementation for Assignment 3 Part 3
 			if (!strcmp(*argv, "--server")) {
 				RunServer();
