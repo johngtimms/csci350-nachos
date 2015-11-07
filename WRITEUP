@@ -52,6 +52,9 @@ IV. Implementation:
 	Files Modified:
 		test/halt.c
 		test/Makefile
+		threads/main.cc
+		threads/synch.cc
+		threads/synch.h
 
 	Files Added:
 		test/assignmentThreeTests.c
@@ -65,9 +68,12 @@ IV. Implementation:
 	Functions Added:
 		main()							in test/assignmentThreeTests.c
 		main()							in test/halt.c
+		getName()						in threads/synch.h
 
 	Functions Modified:
-		
+		main()							in threads/main.cc
+		Condition::Signal()				in threads/synch.cc
+		Condition::Broadcast()			in threads/synch.cc
 
 V. Testing:
 

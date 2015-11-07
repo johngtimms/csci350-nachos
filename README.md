@@ -17,3 +17,5 @@ To demonstrate Assignment 1 (tag v1.0) you must be in the `threads` directory. F
 To build the Nachos user programs that are found in the `test` directory (part of Assignment 2) you will need to temporarily add the MIPS cross-compiler from the `gnu` directory to your `PATH`. Execute either `export PATH=../gnu/:$PATH` (for Bash shells) or `setenv PATH ../gnu/:$PATH` (for other shells) once each time you log in. Then, from the `test` directory, run `gmake`.
 
 To demonstrate Assignment 2 (tag v2.0) user programs, go to the `userprog` directory and run `nachos -x ../test/*`, replacing `*` with the user program you wish to run (`halt`, `testfiles`, etc.).
+
+To run a general networking test (see assignment document for Assignment 3) open two terminals and run `nachos -m 0 -o 1` in one and `nachos -m 1 -o 0` in the other (do this from the `networking` directory). The `-m` identifies the machine you're starting, the `-o` identifies the other machine you intend to communicate with. **(Note: right now, one terminal will display a Condition error from `synch.cc`. This warning has not yet been solved.)**
