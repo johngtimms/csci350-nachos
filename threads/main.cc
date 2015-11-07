@@ -59,7 +59,12 @@ extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 
 #ifdef THREADS
-	extern void Problem2(void), TestSuite(void);
+	extern void TestSuite(void);
+	extern void Problem2(void);
+#endif
+
+#ifdef NETWORK
+	extern void RunServer(void);
 #endif
 
 //----------------------------------------------------------------------
@@ -152,6 +157,11 @@ int main(int argc, char **argv) {
 				Delay(2); // delay for 2 seconds to give the user time to start up another nachos
 				MailTest(atoi(*(argv + 1)));
 				argCount = 2;
+			}
+
+			// --server runs our server implementation for Assignment 3 Part 3
+			if (!strcmp(*argv, "--server")) {
+				RunServer();
 			}
 		#endif
 	}

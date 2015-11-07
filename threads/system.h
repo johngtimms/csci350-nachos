@@ -54,7 +54,9 @@ extern SynchDisk *synchDisk;
 
 #ifdef NETWORK
 #include "post.h"
+#include "rpcserver.h"
 extern PostOffice* postOffice;
+extern RPCServer* rpcServer;
 #endif
 
 #endif // SYSTEM_H

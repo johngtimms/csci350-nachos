@@ -17,7 +17,10 @@ I. Requirements:
 
 	Part 3:
 
-		
+		Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
+		implement Monitor syscalls using the new model. This will require changing exception.cc so that
+		Nachos user programs use the new model but are entirely unaware of the changes. It will also
+		require changing main.cc so that Nachos can be started in server mode.
 
 II. Assumptions:
 
@@ -31,7 +34,7 @@ II. Assumptions:
 
 	Part 3:
 
-		
+		None
 
 III. Design:
 
@@ -45,27 +48,46 @@ III. Design:
 
 	Part 3:
 
-		
+		The server design is based on the provided post office code and is implemented in the rpcserver.h
+		and rpcserver.cc files. The system.h and system.cc files have been modified to create a global 
+		rpcServer object. When running Nachos with the "--server" flag, main.cc will call RunServer().
+		The server and network connection are already configured (because rpcServer is already constructed) 
+		so calling this just starts the thread that accepts the packets.
 
 IV. Implementation:
 
 	Files Modified:
+		Makefile.common
 		test/halt.c
 		test/Makefile
 		threads/main.cc
+		threads/structs.cc
 		threads/synch.cc
 		threads/synch.h
+		threads/system.cc
+		threads/system.h
 
 	Files Added:
+		network/rpcserver.cc
+		network/rpcserver.h
 		test/assignmentThreeTests.c
 
 	Data Structures Added:
-		
+		class RPCServer 				in network/rpcserver.h
 
 	Data Structures Modified:
 		
 
 	Functions Added:
+		DummyServerHelper()				in network/rpcserver.cc
+		DummyReceivePacket()			in network/rpcserver.cc
+		DummyPacketSent()				in network/rpcserver.cc
+		RPCServer::RPCServer()			in network/rpcserver.cc
+		RPCServer::~RPCServer()			in network/rpcserver.cc
+		RPCServer::ServerHelper()		in network/rpcserver.cc
+		RPCServer::ReceivePacket()		in network/rpcserver.cc
+		RPCServer::PacketSent()			in network/rpcserver.cc
+		RunServer()						in network/rpcserver.cc
 		main()							in test/assignmentThreeTests.c
 		main()							in test/halt.c
 		getName()						in threads/synch.h

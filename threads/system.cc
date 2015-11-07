@@ -39,6 +39,7 @@ Lock *processTableLock;
 
 #ifdef NETWORK
 PostOffice *postOffice;
+RPCServer *rpcServer;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -170,6 +171,7 @@ Initialize(int argc, char **argv) {
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
+    rpcServer = new RPCServer(netname, rely);
 #endif
 }
 
@@ -182,6 +184,7 @@ Cleanup() {
     printf("\nCleaning up...\n");
 #ifdef NETWORK
     delete postOffice;
+    delete rpcServer;
 #endif
     
 #ifdef USER_PROGRAM
