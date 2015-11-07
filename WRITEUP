@@ -54,6 +54,12 @@ III. Design:
 		The server and network connection are already configured (because rpcServer is already constructed) 
 		so calling this just starts the thread that accepts the packets.
 
+		To eliminate problems designing a packet header to express which syscall the server should execute, we
+		re-used the post office implementation and assigned each syscall a mailbox ID. The file rpcserver.cc 
+		contains the loop that runs waiting for new mail in any mailbox. In order to check all mailboxes, we 
+		added the clientMessageAvailable semaphore to system.h and system.cc. PostalDelivery() was modified
+		to raise clientMessageAvailable after delivering a message to any mailbox.
+
 IV. Implementation:
 
 	Files Modified:

@@ -38,10 +38,10 @@ Lock *processTableLock;
 #endif
 
 #ifdef NETWORK
-PostOffice *postOffice;
-RPCServer *rpcServer;
-int netname = 0;        // This OS's network name (UNIX socket)
-int destnetname = 0;    // The remote OS's network name
+    PostOffice *postOffice;
+    RPCServer *rpcServer;
+    int machineName = 0;        // This OS's network name (UNIX socket)
+    int destinationName = 0;    // The remote OS's network name
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -127,13 +127,13 @@ Initialize(int argc, char **argv) {
 	    argCount = 2;
 	} else if (!strcmp(*argv, "-m")) {
 	    ASSERT(argc > 1);
-	    netname = atoi(*(argv + 1));
+	    machineName = atoi(*(argv + 1));
 	    argCount = 2;
 	}
 
     if (!strcmp(*argv, "-o")) {
         ASSERT(argc > 1);
-        destnetname = atoi(*(argv + 1));
+        destinationName = atoi(*(argv + 1));
         argCount = 2;
     }
 #endif
@@ -177,8 +177,8 @@ Initialize(int argc, char **argv) {
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(netname, rely, 10);
-    rpcServer = new RPCServer(netname, rely);
+    postOffice = new PostOffice(machineName, rely, 10);
+    rpcServer = new RPCServer();
 #endif
 }
 

@@ -30,6 +30,7 @@
 #include <map>
 #include "process.h"
 #include "network.h"
+#include "rpcserver.h"
 
 extern "C" {
 	int bcopy(char *, char *, int);
@@ -357,31 +358,42 @@ void Print_Syscall(int text, int num) {
 	printf(buf, num);
 }
 
-// This
-void Print_Netcall() {
-
-}
-
 void NetPrint_Netcall(int text, int num) {
-	PacketHeader outPktHdr;
-	char* buffer = new char[MaxPacketSize];
-	Network *network = new Network(netname, 1, NULL, NULL, NULL);
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
 
-	char *message = "Hello World";
+    char *buf = new char[100 + 1];
+    copyin(text, 100, buf);
+    buf[100] = '\0';
 
-	outPktHdr.to = destnetname;
-	outPktHdr.from = netname;
-	outPktHdr.length = strlen(message) + 1;
+    //char *buf = "Lorem ipsum dolor sit amet turpis duis.";
 
-	bcopy(message, buffer, outPktHdr.length);
-	bool success = network->Send(outPktHdr, buffer);
+    // Construct packet header, mail header for original message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxNetPrint;
+    outMailHdr.from = MailboxNetPrint;
+    outMailHdr.length = strlen(buf) + 1;
 
-	//---
-	printf("Sent ((%s)) with disposition ((%d))", message, success);
-	//---
+    // Make sure the message is not too long
+    // Example of a 39 byte message, the max that can be sent: "Lorem ipsum dolor sit amet turpis duis."
+    if (outMailHdr.length > 40) {
+    	printf("ERROR: NetPrint failed. Can't send %d bytes. Terminating Nachos.\n", outMailHdr.length);
+    	interrupt->Halt();
+    }
 
-	delete [] buffer;
-	return;
+    printf("About to NetPrint %d bytes\n", outMailHdr.length);
+
+    printf("Test report: machine name is %d, destination name is %d\n", machineName, destinationName);
+
+    // Send the message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buf); 
+
+    if ( !success ) {
+      printf("ERROR: NetPrint failed. Server misconfigured. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
+
+    delete[] buf;
 }
 
 int Rand_Syscall() {
