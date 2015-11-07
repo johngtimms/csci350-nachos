@@ -35,9 +35,21 @@ RPCServer::~RPCServer() {
 
 // TODO document
 void RPCServer::ServerHelper() {
-	printf("Hello, I am a server helper.\n");
+	PacketHeader packetHeader;
+	char *buffer = new char[MaxPacketSize];
+	char *data;
 
+	for(;;) {
+		// Wait until a message is received
+		packetAvailable->P();
 
+		// Copy in the data
+		packetHeader = network->Receive(buffer);
+		data = buffer + sizeof(MailHeader);
+
+		// Test output
+		printf("From ((%d)) to ((%d)) says ((%s))\n", packetHeader.from, packetHeader.to, data);
+	}
 
  //    PacketHeader pktHdr;
  //    MailHeader mailHdr;

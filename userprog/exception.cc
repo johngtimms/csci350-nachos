@@ -29,6 +29,11 @@
 #include <vector>
 #include <map>
 #include "process.h"
+#include "network.h"
+
+extern "C" {
+	int bcopy(char *, char *, int);
+};
 
 using namespace std;
 
@@ -172,6 +177,10 @@ int CreateLock_Syscall() {
 	return key;
 }
 
+void CreateLock_Netcall() {
+
+}
+
 void DestroyLock_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
@@ -184,6 +193,10 @@ void DestroyLock_Syscall(unsigned int key) {
 		DEBUG('l', "Destroyed lock with key: %i\n", key);
 	}
 	lockTable->tableLock->Release();
+}
+
+void DestroyLock_Netcall() {
+
 }
 
 void Acquire_Syscall(unsigned int key) {
@@ -200,6 +213,10 @@ void Acquire_Syscall(unsigned int key) {
 	lockTable->tableLock->Release();
 }
 
+void Acquire_Netcall() {
+
+}
+
 void Release_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
@@ -214,6 +231,10 @@ void Release_Syscall(unsigned int key) {
 	lockTable->tableLock->Release();
 }
 
+void Release_Netcall() {
+
+}
+
 int CreateCondition_Syscall() {
 	KernelCondition *condition = new KernelCondition();
 	condition->space = currentThread->space;
@@ -224,6 +245,10 @@ int CreateCondition_Syscall() {
 	DEBUG('l', "Created condition with key: %i\n", key);
 	conditionTable->tableLock->Release();
 	return key;
+}
+
+void CreateCondition_Netcall() {
+
 }
 
 void DestroyCondition_Syscall(unsigned int key) {
@@ -238,6 +263,10 @@ void DestroyCondition_Syscall(unsigned int key) {
 		DEBUG('l', "Destroyed condition with key: %i\n", key);
 	}
 	conditionTable->tableLock->Release();
+}
+
+void DestroyCondition_Netcall() {
+
 }
 
 void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -261,6 +290,10 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	}
 }
 
+void Wait_Netcall() {
+
+}
+
 void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	KernelCondition *condition;
 	KernelLock *lock;
@@ -280,6 +313,10 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	}
 	lockTable->tableLock->Release();
 	conditionTable->tableLock->Release();
+}
+
+void Signal_Netcall() {
+
 }
 
 void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -303,6 +340,10 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	conditionTable->tableLock->Release();
 }
 
+void Broadcast_Netcall() {
+
+}
+
 void Print_Syscall(int text, int num) {
 	DEBUG('t', "In Print_Syscall\n");
 	char *buf = new char[100 + 1];
@@ -314,6 +355,33 @@ void Print_Syscall(int text, int num) {
 	}
 	buf[100] = '\0';
 	printf(buf, num);
+}
+
+// This
+void Print_Netcall() {
+
+}
+
+void NetPrint_Netcall(int text, int num) {
+	PacketHeader outPktHdr;
+	char* buffer = new char[MaxPacketSize];
+	Network *network = new Network(netname, 1, NULL, NULL, NULL);
+
+	char *message = "Hello World";
+
+	outPktHdr.to = destnetname;
+	outPktHdr.from = netname;
+	outPktHdr.length = strlen(message) + 1;
+
+	bcopy(message, buffer, outPktHdr.length);
+	bool success = network->Send(outPktHdr, buffer);
+
+	//---
+	printf("Sent ((%s)) with disposition ((%d))", message, success);
+	//---
+
+	delete [] buffer;
+	return;
 }
 
 int Rand_Syscall() {
@@ -410,11 +478,13 @@ void ExceptionHandler(ExceptionType which) {
 			case SC_Print:
 				Print_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
+			case SC_NetPrint:
+				NetPrint_Netcall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
             case SC_Rand:
                 DEBUG('a', "Random number syscall.\n");
                 rv = Rand_Syscall();
                 break;
-                
 		}
 		// Put in the return value and increment the PC
 		machine->WriteRegister(2, rv);
