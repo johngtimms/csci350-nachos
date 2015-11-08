@@ -185,9 +185,10 @@ int CreateLock_Netcall() {
     char recv[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "CreateLock process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d", threadID);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d", processID, threadID);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -227,9 +228,10 @@ void DestroyLock_Netcall(unsigned int key) {
     char send[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "DestroyLock process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d", threadID, key);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "DestroyLock process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -265,9 +267,10 @@ void Acquire_Netcall(unsigned int key) {
     char recv[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "Acquire process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d", threadID, key);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "Acquire process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -311,9 +314,10 @@ void Release_Netcall(unsigned int key) {
     char recv[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "Release process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d", threadID, key);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "Release process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -355,9 +359,10 @@ int CreateCondition_Netcall() {
     char recv[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "CreateCondition process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d", threadID);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "CreateCondition process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d", processID, threadID);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -397,9 +402,10 @@ void DestroyCondition_Netcall(unsigned int key) {
     char send[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "DestroyCondition process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d", threadID, key);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "DestroyCondition process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -442,9 +448,10 @@ void Wait_Netcall(unsigned int conditionKey, unsigned int lockKey) {
     char recv[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "Wait process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "Wait process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -494,9 +501,10 @@ void Signal_Netcall(unsigned int conditionKey, unsigned int lockKey) {
     char send[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "Signal process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
@@ -538,9 +546,10 @@ void Broadcast_Netcall(unsigned int conditionKey, unsigned int lockKey) {
     char send[MaxMailSize];
 
     // Form the request message
-    int threadID = currentThread->space->spaceID;
-    DEBUG('z', "Broadcast process %d thread %s\n", threadID, currentThread->getName());
-    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+    int processID = currentThread->space->spaceID;
+    int threadID = atoi(currentThread->getName());
+    DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		

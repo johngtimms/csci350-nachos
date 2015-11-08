@@ -39,10 +39,13 @@ class RPCServer {
 
 struct NetworkLock {
     Lock *lock;
+    int processID;
     int threadID;
 
-    NetworkLock() {
+    NetworkLock(int _processID, int _threadID) {
         lock = new Lock();
+        processID = _processID;
+        threadID = _threadID;
     }
 
     ~NetworkLock() {
@@ -52,10 +55,13 @@ struct NetworkLock {
 
 struct NetworkCondition {
     Condition *condition;
+    int processID;
     int threadID;
 
-    NetworkCondition() {
+    NetworkCondition(int _processID, int _threadID) {
         condition = new Condition();
+        processID = _processID;
+        threadID = _threadID;
     }
 
     ~NetworkCondition() {

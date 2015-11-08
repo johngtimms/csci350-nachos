@@ -25,9 +25,12 @@ void RPCServer::Receive_CreateLock() {
         // Wait for a mailbox message
         postOffice->Receive(MailboxCreateLock, &inPktHdr, &inMailHdr, recv);
 
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+
         // Process the message (identical to original syscall)
-        NetworkLock *lock = new NetworkLock();
-        lock->threadID = atoi(recv);
+        NetworkLock *lock = new NetworkLock(processID, threadID);
         networkLockTable->tableLock->Acquire();
         int key = networkLockTable->index;
         networkLockTable->locks[key] = lock;
@@ -36,6 +39,7 @@ void RPCServer::Receive_CreateLock() {
 
         // Reply with the key
         sprintf(send, "%d", key);
+        DEBUG('r', "CreateLock process %d thread %d key %d (new)\n", processID, threadID, key);
 
         // Construct packet header, mail header for the message
         outPktHdr.to = inPktHdr.from;       
@@ -63,8 +67,10 @@ void RPCServer::Receive_DestroyLock() {
         postOffice->Receive(MailboxDestroyLock, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
+        DEBUG('r', "DestroyLock process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
@@ -74,7 +80,7 @@ void RPCServer::Receive_DestroyLock() {
         else 
             printf("WARN: DestroyLock failed. No such lock.\n");
 
-        if (lock != NULL && lock->threadID == threadID)
+        if (lock != NULL && lock->processID == processID)
             networkLockTable->locks.erase(key);
         else
             printf("WARN: DestroyLock failed. Client does not own lock.\n");
@@ -96,9 +102,10 @@ void RPCServer::Receive_Acquire() {
         postOffice->Receive(MailboxAcquire, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('rpc', "Acquire key %d\n", key);
+        DEBUG('r', "Acquire process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
@@ -110,7 +117,7 @@ void RPCServer::Receive_Acquire() {
             interrupt->Halt();
         }
 
-        if (lock != NULL && lock->threadID == threadID)
+        if (lock != NULL && lock->processID == processID)
             lock->lock->Acquire();
         else {
             printf("ERROR: Acquire failed. Client does not own lock. Terminating Nachos.\n");
@@ -149,9 +156,10 @@ void RPCServer::Receive_Release() {
         postOffice->Receive(MailboxRelease, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-         DEBUG('rpc', "Release key %d\n", key);
+        DEBUG('r', "Release process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
@@ -163,7 +171,7 @@ void RPCServer::Receive_Release() {
             interrupt->Halt();
         }
 
-        if (lock != NULL && lock->threadID == threadID)
+        if (lock != NULL && lock->processID == processID)
             lock->lock->Release();
         else {
             printf("ERROR: Release failed. Client does not own lock. Terminating Nachos.\n");
@@ -199,9 +207,12 @@ void RPCServer::Receive_CreateCondition() {
         // Wait for a mailbox message
         postOffice->Receive(MailboxCreateCondition, &inPktHdr, &inMailHdr, recv);
 
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+
         // Process the message (identical to original syscall)
-        NetworkCondition *condition = new NetworkCondition();
-        condition->threadID = atoi(recv);
+        NetworkCondition *condition = new NetworkCondition(processID, threadID);
         networkConditionTable->tableLock->Acquire();
         int key = networkConditionTable->index;
         networkConditionTable->conditions[key] = condition;
@@ -210,6 +221,7 @@ void RPCServer::Receive_CreateCondition() {
 
         // Reply with the key
         sprintf(send, "%d", key);
+        DEBUG('r', "CreateCondition process %d thread %d key %d (new)\n", processID, threadID, key);
 
         // Construct packet header, mail header for the message
         outPktHdr.to = inPktHdr.from;       
@@ -237,8 +249,10 @@ void RPCServer::Receive_DestroyCondition() {
         postOffice->Receive(MailboxDestroyCondition, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
+        DEBUG('r', "DestroyCondition process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -248,7 +262,7 @@ void RPCServer::Receive_DestroyCondition() {
         else 
             printf("WARN: DestroyCondition failed. No such condition.\n");
 
-        if (condition != NULL && condition->threadID == threadID)
+        if (condition != NULL && condition->processID == processID)
             networkConditionTable->conditions.erase(key);
         else
             printf("WARN: DestroyCondition failed. Client does not own condition.\n");
@@ -271,9 +285,11 @@ void RPCServer::Receive_Wait() {
         postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
+        DEBUG('r', "Wait process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -293,7 +309,7 @@ void RPCServer::Receive_Wait() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->threadID == threadID && lock->threadID == threadID) {
+        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID) {
             networkConditionTable->tableLock->Release();
             networkLockTable->tableLock->Release();
             condition->condition->Wait(lock->lock);
@@ -332,9 +348,11 @@ void RPCServer::Receive_Signal() {
         postOffice->Receive(MailboxSignal, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
+        DEBUG('r', "Signal process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -354,7 +372,7 @@ void RPCServer::Receive_Signal() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->threadID == threadID && lock->threadID == threadID)
+        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID)
             condition->condition->Signal(lock->lock);
         else {
             printf("ERROR: Signal failed. Ownership error. Terminating Nachos.\n");
@@ -379,9 +397,11 @@ void RPCServer::Receive_Broadcast() {
         postOffice->Receive(MailboxBroadcast, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int threadID = atoi(strtok(recv,","));
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
+        DEBUG('r', "Broadcast process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -401,7 +421,7 @@ void RPCServer::Receive_Broadcast() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->threadID == threadID && lock->threadID == threadID)
+        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID)
             condition->condition->Broadcast(lock->lock);
         else {
             printf("ERROR: Broadcast failed. Ownership error. Terminating Nachos.\n");
