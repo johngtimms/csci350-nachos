@@ -183,6 +183,7 @@ int CreateLock_Netcall() {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "CreateLock process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d", threadID);
 
     // Construct packet header, mail header for the message
@@ -224,6 +225,7 @@ void DestroyLock_Netcall(unsigned int key) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "DestroyLock process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d", threadID, key);
 
     // Construct packet header, mail header for the message
@@ -261,6 +263,7 @@ void Acquire_Netcall(unsigned int key) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "Acquire process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d", threadID, key);
 
     // Construct packet header, mail header for the message
@@ -306,6 +309,7 @@ void Release_Netcall(unsigned int key) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "Release process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d", threadID, key);
 
     // Construct packet header, mail header for the message
@@ -349,6 +353,7 @@ int CreateCondition_Netcall() {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "CreateCondition process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d", threadID);
 
     // Construct packet header, mail header for the message
@@ -390,6 +395,7 @@ void DestroyCondition_Netcall(unsigned int key) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "DestroyCondition process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d", threadID, key);
 
     // Construct packet header, mail header for the message
@@ -434,6 +440,7 @@ void Wait_Netcall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "Wait process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
@@ -485,6 +492,7 @@ void Signal_Netcall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "Signal process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
@@ -528,6 +536,7 @@ void Broadcast_Netcall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int threadID = currentThread->space->spaceID;
+    DEBUG('z', "Broadcast process %d thread %s\n", threadID, currentThread->getName());
     sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
