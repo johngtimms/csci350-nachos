@@ -78,6 +78,7 @@ void Exit_Syscall(int status) {
         processTableLock->Release();
         // delete kernelLockTable & kernelCVTable
 		DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
+		printf("machine->ReadRegister(4) =  %d\n", machine->ReadRegister(4));
 		printf("Terminating Nachos\n");
 		interrupt->Halt();
     } 
@@ -85,12 +86,16 @@ void Exit_Syscall(int status) {
     else if(processTable->numProcesses > 1 && currentThread->space->numThreads == 1) {
 		processTable->processes.erase(currentThread->space->spaceID);
 		processTable->numProcesses--;
+		for(unsigned int i = 0; i < NumPhysPages; i++)
+			if(ipt[i].space == currentThread->space)
+				ipt[i].valid = false;
 		// Delete KernelLocks & KernelCVs belonging to this space
 		// Clear all the physical pages used in the AddrSpace of this process
 		delete currentThread->space; 
 		currentThread->space = NULL;
         processTableLock->Release();	
 		DEBUG('t', "Exit_Syscall Case 2 (Last thread belonging to process called Exit)\n");
+		printf("status =  %d\n", status);
 		currentThread->Finish();
     } 
 	// CASE 3: The exiting thread is a thread that was forked in a process

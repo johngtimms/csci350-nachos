@@ -267,6 +267,7 @@ AddrSpace::~AddrSpace() {
 		if(pageTable[i].valid)
 			memoryBitMap->Clear(pageTable[i].physicalPage);
 	memoryBitMapLock->Release();
+	
     delete pageTable;
 }
 
@@ -350,7 +351,7 @@ void AddrSpace::handlePageFault(int vaddr) {
 			break;
 		}
 	}
-	if(ppn = -1)
+	if(ppn == -1)
         ppn = handleIPTMiss(vpn);
 
 	//printf("ipt[ppn].virtualPage: %d\n", ipt[ppn].virtualPage);
@@ -368,6 +369,7 @@ void AddrSpace::handlePageFault(int vaddr) {
 	DEBUG('y', "machine->tlb[currentTLB].use: %d\n", ipt[ppn].use);
 	DEBUG('y', "machine->tlb[currentTLB].dirty: %d\n", ipt[ppn].dirty);
 	DEBUG('y', "machine->tlb[currentTLB].readOnly: %d\n", ipt[ppn].readOnly);
+	DEBUG('y', "currentTLB: %d\n", currentTLB);
 
     // Load page into TLB
 	machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
@@ -389,9 +391,8 @@ int AddrSpace::handleIPTMiss(int vpn) {
 	int ppn = memoryBitMap->Find();
 
 	if(ppn == -1)
-		ppn = handleMemoryFull();
+		ppn = handleMemoryFull(vpn);
 
-	
 	if(pageTable[vpn].location == IN_SWAPFILE) {
 		DEBUG('y', "Loading from swapfile\n");
 		DEBUG('y', "byteOffset: %d\n", pageTable[vpn].byteOffset);
@@ -443,13 +444,12 @@ int AddrSpace::handleIPTMiss(int vpn) {
 	return ppn;
 }
 
-int AddrSpace::handleMemoryFull() {
+int AddrSpace::handleMemoryFull(int neededVPN) {
 	DEBUG('y', "handleMemoryFull()\n");
 	int ppn = -1;
 	if(fifoEviction == true) {
 		IPTEntry *entry = (IPTEntry*) fifo->Remove();
 		ppn = entry->physicalPage;
-		printf("ppn: %d\n", ppn);
 	}
 	else
 		ppn = rand() % NumPhysPages;
@@ -464,6 +464,11 @@ int AddrSpace::handleMemoryFull() {
 	// If page is dirty, write it to the swapfile
 	if(ipt[ppn].dirty == true) {
 		int swapIndex = swapfileBitMap->Find();
+
+		DEBUG('y', "Writing to swapfile\n");
+		DEBUG('y', "swapIndex: %d\n", swapIndex);
+		DEBUG('y', "byteOffset = swapIndex * PageSize: %d\n", (int) swapIndex * PageSize);
+
 		// Write to SwapFile
 		if(swapIndex != -1)
 			swapfile->WriteAt(&(machine->mainMemory[ppn * PageSize]), PageSize, swapIndex * PageSize);
@@ -481,7 +486,7 @@ int AddrSpace::handleMemoryFull() {
 	// Evicted page belongs to this process
 	for(int i = 0; i < TLBSize; i++) {
 		// If evicted page is in TLB, update it
-	    if(machine->tlb[i].physicalPage == ppn && machine->tlb[i].valid) {
+	    if(machine->tlb[i].physicalPage == ppn /*&& machine->tlb[i].valid*/) {
 	    	ipt[ppn].dirty = machine->tlb[i].dirty;
 	    	machine->tlb[i].valid = false;
 	    }

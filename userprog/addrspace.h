@@ -33,7 +33,7 @@ class AddrSpace {
     void ClearPhysicalPage(int i);
     void AddrSpace::handlePageFault(int vaddr);
     int AddrSpace::handleIPTMiss(int vpn);
-    int AddrSpace::handleMemoryFull();
+    int AddrSpace::handleMemoryFull(int neededVPN);
     Table fileTable;            // Table of openfiles
     int spaceID;
     unsigned int numThreads;

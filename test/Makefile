@@ -30,7 +30,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c -w $(INCDIR)
 
-all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests
+all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -138,6 +138,12 @@ assignmentThreeTests.o: assignmentThreeTests.c
 assignmentThreeTests: assignmentThreeTests.o start.o
 	$(LD) $(LDFLAGS) start.o assignmentThreeTests.o -o assignmentThreeTests.coff
 	../bin/coff2noff assignmentThreeTests.coff assignmentThreeTests
+
+testdpvm.o: testdpvm.c
+	$(CC) $(CFLAGS) -c testdpvm.c
+testdpvm: testdpvm.o start.o
+	$(LD) $(LDFLAGS) start.o testdpvm.o -o testdpvm.coff
+	../bin/coff2noff testdpvm.coff testdpvm
 
 clean:
 	rm -f *.o *.coff
