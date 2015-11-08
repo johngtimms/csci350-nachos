@@ -16,9 +16,8 @@ RPCServer::~RPCServer() { }
 //-----------------------------------------------------------------------------------------------//
 
 void RPCServer::Receive_CreateLock() {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
     char recv[MaxMailSize];
 
     for (;;) {
@@ -30,7 +29,7 @@ void RPCServer::Receive_CreateLock() {
         int threadID = atoi(strtok(NULL,","));
 
         // Process the message (identical to original syscall)
-        NetworkLock *lock = new NetworkLock(processID, threadID);
+        NetworkLock *lock = new NetworkLock(inPktHdr.from, processID);
         networkLockTable->tableLock->Acquire();
         int key = networkLockTable->index;
         networkLockTable->locks[key] = lock;
@@ -38,20 +37,8 @@ void RPCServer::Receive_CreateLock() {
         networkLockTable->tableLock->Release();
 
         // Reply with the key
-        sprintf(send, "%d", key);
         DEBUG('r', "CreateLock process %d thread %d key %d (new)\n", processID, threadID, key);
-
-        // Construct packet header, mail header for the message
-        outPktHdr.to = inPktHdr.from;       
-        outMailHdr.to = MailboxCreateLock;
-        outMailHdr.from = MailboxCreateLock;
-        outMailHdr.length = strlen(send) + 1;
-
-        // Send the response message
-        bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-        if ( !success )
-            printf("WARN: CreateLock failed. Client misconfigured.\n");
+        SendResponse(inPktHdr.from, inMailHdr.from, key);
     }
 }
 
@@ -80,7 +67,7 @@ void RPCServer::Receive_DestroyLock() {
         else 
             printf("WARN: DestroyLock failed. No such lock.\n");
 
-        if (lock != NULL && lock->processID == processID)
+        if (lock != NULL && lock->IsOwner(processID))
             networkLockTable->locks.erase(key);
         else
             printf("WARN: DestroyLock failed. Client does not own lock.\n");
@@ -90,9 +77,8 @@ void RPCServer::Receive_DestroyLock() {
 }
 
 void RPCServer::Receive_Acquire() {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
     char recv[MaxMailSize];
 
     NetworkLock *lock;
@@ -117,36 +103,21 @@ void RPCServer::Receive_Acquire() {
             interrupt->Halt();
         }
 
-        if (lock != NULL && lock->processID == processID)
-            lock->lock->Acquire();
+        if (lock != NULL)
+            lock->Acquire(processID, threadID);
+            // Response is sent from Acquire()
         else {
-            printf("ERROR: Acquire failed. Client does not own lock. Terminating Nachos.\n");
+            printf("ERROR: Acquire failed. Lock null. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
         networkLockTable->tableLock->Release();
-
-        // Reply with OK
-        strcpy(send, "OK");
-
-        // Construct packet header, mail header for the message
-        outPktHdr.to = inPktHdr.from;       
-        outMailHdr.to = MailboxAcquire;
-        outMailHdr.from = MailboxAcquire;
-        outMailHdr.length = strlen(send) + 1;
-
-        // Send the response message
-        bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-        if ( !success )
-            printf("WARN: Acquire failed. Client misconfigured.\n");
     }
 }
 
 void RPCServer::Receive_Release() {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
     char recv[MaxMailSize];
 
     NetworkLock *lock;
@@ -171,36 +142,21 @@ void RPCServer::Receive_Release() {
             interrupt->Halt();
         }
 
-        if (lock != NULL && lock->processID == processID)
-            lock->lock->Release();
+        if (lock != NULL)
+            lock->Release(processID, threadID);
+            // Response is sent from Release()
         else {
-            printf("ERROR: Release failed. Client does not own lock. Terminating Nachos.\n");
+            printf("ERROR: Release failed. Lock null. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
         networkLockTable->tableLock->Release();
-
-        // Reply with OK
-        strcpy(send, "OK");
-
-        // Construct packet header, mail header for the message
-        outPktHdr.to = inPktHdr.from;       
-        outMailHdr.to = MailboxRelease;
-        outMailHdr.from = MailboxRelease;
-        outMailHdr.length = strlen(send) + 1;
-
-        // Send the response message
-        bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-        if ( !success )
-            printf("WARN: Release failed. Client misconfigured.\n");
     }
 }
 
 void RPCServer::Receive_CreateCondition() {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
     char recv[MaxMailSize];
 
     for (;;) {
@@ -212,7 +168,7 @@ void RPCServer::Receive_CreateCondition() {
         int threadID = atoi(strtok(NULL,","));
 
         // Process the message (identical to original syscall)
-        NetworkCondition *condition = new NetworkCondition(processID, threadID);
+        NetworkCondition *condition = new NetworkCondition(inPktHdr.from, processID);
         networkConditionTable->tableLock->Acquire();
         int key = networkConditionTable->index;
         networkConditionTable->conditions[key] = condition;
@@ -220,20 +176,8 @@ void RPCServer::Receive_CreateCondition() {
         networkConditionTable->tableLock->Release();
 
         // Reply with the key
-        sprintf(send, "%d", key);
         DEBUG('r', "CreateCondition process %d thread %d key %d (new)\n", processID, threadID, key);
-
-        // Construct packet header, mail header for the message
-        outPktHdr.to = inPktHdr.from;       
-        outMailHdr.to = MailboxCreateCondition;
-        outMailHdr.from = MailboxCreateCondition;
-        outMailHdr.length = strlen(send) + 1;
-
-        // Send the response message
-        bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-        if ( !success )
-            printf("WARN: CreateCondition failed. Client misconfigured.\n");
+        SendResponse(inPktHdr.from, inMailHdr.from, key);
     }
 }
 
@@ -262,7 +206,7 @@ void RPCServer::Receive_DestroyCondition() {
         else 
             printf("WARN: DestroyCondition failed. No such condition.\n");
 
-        if (condition != NULL && condition->processID == processID)
+        if (condition != NULL && condition->IsOwner(processID))
             networkConditionTable->conditions.erase(key);
         else
             printf("WARN: DestroyCondition failed. Client does not own condition.\n");
@@ -272,9 +216,8 @@ void RPCServer::Receive_DestroyCondition() {
 }
 
 void RPCServer::Receive_Wait() {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
     char recv[MaxMailSize];
 
     NetworkCondition *condition;
@@ -309,29 +252,16 @@ void RPCServer::Receive_Wait() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID) {
-            networkConditionTable->tableLock->Release();
-            networkLockTable->tableLock->Release();
-            condition->condition->Wait(lock->lock);
-
-            // Reply with OK
-            strcpy(send, "OK");
-
-            // Construct packet header, mail header for the message
-            outPktHdr.to = inPktHdr.from;       
-            outMailHdr.to = MailboxWait;
-            outMailHdr.from = MailboxWait;
-            outMailHdr.length = strlen(send) + 1;
-
-            // Send the response message
-            bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-            if ( !success )
-                printf("WARN: Wait failed. Client misconfigured.\n");
+        if (condition != NULL && lock != NULL) {
+            condition->Wait(processID, threadID, lock);
+            // Response sent from Wait()
         } else {
-            printf("ERROR: Wait failed. Ownership error. Terminating Nachos.\n");
+            printf("ERROR: Wait failed. Condition or lock null. Terminating Nachos.\n");
             interrupt->Halt();
         }
+
+        networkConditionTable->tableLock->Release();
+        networkLockTable->tableLock->Release();
     }
 }
 
@@ -372,10 +302,10 @@ void RPCServer::Receive_Signal() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID)
-            condition->condition->Signal(lock->lock);
+        if (condition != NULL && lock != NULL)
+            condition->Signal(processID, lock);
         else {
-            printf("ERROR: Signal failed. Ownership error. Terminating Nachos.\n");
+            printf("ERROR: Signal failed. Condition or lock null. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -421,10 +351,10 @@ void RPCServer::Receive_Broadcast() {
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL && condition->processID == processID && lock->processID == processID)
-            condition->condition->Broadcast(lock->lock);
+        if (condition != NULL && lock != NULL)
+            condition->Broadcast(processID, lock);
         else {
-            printf("ERROR: Broadcast failed. Ownership error. Terminating Nachos.\n");
+            printf("ERROR: Broadcast failed. Condition or lock null. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -460,6 +390,56 @@ void RPCServer::Receive_NetHalt() {
         // Halt when receiving a message
         interrupt->Halt();
     }
+}
+
+//-----------------------------------------------------------------------------------------------//
+// When replying to the client, must reply to the individual process/thread box.
+//-----------------------------------------------------------------------------------------------//
+int RPCServer::ClientMailbox(int process, int thread) {
+    char str1[2];
+    char str2[2];
+
+    // Have to add 1 because process and thread can both be 0, which would create overlap
+    sprintf(str1, "%d", (process + 1));
+    sprintf(str2, "%d", (thread + 1));
+    strcat(str1, str2);
+
+    DEBUG('r', "Client Mailbox %d process %d thread %d\n", atoi(str1), process, thread);
+
+    return atoi(str1);
+}
+
+//-----------------------------------------------------------------------------------------------//
+// A lot of calls need to reply "OK" when they're done, this promotes code reuse.
+// It also handles numeric responses.
+// For "OK" pass -1 as the response. For a numeric response, pass a number as the response.
+//-----------------------------------------------------------------------------------------------//
+void RPCServer::SendResponse(int machineID, int mailbox, int response) {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
+
+    // Construct response
+    if (response == -1)
+        strcpy(send, "OK");
+    else
+        sprintf(send, "%d", response);
+
+    DEBUG('r', "Send response machine %d mailbox %d response %d \"%s\"\n", machineID, mailbox, response, send);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = machineID;       
+    outMailHdr.to = mailbox;
+    outMailHdr.from = 100; // No syscall ever needs to reply to a response
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the response message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+        printf("WARN: SendResponse failed. Client misconfigured.\n");
+    else
+        DEBUG('r', "Send response success\n");
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -525,4 +505,163 @@ void RunServer() {
 
     Thread *tNetHalt = new Thread("NetHalt thread");
     tNetHalt->Fork(DummyReceive_NetHalt, (int) rpcServer);
+}
+
+//-----------------------------------------------------------------------------------------------//
+// Create new NetworkLock
+//-----------------------------------------------------------------------------------------------//
+
+NetworkLock::NetworkLock(int _machineID, int process) {
+    machineID = _machineID;
+    processID = process;
+    threadID = -1;
+    queue = new List;
+}
+
+NetworkLock::~NetworkLock() {
+    delete queue;
+}
+
+void NetworkLock::Acquire(int process, int thread) {
+    // Only the owner process may access this lock
+    if (process != processID) {
+        printf("ERROR: Acquire failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+
+    // Do the regular Lock::Acquire stuff
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    if (threadID == -1) {                               // lock is available
+        threadID = thread;
+        DEBUG('r', "Acquire success machine %d process %d thread %d\n", machineID, process, thread);
+        RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, threadID), -1);
+    } else if (threadID != thread) {                    // lock is busy
+        queue->Append((void *) thread);                 // add thread to the wait queue
+        DEBUG('r', "Acquire waiting process %d thread %d\n", process, thread);
+    } else {
+        printf("WARN: Acquire duplicate process %d thread %d\n", process, thread);
+    }
+    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+}
+
+void NetworkLock::Release(int process, int thread) {
+    // Only the owner process may access this lock
+    if (process != processID) {
+        printf("ERROR: Acquire failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+
+    // Do the regular Lock::Release stuff
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    if (threadID == thread) {
+        if (queue->IsEmpty())                           // no threads waiting
+            threadID = -1;
+        else {
+            threadID = (int) queue->Remove();           // wake up a waiting thread
+            DEBUG('r', "Acquire success via release process %d thread %d\n", processID, threadID);
+            RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, threadID), -1);
+        }
+    } else {
+        printf("WARN: Release without acquire process %d thread %d\n", process, thread);
+    }
+    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+}
+
+bool NetworkLock::IsOwner(int process) {
+    return (processID == process);
+}
+
+//-----------------------------------------------------------------------------------------------//
+// Create new NetworkCondition
+//-----------------------------------------------------------------------------------------------//
+
+NetworkCondition::NetworkCondition(int _machineID, int process) {
+    machineID = _machineID;
+    processID = process;
+    conditionLock = NULL;
+    queue = new List;
+}
+
+NetworkCondition::~NetworkCondition() {
+    delete conditionLock;
+    delete queue;
+}
+
+void NetworkCondition::Wait(int process, int thread, NetworkLock* lock) {
+    // Only the owner process may access this condition
+    if (process != processID) {
+        printf("ERROR: Wait failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+
+    // Do the regular Condition::Wait stuff
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    if (lock != NULL) {
+        if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
+            conditionLock = lock;
+            DEBUG('r', "Wait assigned lock process %d thread %d\n", processID, thread);
+        if (conditionLock == lock) {                    // ok to wait
+            queue->Append((void *) thread);             // add thread to wait queue
+            conditionLock->Release(process, thread);    // release waiting lock
+            DEBUG('r', "Wait waiting process %d thread %d\n", processID, thread);
+        } else {
+            printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
+            interrupt->Halt();
+        }    
+    } else {
+        printf("ERROR: Wait failed. Lock null. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+}
+
+void NetworkCondition::Signal(int process, NetworkLock* lock) {
+    // Only the owner process may access this condition
+    if (process != processID) {
+        printf("ERROR: Signal failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+
+    // Do the regular Condition::Signal stuff
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    if (lock != NULL) {
+        if (conditionLock == lock) {
+            int thread = (int) queue->Remove();         // remove one waiting thread from queue
+            DEBUG('r', "Signal thread process %d thread %d\n", processID, thread);
+            RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, thread), -1);
+        } else {
+            printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
+            interrupt->Halt();
+        }
+    } else {
+        printf("ERROR: Signal failed. Lock null. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+}
+
+void NetworkCondition::Broadcast(int process, NetworkLock* lock) {
+    // Only the owner process may access this condition
+    if (process != processID) {
+        printf("ERROR: Broadcast failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+
+    // Do the regular Condition::Broadcast stuff
+    if (lock != NULL) {
+        if (conditionLock == lock) {
+            while (!queue->IsEmpty())                   // signal all threads waiting
+                Signal(process, lock);
+        } else {
+            printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
+            interrupt->Halt();
+        }
+    } else {
+        printf("ERROR: Broadcast failed. Lock null. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+}
+
+bool NetworkCondition::IsOwner(int process) {
+    return (processID == process);
 }

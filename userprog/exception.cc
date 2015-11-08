@@ -187,13 +187,14 @@ int CreateLock_Netcall() {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxCreateLock;
-    outMailHdr.from = MailboxCreateLock;
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -203,7 +204,7 @@ int CreateLock_Netcall() {
       printf("WARN: CreateLock failed. Server misconfigured.\n");
 
     // Get the response back
-    postOffice->Receive(MailboxCreateLock, &inPktHdr, &inMailHdr, recv);
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     return key;
 }
@@ -269,14 +270,17 @@ void Acquire_Netcall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Acquire process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxAcquire;
-    outMailHdr.from = MailboxAcquire;
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(send) + 1;
+
+    DEBUG('z', "From (%d, %d) to (%d, %d) bytes %d\n", outPktHdr.from, outMailHdr.from, outPktHdr.to, outMailHdr.to, outMailHdr.length);
 
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
@@ -285,7 +289,7 @@ void Acquire_Netcall(unsigned int key) {
       printf("WARN: Acquire failed. Server misconfigured.\n");
 
     // Get the response back
-    postOffice->Receive(MailboxAcquire, &inPktHdr, &inMailHdr, recv);
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     
     char test[MaxMailSize];
     strcpy(test, "OK");
@@ -316,13 +320,14 @@ void Release_Netcall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Release process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxRelease;
-    outMailHdr.from = MailboxRelease;
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -332,7 +337,7 @@ void Release_Netcall(unsigned int key) {
       printf("WARN: Release failed. Server misconfigured.\n");
 
     // Get the response back
-    postOffice->Receive(MailboxRelease, &inPktHdr, &inMailHdr, recv);
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     
     char test[MaxMailSize];
     strcpy(test, "OK");
@@ -361,13 +366,14 @@ int CreateCondition_Netcall() {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateCondition process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxCreateCondition;
-    outMailHdr.from = MailboxCreateCondition;
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -377,7 +383,7 @@ int CreateCondition_Netcall() {
       printf("WARN: CreateCondition failed. Server misconfigured.\n");
 
     // Get the response back
-    postOffice->Receive(MailboxCreateCondition, &inPktHdr, &inMailHdr, recv);
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     return key;
 }
@@ -450,13 +456,14 @@ void Wait_Netcall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Wait process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;		
     outMailHdr.to = MailboxWait;
-    outMailHdr.from = MailboxWait;
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -466,7 +473,7 @@ void Wait_Netcall(unsigned int conditionKey, unsigned int lockKey) {
       printf("WARN: Wait failed. Server misconfigured.\n");
 
     // Get the response back
-    postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     
     char test[MaxMailSize];
     strcpy(test, "OK");

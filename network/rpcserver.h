@@ -35,38 +35,40 @@ class RPCServer {
         void Receive_Broadcast();
         void Receive_NetPrint();
         void Receive_NetHalt();
+
+        static int ClientMailbox(int process, int thread);
+        static void SendResponse(int machineID, int mailbox, int response);
 };
 
-struct NetworkLock {
-    Lock *lock;
-    int processID;
-    int threadID;
+class NetworkLock {
+    public:
+        NetworkLock(int _machineID, int process);
+        ~NetworkLock();
+        void Acquire(int process, int thread);
+        void Release(int process, int thread);
+        bool IsOwner(int process);
 
-    NetworkLock(int _processID, int _threadID) {
-        lock = new Lock();
-        processID = _processID;
-        threadID = _threadID;
-    }
-
-    ~NetworkLock() {
-        delete lock;
-    }
+    private:
+        int machineID;
+        int processID;
+        int threadID;
+        List *queue;
 };
 
-struct NetworkCondition {
-    Condition *condition;
-    int processID;
-    int threadID;
+class NetworkCondition {
+    public:
+        NetworkCondition(int _machineID, int process);
+        ~NetworkCondition();
+        void Wait(int process, int thread, NetworkLock *lock);
+        void Signal(int process, NetworkLock *lock);
+        void Broadcast(int process, NetworkLock *lock);
+        bool IsOwner(int process);
 
-    NetworkCondition(int _processID, int _threadID) {
-        condition = new Condition();
-        processID = _processID;
-        threadID = _threadID;
-    }
-
-    ~NetworkCondition() {
-        delete condition;
-    }
+    private:
+        int machineID;
+        int processID;
+        NetworkLock *conditionLock;
+        List *queue;
 };
 
 struct NetworkLockTable {
