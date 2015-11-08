@@ -58,15 +58,18 @@ void ForkUserThread(int functionPtr) {
 }
 
 void Fork_Syscall(int functionPtr) {
-	//processTableLock->Acquire();
 	DEBUG('t', "In Fork_Syscall\n");
+
+	// Name the nth thread in the process (needed for networking)
+	char buf[10];
+	snprintf(buf, 10, "%d", currentThread->space->numThreads);
 	Thread *thread;
-	thread = new Thread("Forked Thread");
-	//currentThread->space.threads.push_back(thread);
+	thread = new Thread(buf);
+
+	// Finish creatng thread
 	thread->space = currentThread->space;
   	thread->space->CreateStack(thread);
   	thread->space->numThreads++;
-  	//processTableLock->Release();
 	thread->Fork((VoidFunctionPtr)ForkUserThread, functionPtr);
 	currentThread->Yield();
 }
@@ -142,7 +145,7 @@ int Exec_Syscall(unsigned int vaddr, int len) {
     // Create an AddrSpace (Process) for new file
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
-    Thread *thread = new Thread(buf);
+    Thread *thread = new Thread("0"); // Name the first thread in the new process 0 (needed for networking)	
     // New process bookkeeping
     thread->space = space;
     thread->space->CreateStack(thread);

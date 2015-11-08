@@ -25,6 +25,11 @@ int main() {
 	DestroyLock(locktwo);
 	Print("Destroyed Lock\n", 15);
 
+	/* This is probably a temporary test. I want to
+	see what happens to the thread names when I do an exec*/
+	Print("Testing exec from network tests\n", 32);
+	Exec("../test/networkTests", 20);
+
 	/* Test NetHalt */
 	NetHalt();
 
