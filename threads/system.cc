@@ -42,6 +42,8 @@ Lock *processTableLock;
     RPCServer *rpcServer;
     int machineName;        // This OS's network name (UNIX socket)
     int destinationName;    // The remote OS's network name
+    NetworkLockTable *networkLockTable;
+    NetworkConditionTable *networkConditionTable;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -179,6 +181,8 @@ Initialize(int argc, char **argv) {
 #ifdef NETWORK
     postOffice = new PostOffice(machineName, rely, 20);
     rpcServer = new RPCServer();
+    networkLockTable = new NetworkLockTable();
+    networkConditionTable = new NetworkConditionTable();
 #endif
 }
 

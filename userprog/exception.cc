@@ -30,6 +30,7 @@
 #include <map>
 #include "process.h"
 #include "network.h"
+#include "rpcserver.h"
 
 using namespace std;
 
@@ -173,8 +174,33 @@ int CreateLock_Syscall() {
 	return key;
 }
 
-void CreateLock_Netcall() {
+// Sends a request with the process's ID, gets a lock ID back
+int CreateLock_Netcall() {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d", threadID);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxCreateLock;
+    outMailHdr.from = MailboxCreateLock;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: CreateLock failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(MailboxCreateLock, &inPktHdr, &inMailHdr, recv);
+    int key = atoi(recv);
+    return key;
 }
 
 void DestroyLock_Syscall(unsigned int key) {
@@ -191,8 +217,26 @@ void DestroyLock_Syscall(unsigned int key) {
 	lockTable->tableLock->Release();
 }
 
-void DestroyLock_Netcall() {
+void DestroyLock_Netcall(unsigned int key) {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d", threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxDestroyLock;
+    outMailHdr.from = MailboxDestroyLock;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: DestroyLock failed. Server misconfigured.\n");
 }
 
 void Acquire_Syscall(unsigned int key) {
@@ -209,8 +253,35 @@ void Acquire_Syscall(unsigned int key) {
 	lockTable->tableLock->Release();
 }
 
-void Acquire_Netcall() {
+void Acquire_Netcall(unsigned int key) {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d", threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxAcquire;
+    outMailHdr.from = MailboxAcquire;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Acquire failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(MailboxAcquire, &inPktHdr, &inMailHdr, recv);
+    
+    char test[MaxMailSize];
+    strcpy(test, "OK");
+    if ( strcmp(test,recv) )
+    	printf("WARN: Acquire failed. Recieved bad server message.\n");
 }
 
 void Release_Syscall(unsigned int key) {
@@ -227,8 +298,35 @@ void Release_Syscall(unsigned int key) {
 	lockTable->tableLock->Release();
 }
 
-void Release_Netcall() {
+void Release_Netcall(unsigned int key) {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d", threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxRelease;
+    outMailHdr.from = MailboxRelease;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Release failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(MailboxRelease, &inPktHdr, &inMailHdr, recv);
+    
+    char test[MaxMailSize];
+    strcpy(test, "OK");
+    if ( strcmp(test,recv) )
+    	printf("WARN: Release failed. Recieved bad server message.\n");
 }
 
 int CreateCondition_Syscall() {
@@ -243,8 +341,32 @@ int CreateCondition_Syscall() {
 	return key;
 }
 
-void CreateCondition_Netcall() {
+int CreateCondition_Netcall() {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d", threadID);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxCreateCondition;
+    outMailHdr.from = MailboxCreateCondition;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: CreateCondition failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(MailboxCreateCondition, &inPktHdr, &inMailHdr, recv);
+    int key = atoi(recv);
+    return key;
 }
 
 void DestroyCondition_Syscall(unsigned int key) {
@@ -261,8 +383,26 @@ void DestroyCondition_Syscall(unsigned int key) {
 	conditionTable->tableLock->Release();
 }
 
-void DestroyCondition_Netcall() {
+void DestroyCondition_Netcall(unsigned int key) {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d", threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxDestroyCondition;
+    outMailHdr.from = MailboxDestroyCondition;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: DestroyCondition failed. Server misconfigured.\n");
 }
 
 void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -286,8 +426,35 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	}
 }
 
-void Wait_Netcall() {
+void Wait_Netcall(unsigned int conditionKey, unsigned int lockKey) {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxWait;
+    outMailHdr.from = MailboxWait;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Wait failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
+    
+    char test[MaxMailSize];
+    strcpy(test, "OK");
+    if ( strcmp(test,recv) )
+    	printf("WARN: Wait failed. Recieved bad server message.\n");
 }
 
 void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -311,8 +478,26 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	conditionTable->tableLock->Release();
 }
 
-void Signal_Netcall() {
+void Signal_Netcall(unsigned int conditionKey, unsigned int lockKey) {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxSignal;
+    outMailHdr.from = MailboxSignal;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Signal failed. Server misconfigured.\n");
 }
 
 void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -336,8 +521,26 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	conditionTable->tableLock->Release();
 }
 
-void Broadcast_Netcall() {
+void Broadcast_Netcall(unsigned int conditionKey, unsigned int lockKey) {
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
 
+    // Form the request message
+    int threadID = currentThread->space->spaceID;
+    sprintf(send, "%d,%d,%d", threadID, conditionKey, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;		
+    outMailHdr.to = MailboxBroadcast;
+    outMailHdr.from = MailboxBroadcast;
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Broadcast failed. Server misconfigured.\n");
 }
 
 void Print_Syscall(int text, int num) {
@@ -370,8 +573,8 @@ void NetPrint_Netcall(int text, int num) {
     // Make sure the message is not too long
     // Example of a 39 byte message, the max that can be sent: "Lorem ipsum dolor sit amet turpis duis."
     if (outMailHdr.length > 40) {
-    	printf("ERROR: NetPrint failed. Can't send %d bytes. Terminating Nachos.\n", outMailHdr.length);
-    	interrupt->Halt();
+        printf("ERROR: NetPrint failed. Can't send %d bytes. Terminating Nachos.\n", outMailHdr.length);
+        interrupt->Halt();
     }
 
     // Send the message
@@ -468,39 +671,39 @@ void ExceptionHandler(ExceptionType which) {
 				break;
 			case SC_CreateLock:
 				DEBUG('a', "CreateLock syscall.\n");
-				rv = CreateLock_Syscall();
+				rv = CreateLock_Netcall();
 				break;
 			case SC_DestroyLock:
 				DEBUG('a', "DestroyLock syscall.\n");
-				DestroyLock_Syscall(machine->ReadRegister(4));
+				DestroyLock_Netcall(machine->ReadRegister(4));
 				break;
 			case SC_Acquire:
 				DEBUG('a', "Acquire syscall.\n");
-				Acquire_Syscall(machine->ReadRegister(4));
+				Acquire_Netcall(machine->ReadRegister(4));
 				break;
 			case SC_Release:
 				DEBUG('a', "Release syscall.\n");
-				Release_Syscall(machine->ReadRegister(4));
+				Release_Netcall(machine->ReadRegister(4));
 				break;
 			case SC_CreateCondition:
 				DEBUG('a', "CreateCondition syscall.\n");
-				rv = CreateCondition_Syscall();
+				rv = CreateCondition_Netcall();
 				break;
 			case SC_DestroyCondition:
 				DEBUG('a', "DestroyCondition syscall.\n");
-				DestroyCondition_Syscall(machine->ReadRegister(4));
+				DestroyCondition_Netcall(machine->ReadRegister(4));
 				break;
 			case SC_Wait:
 				DEBUG('a', "Wait syscall.\n");
-				Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Wait_Netcall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Signal:
 				DEBUG('a', "Signal syscall.\n");
-				Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Signal_Netcall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Broadcast:
 				DEBUG('a', "Broadcast syscall.\n");
-				Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				Broadcast_Netcall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 			case SC_Print:
 				Print_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));

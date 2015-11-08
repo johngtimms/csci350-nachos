@@ -60,6 +60,8 @@ extern Timer *timer;                    // the hardware alarm clock
     extern RPCServer* rpcServer;
     extern int machineName;
     extern int destinationName;
+    extern NetworkLockTable* networkLockTable;
+    extern NetworkConditionTable* networkConditionTable;
 #endif
 
 #endif

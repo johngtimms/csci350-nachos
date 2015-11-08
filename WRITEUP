@@ -1,170 +1,170 @@
 Title: Writeup for Assignment 3, Fall 2015
 Date:  
-Group: Name					Email
-	   Nicholas Roubal		nroubal@usc.edu
-	   Yetsebaot Sisay		sisay@usc.edu
-	   John Timms			timms@usc.edu
+Group: Name                 Email
+       Nicholas Roubal      nroubal@usc.edu
+       Yetsebaot Sisay      sisay@usc.edu
+       John Timms           timms@usc.edu
 
 I. Requirements:
 
-	Part 1:
+    Part 1:
 
-		
+        
 
-	Part 2:
+    Part 2:
 
-		
+        
 
-	Part 3:
+    Part 3:
 
-		Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
-		implement Monitor syscalls using the new model. This will require changing exception.cc so that
-		Nachos user programs use the new model but are entirely unaware of the changes. It will also
-		require changing main.cc so that Nachos can be started in server mode.
+        Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
+        implement Monitor syscalls using the new model. This will require changing exception.cc so that
+        Nachos user programs use the new model but are entirely unaware of the changes. It will also
+        require changing main.cc so that Nachos can be started in server mode.
 
 II. Assumptions:
 
-	Part 1:
+    Part 1:
 
-		
+        
 
-	Part 2:
+    Part 2:
 
-		
+        
 
-	Part 3:
+    Part 3:
 
-		None
+        None
 
 III. Design:
 
-	Part 1:
+    Part 1:
 
-		
+        
 
-	Part 2:
+    Part 2:
 
-		
+        
 
-	Part 3:
+    Part 3:
 
-		The server design is based on the provided post office code and is implemented in the rpcserver.h
-		and rpcserver.cc files. The system.h and system.cc files have been modified to create a global 
-		rpcServer object. When running Nachos with the "--server" flag, main.cc will call RunServer().
-		The server and network connection are already configured (because rpcServer and postOffice are already 
-		constructed) so calling this just starts the threads that accepts the packets.
+        The server design is based on the provided post office code and is implemented in the rpcserver.h
+        and rpcserver.cc files. The system.h and system.cc files have been modified to create a global 
+        rpcServer object. When running Nachos with the "--server" flag, main.cc will call RunServer().
+        The server and network connection are already configured (because rpcServer and postOffice are already 
+        constructed) so calling this just starts the threads that accepts the packets.
 
-		To eliminate problems designing a packet header to express which syscall the server should execute, we
-		re-used the post office implementation and assigned each syscall a mailbox ID. The file rpcserver.cc 
-		contain the loops that runs waiting for new mail in each mailbox. The file rpcserver.h defines which
-		mailbox belongs to each syscall.
+        To eliminate problems designing a packet header to express which syscall the server should execute, we
+        re-used the post office implementation and assigned each syscall a mailbox ID. The file rpcserver.cc 
+        contain the loops that runs waiting for new mail in each mailbox. The file rpcserver.h defines which
+        mailbox belongs to each syscall.
 
 IV. Implementation:
 
-	Files Modified:
-		Makefile.common
-		test/halt.c
-		test/Makefile
-		test/start.s
-		threads/main.cc
-		threads/structs.h
-		threads/synch.cc
-		threads/synch.h
-		threads/system.cc
-		threads/system.h
-		userprog/exception.cc
-		userprog/syscall.h
+    Files Modified:
+        Makefile.common
+        test/halt.c
+        test/Makefile
+        test/start.s
+        threads/main.cc
+        threads/structs.h
+        threads/synch.cc
+        threads/synch.h
+        threads/system.cc
+        threads/system.h
+        userprog/exception.cc
+        userprog/syscall.h
 
-	Files Added:
-		network/rpcserver.cc
-		network/rpcserver.h
-		test/assignmentThreeTests.c
-		test/networkTests.c
+    Files Added:
+        network/rpcserver.cc
+        network/rpcserver.h
+        test/assignmentThreeTests.c
+        test/networkTests.c
 
-	Data Structures Added:
-		class RPCServer 						in network/rpcserver.h
+    Data Structures Added:
+        class RPCServer                         in network/rpcserver.h
 
-	Data Structures Modified:
-		
-		None
+    Data Structures Modified:
+        
+        None
 
-	Functions Added:
-        RPCServer::RPCServer()					in network/rpcserver.cc
-        RPCServer::~RPCServer()					in network/rpcserver.cc
-        RPCServer::Receive_CreateLock()			in network/rpcserver.cc
-        RPCServer::Receive_DestroyLock()		in network/rpcserver.cc
-        RPCServer::Receive_Acquire()			in network/rpcserver.cc
-        RPCServer::Receive_Release()			in network/rpcserver.cc
-        RPCServer::Receive_CreateCondition()	in network/rpcserver.cc
-        RPCServer::Receive_DestroyCondition()	in network/rpcserver.cc
-        RPCServer::Receive_Wait()				in network/rpcserver.cc
-        RPCServer::Receive_Signal()				in network/rpcserver.cc
-        RPCServer::Receive_Broadcast()			in network/rpcserver.cc 
-        RPCServer::Receive_NetPrint()			in network/rpcserver.cc
-        RPCServer::Receive_NetHalt()			in network/rpcserver.cc
-		DummyReceive_CreateLock()				in network/rpcserver.cc
-		DummyReceive_DestroyLock()				in network/rpcserver.cc
-		DummyReceive_Acquire()					in network/rpcserver.cc
-		DummyReceive_Release()					in network/rpcserver.cc
-		DummyReceive_CreateCondition()			in network/rpcserver.cc
-		DummyReceive_DestroyCondition()			in network/rpcserver.cc
-		DummyReceive_Wait()						in network/rpcserver.cc
-		DummyReceive_Signal()					in network/rpcserver.cc
-		DummyReceive_Broadcast()				in network/rpcserver.cc
-		DummyReceive_NetPrint()					in network/rpcserver.cc
-		DummyReceive_NetHalt()					in network/rpcserver.cc
-        RunServer()								in network/rpcserver.cc
-		main()									in test/assignmentThreeTests.c
-		main()									in test/networkTests.c
-		getName()								in threads/synch.h
-		CreateLock_Netcall()					in userprog/exception.cc
-		DestroyLock_Netcall()					in userprog/exception.cc
-		Acquire_Netcall()						in userprog/exception.cc 
-		Release_Netcall()						in userprog/exception.cc 
-		CreateCondition_Netcall()				in userprog/exception.cc 
-		DestroyCondition_Netcall()				in userprog/exception.cc
-		Wait_Netcall()							in userprog/exception.cc
-		Signal_Netcall()						in userprog/exception.cc
-		Broadcast_Netcall()						in userprog/exception.cc
-		NetPrint_Netcall()						in userprog/exception.cc
-		NetHalt_Netcall()						in userprog/exception.cc
+    Functions Added:
+        RPCServer::RPCServer()                  in network/rpcserver.cc
+        RPCServer::~RPCServer()                 in network/rpcserver.cc
+        RPCServer::Receive_CreateLock()         in network/rpcserver.cc
+        RPCServer::Receive_DestroyLock()        in network/rpcserver.cc
+        RPCServer::Receive_Acquire()            in network/rpcserver.cc
+        RPCServer::Receive_Release()            in network/rpcserver.cc
+        RPCServer::Receive_CreateCondition()    in network/rpcserver.cc
+        RPCServer::Receive_DestroyCondition()   in network/rpcserver.cc
+        RPCServer::Receive_Wait()               in network/rpcserver.cc
+        RPCServer::Receive_Signal()             in network/rpcserver.cc
+        RPCServer::Receive_Broadcast()          in network/rpcserver.cc 
+        RPCServer::Receive_NetPrint()           in network/rpcserver.cc
+        RPCServer::Receive_NetHalt()            in network/rpcserver.cc
+        DummyReceive_CreateLock()               in network/rpcserver.cc
+        DummyReceive_DestroyLock()              in network/rpcserver.cc
+        DummyReceive_Acquire()                  in network/rpcserver.cc
+        DummyReceive_Release()                  in network/rpcserver.cc
+        DummyReceive_CreateCondition()          in network/rpcserver.cc
+        DummyReceive_DestroyCondition()         in network/rpcserver.cc
+        DummyReceive_Wait()                     in network/rpcserver.cc
+        DummyReceive_Signal()                   in network/rpcserver.cc
+        DummyReceive_Broadcast()                in network/rpcserver.cc
+        DummyReceive_NetPrint()                 in network/rpcserver.cc
+        DummyReceive_NetHalt()                  in network/rpcserver.cc
+        RunServer()                             in network/rpcserver.cc
+        main()                                  in test/assignmentThreeTests.c
+        main()                                  in test/networkTests.c
+        getName()                               in threads/synch.h
+        CreateLock_Netcall()                    in userprog/exception.cc
+        DestroyLock_Netcall()                   in userprog/exception.cc
+        Acquire_Netcall()                       in userprog/exception.cc 
+        Release_Netcall()                       in userprog/exception.cc 
+        CreateCondition_Netcall()               in userprog/exception.cc 
+        DestroyCondition_Netcall()              in userprog/exception.cc
+        Wait_Netcall()                          in userprog/exception.cc
+        Signal_Netcall()                        in userprog/exception.cc
+        Broadcast_Netcall()                     in userprog/exception.cc
+        NetPrint_Netcall()                      in userprog/exception.cc
+        NetHalt_Netcall()                       in userprog/exception.cc
 
-	Functions Modified:
-		main()									in test/halt.c
-		main()									in threads/main.cc
-		Condition::Signal()						in threads/synch.cc
-		Condition::Broadcast()					in threads/synch.cc
-		Initialize()							in threads/system.cc
-		ExceptionHandler()						in userprog/exception.cc
+    Functions Modified:
+        main()                                  in test/halt.c
+        main()                                  in threads/main.cc
+        Condition::Signal()                     in threads/synch.cc
+        Condition::Broadcast()                  in threads/synch.cc
+        Initialize()                            in threads/system.cc
+        ExceptionHandler()                      in userprog/exception.cc
 
 V. Testing:
 
-	How To Test:
+    How To Test:
 
-		Part 1:
+        Part 1:
 
-			
+            
 
-		Part 2:
+        Part 2:
 
-			
+            
 
-		Part 3:
+        Part 3:
 
-			
+            
 
 VI: Discussion:
 
-	In exception.cc's ExceptionHandler(), we changed the functions called for each syscall that is backed
-	by the network, to indicate that they are siginifcantly different. For example, CreateLock_Syscall()
-	became CreateLock_Netcall(). Each ntcall uses the postOffice to Send() a message to the server.
-	NetPrint_Netcall() is a good example of the most basic netcall. This is the extent of the client's
-	networking code.
+    In exception.cc's ExceptionHandler(), we changed the functions called for each syscall that is backed
+    by the network, to indicate that they are siginifcantly different. For example, CreateLock_Syscall()
+    became CreateLock_Netcall(). Each ntcall uses the postOffice to Send() a message to the server.
+    NetPrint_Netcall() is a good example of the most basic netcall. This is the extent of the client's
+    networking code.
 
-	The server code is contained in the rpcserver.cc file. As noted above, RunServer() starts threads for 
-	handling each possible netcall. Each thread waits for its mailbox to receive a message, and then
-	processes it.
+    The server code is contained in the rpcserver.cc file. As noted above, RunServer() starts threads for 
+    handling each possible netcall. Each thread waits for its mailbox to receive a message, and then
+    processes it.
 
 VII. Miscellaneous:
 
-	
+    

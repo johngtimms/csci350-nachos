@@ -37,4 +37,60 @@ class RPCServer {
         void Receive_NetHalt();
 };
 
+struct NetworkLock {
+    Lock *lock;
+    int threadID;
+
+    NetworkLock() {
+        lock = new Lock();
+    }
+
+    ~NetworkLock() {
+        delete lock;
+    }
+};
+
+struct NetworkCondition {
+    Condition *condition;
+    int threadID;
+
+    NetworkCondition() {
+        condition = new Condition();
+    }
+
+    ~NetworkCondition() {
+        delete condition;
+    }
+};
+
+struct NetworkLockTable {
+    int index;
+    Lock *tableLock;
+    std::map<int, NetworkLock*> locks;
+
+    NetworkLockTable() {
+        index = 0;
+        tableLock = new Lock();
+    }
+
+    ~NetworkLockTable() {
+        delete tableLock;
+    }
+};
+
+struct NetworkConditionTable {
+    int index;
+    Lock *tableLock;
+    std::map<int, NetworkCondition*> conditions;
+
+    NetworkConditionTable() {
+        index = 0;
+        tableLock = new Lock();
+    }
+
+    ~NetworkConditionTable() {
+        delete tableLock;
+    }
+};
+
 #endif
