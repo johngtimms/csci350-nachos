@@ -1,0 +1,234 @@
+Title: Writeup for Assignment 3, Fall 2015
+Date:  
+Group: Name                 Email
+       Nicholas Roubal      nroubal@usc.edu
+       Yetsebaot Sisay      sisay@usc.edu
+       John Timms           timms@usc.edu
+
+I. Requirements:
+
+    Part 1:
+
+        Implement software-management of the TLB using software page translation, including handling TLB misses.
+
+    Part 2:
+
+        Implement virtual memory, using the TLB, IPT, and a swapfile, being able to keep track of each virtual page, whether it is in memory, swap file, or the original exuctable. And implementation should handle full memory, selecting a page to remove from memory to make room (Random and FIFO page replacement policy). An IPT, which translates virtual pages to physical pages, should be used to keep track of all the pages in the system that are currently in use. 
+
+    Part 3:
+
+        Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
+        implement Monitor syscalls using the new model. This will require changing exception.cc so that
+        Nachos user programs use the new model but are entirely unaware of the changes. It will also
+        require changing main.cc so that Nachos can be started in server mode.
+
+II. Assumptions:
+
+    Part 1:
+
+        None    
+
+    Part 2:
+
+        None
+
+    Part 3:
+
+        None
+
+III. Design:
+
+    Part 1 & 2:
+        In exception.cc:  added a new handler for PageFaultExceptions 
+            if(which == PageFaultException) {
+                rv = machine->ReadRegister(BadVAddrReg);
+                currentThread->space->handlePageFault(rv);
+            }
+        Created a new class IPTEntry, that inherits from TranslationEntry. 
+        This class contains: 
+            an addrspace pointer - keeps track of the owner of page
+            byteOffset - keeps track of the offset location in the swapfile
+            location - keeps track of where the page is (either IN_SWAPFILE, IN_EXECUTABLE, IN_NEITHER)
+
+        machine.h
+            Changed the number of physical pages from 1000 pages to 32 pages, so swapping occurs frequently.
+
+        Inside addrspace.h/cc, 
+            Changed the page tables to be instances of our new class IPTEntry 
+
+            Constructor: 
+                No longer deletes the executable, but saves its pointer so that its data can continue to be read during IPT misses
+                Values in the page table are no longer preloaded, but instead initialized
+
+            AddrSpace::handlePageFault(int vaddr)
+                Calculates the vpn ( vaddr / PageSize )
+                Disabled interrupts
+                Searches the IPT for the needed vpn
+                    If IPT can't find the page, it searches for a new one, calling handleIPTMiss(vpn)
+                Propgate dirty bits from TLB to the IPT and page table
+                Load page from IPT to TLB (copies virtual page, physical page, valid, use, dirty, readOnly)
+                Restores interrupts
+
+            AddrSpace::handleIPTMiss(int vpn)
+                Searches for a new page from memory
+                    If memory is full, a page is going to be evicted, calling handleMemoryFull(need vpn)
+                Locate data (either from swapfile or executable) and store it into the new page in memory
+                    If it's in swap file, locate based off byteOffSet, read and store in page table
+                    If it's in executable, read it and store in page table
+
+            AddrSpace::handleMemoryFull(int neededVPN)
+                Find page to evict
+                    FIFO Eviction:
+                        Get oldest page in IPT, (first page in list that chronologically keeps track of pages being added to IPT)
+                    Random Eviction
+                        Genereate random number between the possible physical pages and get that page
+                    If page is dirty is dirty, write it to the swapfile, and update page table to show page moving from memory to swapfile
+                    Check if evicted page is in TLB
+                        Update IPT and TLB of process of evicted page
+                    Update page table and IPT
+        
+
+    Part 3:
+
+        The server design is based on the provided post office code and is implemented in the rpcserver.h
+        and rpcserver.cc files. The system.h and system.cc files have been modified to create a global 
+        rpcServer object. When running Nachos with the "--server" flag, main.cc will call RunServer().
+        The server and network connection are already configured (because rpcServer and postOffice are already 
+        constructed) so calling this just starts the threads that accepts the packets.
+
+        To eliminate problems designing a packet header to express which syscall the server should execute, we
+        re-used the post office implementation and assigned each syscall a mailbox ID. The file rpcserver.cc 
+        contain the loops that runs waiting for new mail in each mailbox. The file rpcserver.h defines which
+        mailbox belongs to each syscall.
+
+IV. Implementation:
+
+    Files Modified:
+        Makefile.common
+        test/halt.c
+        test/Makefile
+        test/start.s
+        threads/main.cc
+        threads/structs.h
+        threads/synch.cc
+        threads/synch.h
+        threads/system.cc
+        threads/system.h
+        userprog/exception.cc
+        userprog/addrspace.h
+        userprog/addrspace.cc
+        userprog/syscall.h
+        machine/machine.h
+
+    Files Added:
+        vm/ipt.h
+        network/rpcserver.cc
+        network/rpcserver.h
+        test/assignmentThreeTests.c
+        test/networkTests.c
+
+    Data Structures Added:
+        class RPCServer                         in network/rpcserver.h
+
+    Data Structures Modified:
+        None
+
+    Functions Added:
+        AddrSpace::handlePageFault()            in userprog/addrspace.cc
+        AddrSpace::handleIPTMiss()              in userprog/addrspace.cc
+        AddrSpace::handleMemoryFull()           in userprog/addrspace.cc
+        RPCServer::RPCServer()                  in network/rpcserver.cc
+        RPCServer::~RPCServer()                 in network/rpcserver.cc
+        RPCServer::Receive_CreateLock()         in network/rpcserver.cc
+        RPCServer::Receive_DestroyLock()        in network/rpcserver.cc
+        RPCServer::Receive_Acquire()            in network/rpcserver.cc
+        RPCServer::Receive_Release()            in network/rpcserver.cc
+        RPCServer::Receive_CreateCondition()    in network/rpcserver.cc
+        RPCServer::Receive_DestroyCondition()   in network/rpcserver.cc
+        RPCServer::Receive_Wait()               in network/rpcserver.cc
+        RPCServer::Receive_Signal()             in network/rpcserver.cc
+        RPCServer::Receive_Broadcast()          in network/rpcserver.cc 
+        RPCServer::Receive_NetPrint()           in network/rpcserver.cc
+        RPCServer::Receive_NetHalt()            in network/rpcserver.cc
+        DummyReceive_CreateLock()               in network/rpcserver.cc
+        DummyReceive_DestroyLock()              in network/rpcserver.cc
+        DummyReceive_Acquire()                  in network/rpcserver.cc
+        DummyReceive_Release()                  in network/rpcserver.cc
+        DummyReceive_CreateCondition()          in network/rpcserver.cc
+        DummyReceive_DestroyCondition()         in network/rpcserver.cc
+        DummyReceive_Wait()                     in network/rpcserver.cc
+        DummyReceive_Signal()                   in network/rpcserver.cc
+        DummyReceive_Broadcast()                in network/rpcserver.cc
+        DummyReceive_NetPrint()                 in network/rpcserver.cc
+        DummyReceive_NetHalt()                  in network/rpcserver.cc
+        RunServer()                             in network/rpcserver.cc
+        main()                                  in test/assignmentThreeTests.c
+        main()                                  in test/networkTests.c
+        getName()                               in threads/synch.h
+        CreateLock_Netcall()                    in userprog/exception.cc
+        DestroyLock_Netcall()                   in userprog/exception.cc
+        Acquire_Netcall()                       in userprog/exception.cc 
+        Release_Netcall()                       in userprog/exception.cc 
+        CreateCondition_Netcall()               in userprog/exception.cc 
+        DestroyCondition_Netcall()              in userprog/exception.cc
+        Wait_Netcall()                          in userprog/exception.cc
+        Signal_Netcall()                        in userprog/exception.cc
+        Broadcast_Netcall()                     in userprog/exception.cc
+        NetPrint_Netcall()                      in userprog/exception.cc
+        NetHalt_Netcall()                       in userprog/exception.cc
+
+    Functions Modified:
+        main()                                  in test/halt.c
+        main()                                  in threads/main.cc
+        Condition::Signal()                     in threads/synch.cc
+        Condition::Broadcast()                  in threads/synch.cc
+        Initialize()                            in threads/system.cc
+        ExceptionHandler()                      in userprog/exception.cc
+        AddrSpace::AddrSpace()                  in userprog/addrspace.cc
+
+V. Testing:
+
+    How To Test:
+
+        Part 1 & 2 (software-management of TLB and virtual memory):
+        
+
+        - FIFO vs. Random Eviction Policies
+          In Network folder:
+          Matmult:
+             nachos -x ../test/matmult -P RAND 
+             OR
+             nachos -x ../test/matmult -P FIFO 
+            Sort:
+              nachos -x ../test/sort -P RAND 
+              OR
+              nachos -x ../test/sort -P FIFO 
+
+        - Demonstration of two programs running matmults
+          nachos -x ../test/testdpvm -P RAND
+          OR    
+          nachos -x ../test/testdpvm -P FIFO
+
+            
+
+        Part 3:
+
+            
+
+VI: Discussion:
+
+    Implementing the software memory management unit was challenging, in the sense that it was a little difficult to debug, but all the steps to implement virtual memory made logical sense, and so it eventually worked out. We were able to create a memory management system that seems to be capable of managing memory between multiple processes .
+
+    In exception.cc's ExceptionHandler(), we changed the functions called for each syscall that is backed
+    by the network, to indicate that they are siginifcantly different. For example, CreateLock_Syscall()
+    became CreateLock_Netcall(). Each ntcall uses the postOffice to Send() a message to the server.
+    NetPrint_Netcall() is a good example of the most basic netcall. This is the extent of the client's
+    networking code.
+
+    The server code is contained in the rpcserver.cc file. As noted above, RunServer() starts threads for 
+    handling each possible netcall. Each thread waits for its mailbox to receive a message, and then
+    processes it.
+
+VII. Miscellaneous:
+
+    
