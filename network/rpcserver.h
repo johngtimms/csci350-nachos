@@ -47,6 +47,7 @@ class NetworkLock {
         void Acquire(int process, int thread);
         void Release(int process, int thread);
         bool IsOwner(int process);
+        bool HasAcquired(int thread);
 
     private:
         int machineID;
@@ -60,8 +61,8 @@ class NetworkCondition {
         NetworkCondition(int _machineID, int process);
         ~NetworkCondition();
         void Wait(int process, int thread, NetworkLock *lock);
-        void Signal(int process, NetworkLock *lock);
-        void Broadcast(int process, NetworkLock *lock);
+        void Signal(int process, int _thread, NetworkLock *lock);
+        void Broadcast(int process, int _thread, NetworkLock *lock);
         bool IsOwner(int process);
 
     private:

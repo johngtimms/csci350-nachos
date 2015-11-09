@@ -351,7 +351,7 @@ int CreateLock_Syscall() {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxCreateLock;
-    outMailHdr.from = mailbox;
+    outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -380,7 +380,7 @@ void DestroyLock_Syscall(unsigned int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxDestroyLock;
-    outMailHdr.from = MailboxDestroyLock;
+    outMailHdr.from = -1; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -406,10 +406,8 @@ void Acquire_Syscall(unsigned int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxAcquire;
-    outMailHdr.from = mailbox;
+    outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
-
-    DEBUG('z', "From (%d, %d) to (%d, %d) bytes %d\n", outPktHdr.from, outMailHdr.from, outPktHdr.to, outMailHdr.to, outMailHdr.length);
 
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
@@ -427,10 +425,9 @@ void Acquire_Syscall(unsigned int key) {
 }
 
 void Release_Syscall(unsigned int key) {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
+    PacketHeader outPktHdr;
+    MailHeader outMailHdr;
     char send[MaxMailSize];
-    char recv[MaxMailSize];
 
     // Form the request message
     int processID = currentThread->space->spaceID;
@@ -442,7 +439,7 @@ void Release_Syscall(unsigned int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxRelease;
-    outMailHdr.from = mailbox;
+    outMailHdr.from = -1; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -450,14 +447,6 @@ void Release_Syscall(unsigned int key) {
 
     if ( !success )
       printf("WARN: Release failed. Server misconfigured.\n");
-
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    
-    char test[MaxMailSize];
-    strcpy(test, "OK");
-    if ( strcmp(test,recv) )
-        printf("WARN: Release failed. Recieved bad server message.\n");
 }
 
 int CreateCondition_Syscall() {
@@ -476,7 +465,7 @@ int CreateCondition_Syscall() {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxCreateCondition;
-    outMailHdr.from = mailbox;
+    outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -505,7 +494,7 @@ void DestroyCondition_Syscall(unsigned int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxDestroyCondition;
-    outMailHdr.from = MailboxDestroyCondition;
+    outMailHdr.from = -1; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -520,6 +509,8 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
     char recv[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "OK");
+    bool success;
 
     // Form the request message
     int processID = currentThread->space->spaceID;
@@ -531,11 +522,11 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxWait;
-    outMailHdr.from = mailbox;
+    outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
       printf("WARN: Wait failed. Server misconfigured.\n");
@@ -543,58 +534,136 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     
-    char test[MaxMailSize];
-    strcpy(test, "OK");
     if ( strcmp(test,recv) )
         printf("WARN: Wait failed. Recieved bad server message.\n");
+
+    // After getting the CV, we need to acquire the lock
+    DEBUG('z', "Acquire (after Wait) process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxAcquire;
+    outMailHdr.from = mailbox; // need a reply
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Acquire (after Wait) failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    
+    if ( strcmp(test,recv) )
+        printf("WARN: Acquire (after Wait) failed. Recieved bad server message.\n");
 }
 
 void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
-    PacketHeader outPktHdr;
-    MailHeader outMailHdr;
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
+    char recv[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "OK");
+    bool success;
 
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxSignal;
-    outMailHdr.from = MailboxSignal;
+    outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
       printf("WARN: Signal failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    
+    if ( strcmp(test,recv) )
+        printf("WARN: Signal failed. Recieved bad server message.\n");
+
+    // After signaling, need to release the lock so the waiting thread can acquire
+    DEBUG('z', "Release (after Signal) process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxRelease;
+    outMailHdr.from = -1; // no reply needed
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Release (after Signal) failed. Server misconfigured.\n");
 }
 
 void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
-    PacketHeader outPktHdr;
-    MailHeader outMailHdr;
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
+    char recv[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "OK");
+    bool success;
 
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxBroadcast;
-    outMailHdr.from = MailboxBroadcast;
+    outMailHdr.from = mailbox; // Need a reply
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
       printf("WARN: Broadcast failed. Server misconfigured.\n");
+
+     // Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    
+    if ( strcmp(test,recv) )
+        printf("WARN: Broadcast failed. Recieved bad server message.\n");
+
+    // After broadcasting, need to release the lock so the waiting thread can acquire
+    DEBUG('z', "Release (after Broadcast) process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxRelease;
+    outMailHdr.from = mailbox; // no reply needed, but release will send one
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
+
+     // Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    
+    if ( strcmp(test,recv) )
+        printf("WARN: Release (after Broadcast) failed. Recieved bad server message.\n");
 }
 
 void NetPrint_Syscall(int text, int num) {

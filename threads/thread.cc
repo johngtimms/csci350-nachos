@@ -34,7 +34,6 @@
 
 Thread::Thread(char* threadName)
 {
-    printf("DEBUG: New thread with name \"%s\"\n", threadName);
     name = threadName;
     stackTop = NULL;
     stack = NULL;

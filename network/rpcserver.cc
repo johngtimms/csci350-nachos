@@ -62,10 +62,11 @@ void RPCServer::Receive_DestroyLock() {
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
+        DEBUG('r', "DestroyLock networkLockTable size %d\n", networkLockTable->locks.size());
         if (key >= 0 && key < networkLockTable->locks.size())
             lock = networkLockTable->locks[key];
         else 
-            printf("WARN: DestroyLock failed. No such lock.\n");
+            printf("WARN: DestroyLock failed. No such lock.\n"); // TODO this isn't accurate, not sure what needs to be done to fix
 
         if (lock != NULL && lock->IsOwner(processID))
             networkLockTable->locks.erase(key);
@@ -144,7 +145,8 @@ void RPCServer::Receive_Release() {
 
         if (lock != NULL)
             lock->Release(processID, threadID);
-            // Response is sent from Release()
+            // Response (to any threads waiting to Acquire) is sent from lock->Release()
+            // NO RESPONSE is sent to the thread making this actual call
         else {
             printf("ERROR: Release failed. Lock null. Terminating Nachos.\n");
             interrupt->Halt();
@@ -303,7 +305,7 @@ void RPCServer::Receive_Signal() {
         }
 
         if (condition != NULL && lock != NULL)
-            condition->Signal(processID, lock);
+            condition->Signal(processID, threadID, lock);
         else {
             printf("ERROR: Signal failed. Condition or lock null. Terminating Nachos.\n");
             interrupt->Halt();
@@ -352,7 +354,7 @@ void RPCServer::Receive_Broadcast() {
         }
 
         if (condition != NULL && lock != NULL)
-            condition->Broadcast(processID, lock);
+            condition->Broadcast(processID, threadID, lock);
         else {
             printf("ERROR: Broadcast failed. Condition or lock null. Terminating Nachos.\n");
             interrupt->Halt();
@@ -571,6 +573,10 @@ bool NetworkLock::IsOwner(int process) {
     return (processID == process);
 }
 
+bool NetworkLock::HasAcquired(int thread) {
+    return (threadID == thread);
+}
+
 //-----------------------------------------------------------------------------------------------//
 // Create new NetworkCondition
 //-----------------------------------------------------------------------------------------------//
@@ -597,17 +603,22 @@ void NetworkCondition::Wait(int process, int thread, NetworkLock* lock) {
     // Do the regular Condition::Wait stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     if (lock != NULL) {
-        if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
-            conditionLock = lock;
-            DEBUG('r', "Wait assigned lock process %d thread %d\n", processID, thread);
-        if (conditionLock == lock) {                    // ok to wait
-            queue->Append((void *) thread);             // add thread to wait queue
-            conditionLock->Release(process, thread);    // release waiting lock
-            DEBUG('r', "Wait waiting process %d thread %d\n", processID, thread);
+        if (lock->IsOwner(process) && lock->HasAcquired(thread)) {
+            if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
+                conditionLock = lock;
+                DEBUG('r', "Wait assigned lock process %d thread %d\n", processID, thread);
+            if (conditionLock == lock) {                    // ok to wait
+                queue->Append((void *) thread);             // add thread to wait queue
+                conditionLock->Release(process, thread);    // release waiting lock
+                DEBUG('r', "Wait waiting process %d thread %d\n", processID, thread);
+            } else {
+                printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
+                interrupt->Halt();
+            }
         } else {
-            printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
+            printf("ERROR: Wait failed. Unaquired lock. Terminating Nachos.\n");
             interrupt->Halt();
-        }    
+        }
     } else {
         printf("ERROR: Wait failed. Lock null. Terminating Nachos.\n");
         interrupt->Halt();
@@ -615,7 +626,7 @@ void NetworkCondition::Wait(int process, int thread, NetworkLock* lock) {
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
 
-void NetworkCondition::Signal(int process, NetworkLock* lock) {
+void NetworkCondition::Signal(int process, int _thread, NetworkLock* lock) {
     // Only the owner process may access this condition
     if (process != processID) {
         printf("ERROR: Signal failed. Owner error. Terminating Nachos.\n");
@@ -625,12 +636,21 @@ void NetworkCondition::Signal(int process, NetworkLock* lock) {
     // Do the regular Condition::Signal stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     if (lock != NULL) {
-        if (conditionLock == lock) {
-            int thread = (int) queue->Remove();         // remove one waiting thread from queue
-            DEBUG('r', "Signal thread process %d thread %d\n", processID, thread);
-            RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, thread), -1);
+        if (lock->IsOwner(process) && lock->HasAcquired(_thread)) {
+            if (conditionLock == lock) {
+                int thread = (int) queue->Remove();         // remove one waiting thread from queue
+                DEBUG('r', "Signal thread process %d thread %d thread %d (given)\n", processID, thread, _thread);
+                RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, thread), -1);
+                RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, _thread), -1);
+                // MUST Release() following this call to Signal() in exception.cc, otherwise the thread signaled will be stuck
+                // That's why the second response is sent (so Signal() knows to go ahead and Release())
+                // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
+            } else {
+                printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
+                interrupt->Halt();
+            }
         } else {
-            printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
+            printf("ERROR: Signal failed. Unaquired lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
     } else {
@@ -640,7 +660,7 @@ void NetworkCondition::Signal(int process, NetworkLock* lock) {
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
 
-void NetworkCondition::Broadcast(int process, NetworkLock* lock) {
+void NetworkCondition::Broadcast(int process, int _thread, NetworkLock* lock) {
     // Only the owner process may access this condition
     if (process != processID) {
         printf("ERROR: Broadcast failed. Owner error. Terminating Nachos.\n");
@@ -648,12 +668,18 @@ void NetworkCondition::Broadcast(int process, NetworkLock* lock) {
     }
 
     // Do the regular Condition::Broadcast stuff
+    // MUST Release() following this call to Broadcast() in exception.cc, otherwise the thread(s) signaled will be stuck
     if (lock != NULL) {
-        if (conditionLock == lock) {
-            while (!queue->IsEmpty())                   // signal all threads waiting
-                Signal(process, lock);
+        if (lock->IsOwner(process) && lock->HasAcquired(_thread)) {
+            if (conditionLock == lock) {
+                while (!queue->IsEmpty())                   // signal all threads waiting
+                    Signal(process, _thread, lock);
+            } else {
+                printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
+                interrupt->Halt();
+            }
         } else {
-            printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
+            printf("ERROR: Signal failed. Unaquired lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
     } else {
