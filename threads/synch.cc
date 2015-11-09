@@ -153,7 +153,8 @@ void Condition::Wait(Lock* conditionLock) {
     if(conditionLock != NULL) {
         if(lock == NULL)               // condition hasn't been assigned to a lock yet
             lock = conditionLock;
-        if(lock == conditionLock) {    // OK to wait
+        if(lock == conditionLock && conditionLock->isHeldByCurrentThread()) 
+{    // OK to wait
             queue->Append((void*)currentThread);        // add currentThread to wait queue
             //printf(">Thread %s is waiting to be signalled by Condition %s\n", currentThread->getName(), name);
             lock->Release();                            // release waitingLock
@@ -173,8 +174,12 @@ void Condition::Signal(Lock* conditionLock) {
         thread = (Thread*) queue->Remove();     // remove one waiting thread from queue
         scheduler->ReadyToRun(thread);          // wake up waiting thread
         //printf(">Condition %s has signalled Thread %s\n", name, thread->getName());
-    } else
-        printf("Warning: Condition signalling wrong lock\n");
+    } else {
+        if (lock == NULL) 
+            printf("ERROR: Condition %s was signaled, but lock is NULL! Given lock is %s.\n", name, conditionLock->getName());
+        else if (conditionLock != lock) 
+            printf("ERROR: Condition %s was signaled, but incorrect lock %s was given. Lock is %s.\n", name, conditionLock->getName(), lock->getName());
+    }
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -182,6 +187,10 @@ void Condition::Broadcast(Lock* conditionLock) {
     if(lock != NULL && conditionLock == lock) {
         while(!queue->IsEmpty())            // signal all threads waiting 
             Signal(conditionLock);
-    } else
-        printf("Warning: Condition signalling wrong lock\n");
+    } else {
+        if (lock == NULL) 
+            printf("ERROR: Condition %s was broadcasted, but lock is NULL! Given lock is %s.\n", name, conditionLock->getName());
+        else if (conditionLock != lock) 
+            printf("ERROR: Condition %s was broadcasted, but incorrect lock %s was given. Lock is %s.\n", name, conditionLock->getName(), lock->getName());
+    }
 }

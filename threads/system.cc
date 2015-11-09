@@ -29,9 +29,11 @@ SynchDisk   *synchDisk;
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
 
+
 // Locks/Conditions
 LockTable *lockTable;
 ConditionTable *conditionTable;
+Lock *forkLock;
 
 // Physical Memory BitMap
 BitMap *memoryBitMap;
@@ -53,7 +55,12 @@ List *fifo;
 #endif
 
 #ifdef NETWORK
-PostOffice *postOffice;
+    PostOffice *postOffice;
+    RPCServer *rpcServer;
+    int machineName;        // This OS's network name (UNIX socket)
+    int destinationName;    // The remote OS's network name
+    NetworkLockTable *networkLockTable;
+    NetworkConditionTable *networkConditionTable;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -98,6 +105,7 @@ Initialize(int argc, char **argv) {
     char* debugArgs = "";
     bool randomYield = FALSE;
     fifoEviction = true;
+
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 #endif
@@ -106,10 +114,10 @@ Initialize(int argc, char **argv) {
 #endif
 #ifdef NETWORK
     double rely = 1;		// network reliability
-    int netname = 0;		// UNIX socket name
 #endif
+    
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-	   argCount = 1;
+	argCount = 1;
 	if (!strcmp(*argv, "-d")) {
 	    if (argc == 1)
 		debugArgs = "+";	// turn on all debug flags
@@ -130,6 +138,7 @@ Initialize(int argc, char **argv) {
             argCount = 2;
         }
     }
+
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
@@ -145,9 +154,16 @@ Initialize(int argc, char **argv) {
 	    argCount = 2;
 	} else if (!strcmp(*argv, "-m")) {
 	    ASSERT(argc > 1);
-	    netname = atoi(*(argv + 1));
+	    machineName = atoi(*(argv + 1));
 	    argCount = 2;
 	}
+
+    if (!strcmp(*argv, "-o")) {
+        ASSERT(argc > 1);
+        destinationName = atoi(*(argv + 1));
+        argCount = 2;
+    }
+
 #endif
     }
 
@@ -162,8 +178,8 @@ Initialize(int argc, char **argv) {
 
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
-    // object to save its state. 
-    currentThread = new Thread("main");		
+    // object to save its state.
+    currentThread = new Thread("0");	// Name the first thread in the first process 0 (needed for networking)
     currentThread->setStatus(RUNNING);
 
     interrupt->Enable();
@@ -175,12 +191,16 @@ Initialize(int argc, char **argv) {
     conditionTable = new ConditionTable();
     memoryBitMap = new BitMap(NumPhysPages);
     memoryBitMapLock = new Lock();
+    forkLock = new Lock();
     processTable = new ProcessTable();
     processTableLock = new Lock();
     currentTLB = 0;
     ipt = new IPTEntry[NumPhysPages];
     swapfileBitMap = new BitMap(NumPhysPages * 100);
     fifo = new List();
+    forkLock = new Lock();
+    processTable = new ProcessTable();
+    processTableLock = new Lock();
 #endif
 
 #ifdef FILESYS
@@ -198,7 +218,10 @@ Initialize(int argc, char **argv) {
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(netname, rely, 10);
+    postOffice = new PostOffice(machineName, rely, 9999);
+    rpcServer = new RPCServer();
+    networkLockTable = new NetworkLockTable();
+    networkConditionTable = new NetworkConditionTable();
 #endif
 }
 
@@ -211,6 +234,7 @@ Cleanup() {
     printf("\nCleaning up...\n");
 #ifdef NETWORK
     delete postOffice;
+    delete rpcServer;
 #endif
     
 #ifdef USER_PROGRAM
@@ -219,6 +243,7 @@ Cleanup() {
     delete conditionTable;
     delete memoryBitMap;
     delete memoryBitMapLock;
+    delete forkLock;
     delete processTable;
     delete processTableLock;
     delete ipt;

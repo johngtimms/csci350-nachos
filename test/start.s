@@ -209,6 +209,24 @@ Print:
 	syscall
 	j	$31
 	.end Print
+
+	.globl NetPrint
+	.ent	NetPrint
+NetPrint:
+	addiu $2,$0,SC_NetPrint
+	syscall
+	j	$31
+	.end NetPrint
+
+	.globl NetHalt
+	.ent	NetHalt
+NetHalt:
+	addiu $2,$0,SC_NetHalt
+	syscall
+	j	$31
+	.end NetHalt
+
+
     .globl Rand
 	.ent	Rand
 Rand:

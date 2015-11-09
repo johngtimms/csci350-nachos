@@ -1,5 +1,5 @@
 // system.h 
-//	All global variables used in Nachos are defined here.
+// All global variables used in Nachos are defined here.
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
@@ -42,6 +42,7 @@ extern LockTable *lockTable;
 extern ConditionTable *conditionTable;
 extern BitMap *memoryBitMap;	// BitMap representing physical memory
 extern Lock *memoryBitMapLock;	// Lock for mmBitMap
+extern Lock *forkLock;
 extern ProcessTable *processTable;
 extern Lock *processTableLock;
 extern int currentTLB;
@@ -62,8 +63,15 @@ extern SynchDisk *synchDisk;
 #endif
 
 #ifdef NETWORK
-#include "post.h"
-extern PostOffice* postOffice;
+    #include "post.h"
+    #include "rpcserver.h"
+
+    extern PostOffice* postOffice;
+    extern RPCServer* rpcServer;
+    extern int machineName;
+    extern int destinationName;
+    extern NetworkLockTable* networkLockTable;
+    extern NetworkConditionTable* networkConditionTable;
 #endif
 
 #endif // SYSTEM_H

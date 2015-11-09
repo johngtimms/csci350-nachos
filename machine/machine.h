@@ -35,7 +35,7 @@ using namespace std;
 					// simplicity
 
 #define NumPhysPages    32 // Changed to a large value for Assignment 2, per the assignment
-                             // documentation file.
+                            // documentation file.
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 

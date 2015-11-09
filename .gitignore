@@ -1,0 +1,57 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# NACHOS
+swtch.s
+nachos
+*core
+
+# NACHOS USER PROGRAMS
+*.coff
+test/halt
+test/matmult
+test/sort
+test/testfiles
+test/test1
+test/test2
+test/test3
+test/test4
+test/test5
+test/test6
+test/test7a
+test/test7b
+test/tester
+test/tester2
+test/testexec
+test/passportOffice
+test/assignmentThreeTests
+test/networkTests
+
+# MISC
+*.txt

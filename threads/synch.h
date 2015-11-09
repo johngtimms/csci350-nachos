@@ -44,6 +44,7 @@ class Lock {
     void Acquire();
     void Release();
     bool isHeldByCurrentThread();
+    char* getName() { return name; }
   private:
     char* name;
     Thread *lockOwner;
