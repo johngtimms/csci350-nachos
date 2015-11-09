@@ -263,6 +263,8 @@ void RPCServer::Receive_Signal() {
         // Wait for a mailbox message
         postOffice->Receive(MailboxSignal, &inPktHdr, &inMailHdr, recv);
 
+        DEBUG('r', "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+
         // Read the message
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
@@ -387,10 +389,12 @@ int RPCServer::ClientMailbox(int process, int thread) {
     sprintf(str1, "%d", (process + 1));
     sprintf(str2, "%d", (thread + 1));
     strcat(str1, str2);
+    int mailbox = atoi(str1);
 
-    DEBUG('r', "Client Mailbox %d process %d thread %d\n", atoi(str1), process, thread);
+    DEBUG('r', "Client Mailbox %d process %d thread %d\n", mailbox, process, thread);
+    DEBUG('z', "Client Mailbox %d process %d thread %d\n", mailbox, process, thread);
 
-    return atoi(str1);
+    return mailbox;
 }
 
 //-----------------------------------------------------------------------------------------------//

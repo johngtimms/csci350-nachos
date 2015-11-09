@@ -5,25 +5,17 @@ int lockTwo;
 int conditionOne;
 
 void TestWait() {
-	Print("qqqtw\n", 100);
-	Acquire(lockOne); /* this becomes thread 1
-	and gives the following output:                --a-1-- Acquire - process 0 thread 1 key 2 
-	somehow / somewhere in this vicinity we get the error from the post office:
-
-		ERROR: Condition list empty cond was signaled, but lock is NULL! Given lock is list lock.
-
-	this occurs AFTER fork(&TestSignal) is called!
-
-	*/
-	Print("\t\t condition %d", conditionOne); Print(" lock %d\n", lockOne);
+	Acquire(lockOne);
+	Print("TestWait has lockOne\n", 100);
 	Wait(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tWait test (2/2): Finished waiting\n", 100);
+	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */
 	Exit(0);
 }
 
 void TestSignal() {
-	Print("qqqts\n", 100);
 	Acquire(lockOne);
+	Print("TestSignal has lockOne\n", 100);
 	Print("\tWait test (1/2): Wait DID release the lock\n", 100);
 	Signal(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tSignal test (1/2): Finished signaling\n", 100);
@@ -31,18 +23,21 @@ void TestSignal() {
 }
 
 void TestBroadcast() {
-	Print("qqqtb\n", 100);
+	Print("TestBroadcast\n", 100);
 	Acquire(lockOne);
+	Print("TestBroadcast has lockOne\n", 100);
 	Broadcast(conditionOne, lockOne);
 	Print("\tBroadcast test (?/5): Finished broadcasting\n", 100);
 	Exit(0);
 }
 
 void TestBroadcastHelper() {
-	Print("qqqtbh\n", 100);
+	Print("TestBroadcastHelper\n", 100);
 	Acquire(lockOne);
-	Wait(conditionOne, lockOne);
+	Print("TestBroadcastHelper has lockOne\n", 100);
+	Wait(conditionOne, lockOne); /* lockOne will be released half-way through Wait, then gotten again */
 	Print("\tBroadcast test (?/5): Finished waiting\n", 100);
+	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */	
 	Exit(0);
 }
 
@@ -76,28 +71,19 @@ int main() {
 	Print("\tDestroyLock test (1/1): Destroyed two locks\n", 100);
 
 	/* Test CreateCondition */
-	Print("www0\n", 100);
 	conditionOne = CreateCondition();
 	Print("\tCreateCondition test (1/1): Condition ID is %i\n", conditionOne);
 
 	/* Test Wait / Signal */
-	Print("www1\n", 100);
 	lockOne = CreateLock();
-	Print("www2\n", 100);
 	Fork(&TestWait);
-	Print("www3a\n", 100);
-	Print("www3b\n", 100);
-	Print("www3c\n", 100);
-	Print("www3d\n", 100);
-	Print("www3e\n", 100);
-	Print("www3f\n", 100);
-	Print("www3g\n", 100);
 	Fork(&TestSignal);
-	/* post office error appears exactly here */
-	Print("www4\n", 100);
-	Acquire(lockOne);
-	Print("www5\n", 100);
+	Acquire(lockOne);	/* Somehow lockOne is being acquired before it's apropriate */
 	Print("\tSignal test (2/2): Signal DID release the lock\n", 100);
+	Print("I think thread 0 gets lock key 2 before thread 1's Wait can get it.\n",100);
+	Print("Doing an extra Release here, because TestBroadcastHelpers do their own acquire anyway.\n",100);
+	Print("Should immediately see Wait test (2/2)\n",100);
+	Release(lockOne);
 
 	/* Test Broadcast */
 	Fork(&TestBroadcastHelper);
