@@ -35,6 +35,12 @@
 Thread::Thread(char* threadName)
 {
     name = threadName;
+
+    threadIndexLock->Acquire();
+    id = threadIndex;
+    threadIndex++;
+    threadIndexLock->Release();
+
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;

@@ -70,7 +70,6 @@ void Fork_Syscall(int functionPtr) {
 	snprintf(buf, 10, "%d", currentThread->space->numThreads);
 	Thread *thread;
 	thread = new Thread(buf);
-
 	// Finish creatng thread
 	thread->space = currentThread->space;
   	thread->space->CreateStack(thread);
@@ -346,7 +345,8 @@ int CreateLock_Syscall() {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
@@ -376,7 +376,8 @@ void DestroyLock_Syscall(unsigned int key) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     DEBUG('z', "DestroyLock process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
@@ -401,7 +402,8 @@ void Acquire_Syscall(unsigned int key) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
 
     DEBUG('z', "--a-%d--", atoi(currentThread->getName()));
@@ -437,7 +439,8 @@ void Release_Syscall(unsigned int key) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Release - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
@@ -463,7 +466,8 @@ int CreateCondition_Syscall() {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
@@ -493,8 +497,14 @@ void DestroyCondition_Syscall(unsigned int key) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
+<<<<<<< Updated upstream
     int threadID = atoi(currentThread->getName());
     DEBUG('z', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
+=======
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
+    DEBUG('z', "DestroyCondition process %d thread %d\n", processID, threadID);
+>>>>>>> Stashed changes
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
@@ -520,7 +530,8 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Wait - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
@@ -576,7 +587,8 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Signal - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
@@ -626,7 +638,8 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-    int threadID = atoi(currentThread->getName());
+    int threadID = currentThread->getID();
+    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Broadcast - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);

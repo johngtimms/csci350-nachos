@@ -44,6 +44,9 @@ Lock *processTableLock;
     int destinationName;    // The remote OS's network name
     NetworkLockTable *networkLockTable;
     NetworkConditionTable *networkConditionTable;
+
+    int threadIndex;
+    Lock *threadIndexLock;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -183,6 +186,8 @@ Initialize(int argc, char **argv) {
     rpcServer = new RPCServer();
     networkLockTable = new NetworkLockTable();
     networkConditionTable = new NetworkConditionTable();
+    threadIndex = 0;
+    threadIndexLock = new Lock();
 #endif
 }
 
@@ -198,6 +203,7 @@ Cleanup() {
     delete rpcServer;
     delete networkLockTable;
     delete networkConditionTable;
+    delete threadIndexLock;
 #endif
     
 #ifdef USER_PROGRAM

@@ -62,6 +62,9 @@ extern Timer *timer;                    // the hardware alarm clock
     extern int destinationName;
     extern NetworkLockTable* networkLockTable;
     extern NetworkConditionTable* networkConditionTable;
+
+    extern int threadIndex;
+    extern Lock *threadIndexLock;
 #endif
 
 #endif
