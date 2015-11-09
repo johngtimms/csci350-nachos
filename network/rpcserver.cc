@@ -37,7 +37,7 @@ void RPCServer::Receive_CreateLock() {
         networkLockTable->tableLock->Release();
 
         // Reply with the key
-        DEBUG('r', "CreateLock process %d thread %d key %d (new)\n", processID, threadID, key);
+        DEBUG('r', "CreateLock - process %d thread %d key %d (new)\n", processID, threadID, key);
         SendResponse(inPktHdr.from, inMailHdr.from, key);
     }
 }
@@ -57,21 +57,19 @@ void RPCServer::Receive_DestroyLock() {
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "DestroyLock process %d thread %d key %d\n", processID, threadID, key);
+        DEBUG('r', "DestroyLock - process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
-        DEBUG('r', "DestroyLock networkLockTable size %d\n", networkLockTable->locks.size());
-        if (key >= 0 && key < networkLockTable->locks.size())
-            lock = networkLockTable->locks[key];
-        else 
-            printf("WARN: DestroyLock failed. No such lock.\n"); // TODO this isn't accurate, not sure what needs to be done to fix
-
-        if (lock != NULL && lock->IsOwner(processID))
-            networkLockTable->locks.erase(key);
-        else
-            printf("WARN: DestroyLock failed. Client does not own lock.\n");
+        lock = networkLockTable->locks[key];
+        if (lock != NULL) {
+            if (lock->IsOwner(processID))
+                networkLockTable->locks.erase(key);
+            else
+              printf("WARN: DestroyLock failed. Client does not own lock.\n");  
+        } else
+            printf("WARN: DestroyLock failed. No such lock.\n");
 
         networkLockTable->tableLock->Release();
     }
@@ -92,23 +90,17 @@ void RPCServer::Receive_Acquire() {
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "Acquire process %d thread %d key %d\n", processID, threadID, key);
+        DEBUG('r', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkLockTable->locks.size())
-            lock = networkLockTable->locks[key];
-        else {
-            printf("ERROR: Acquire failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
-        }
-
-        if (lock != NULL)
+        lock = networkLockTable->locks[key];
+        if (lock != NULL) {
             lock->Acquire(processID, threadID);
             // Response is sent from Acquire()
-        else {
-            printf("ERROR: Acquire failed. Lock null. Terminating Nachos.\n");
+        } else {
+            printf("ERROR: Acquire failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -131,24 +123,18 @@ void RPCServer::Receive_Release() {
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "Release process %d thread %d key %d\n", processID, threadID, key);
+        DEBUG('r', "Release - process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkLockTable->locks.size())
-            lock = networkLockTable->locks[key];
-        else {
-            printf("ERROR: Release failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
-        }
-
+        lock = networkLockTable->locks[key];
         if (lock != NULL)
             lock->Release(processID, threadID);
             // Response (to any threads waiting to Acquire) is sent from lock->Release()
             // NO RESPONSE is sent to the thread making this actual call
         else {
-            printf("ERROR: Release failed. Lock null. Terminating Nachos.\n");
+            printf("ERROR: Release failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -178,7 +164,7 @@ void RPCServer::Receive_CreateCondition() {
         networkConditionTable->tableLock->Release();
 
         // Reply with the key
-        DEBUG('r', "CreateCondition process %d thread %d key %d (new)\n", processID, threadID, key);
+        DEBUG('r', "CreateCondition - process %d thread %d key %d (new)\n", processID, threadID, key);
         SendResponse(inPktHdr.from, inMailHdr.from, key);
     }
 }
@@ -198,20 +184,20 @@ void RPCServer::Receive_DestroyCondition() {
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "DestroyCondition process %d thread %d key %d\n", processID, threadID, key);
+        DEBUG('r', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkConditionTable->conditions.size())
-            condition = networkConditionTable->conditions[key];
-        else 
-            printf("WARN: DestroyCondition failed. No such condition.\n");
-
-        if (condition != NULL && condition->IsOwner(processID))
-            networkConditionTable->conditions.erase(key);
-        else
-            printf("WARN: DestroyCondition failed. Client does not own condition.\n");
+        condition = networkConditionTable->conditions[key];
+        if (condition != NULL) {
+            if (condition->IsOwner(processID))
+                networkConditionTable->conditions.erase(key);
+            else
+               printf("WARN: DestroyCondition failed. Client does not own condition.\n"); 
+        } else {
+           printf("WARN: DestroyCondition failed. No such condition.\n"); 
+        }
 
         networkConditionTable->tableLock->Release();
     }
@@ -234,31 +220,29 @@ void RPCServer::Receive_Wait() {
         int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Wait process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        DEBUG('r', "Wait - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
-            condition = networkConditionTable->conditions[conditionKey];
-        else {
+        condition = networkConditionTable->conditions[conditionKey];
+        if (condition == NULL) {
             printf("ERROR: Wait failed. No such condition. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (lockKey >= 0 && lockKey < networkLockTable->locks.size())
-            lock = networkLockTable->locks[lockKey];
-        else {
+        lock = networkLockTable->locks[lockKey];
+        if (lock == NULL) {
             printf("ERROR: Wait failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL) {
+        if (condition->IsOwner(processID) && lock->IsOwner(processID)) {
             condition->Wait(processID, threadID, lock);
             // Response sent from Wait()
         } else {
-            printf("ERROR: Wait failed. Condition or lock null. Terminating Nachos.\n");
+            printf("ERROR: Wait failed. Condition or lock owner error. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -284,30 +268,29 @@ void RPCServer::Receive_Signal() {
         int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Signal process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        DEBUG('r', "Signal - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
-            condition = networkConditionTable->conditions[conditionKey];
-        else {
+        condition = networkConditionTable->conditions[conditionKey];
+        if (condition == NULL) {
             printf("ERROR: Signal failed. No such condition. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (lockKey >= 0 && lockKey < networkLockTable->locks.size())
-            lock = networkLockTable->locks[lockKey];
-        else {
+        lock = networkLockTable->locks[lockKey];
+        if (lock == NULL) {
             printf("ERROR: Signal failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL)
+        if (condition->IsOwner(processID) && lock->IsOwner(processID)) {
             condition->Signal(processID, threadID, lock);
-        else {
-            printf("ERROR: Signal failed. Condition or lock null. Terminating Nachos.\n");
+            // Response(s) sent from Signal()
+        } else {
+            printf("ERROR: Signal failed. Condition or lock owner error. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -333,30 +316,29 @@ void RPCServer::Receive_Broadcast() {
         int threadID = atoi(strtok(NULL,","));
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Broadcast process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        DEBUG('r', "Broadcast - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
-            condition = networkConditionTable->conditions[conditionKey];
-        else {
+        condition = networkConditionTable->conditions[conditionKey];
+        if (condition == NULL) {
             printf("ERROR: Broadcast failed. No such condition. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (lockKey >= 0 && lockKey < networkLockTable->locks.size())
-            lock = networkLockTable->locks[lockKey];
-        else {
+        lock = networkLockTable->locks[lockKey];
+        if (lock == NULL) {
             printf("ERROR: Broadcast failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
-        if (condition != NULL && lock != NULL)
+        if (condition->IsOwner(processID) && lock->IsOwner(processID)) {
             condition->Broadcast(processID, threadID, lock);
-        else {
-            printf("ERROR: Broadcast failed. Condition or lock null. Terminating Nachos.\n");
+            // Response(s) sent from Broadcast()
+        } else {
+            printf("ERROR: Broadcast failed. Condition or lock owner error. Terminating Nachos.\n");
             interrupt->Halt();
         }
 
@@ -616,7 +598,7 @@ void NetworkCondition::Wait(int process, int thread, NetworkLock* lock) {
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Unaquired lock. Terminating Nachos.\n");
+            printf("ERROR: Wait failed. Unacquired lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
     } else {

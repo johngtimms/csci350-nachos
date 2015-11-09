@@ -196,6 +196,8 @@ Cleanup() {
 #ifdef NETWORK
     delete postOffice;
     delete rpcServer;
+    delete networkLockTable;
+    delete networkConditionTable;
 #endif
     
 #ifdef USER_PROGRAM

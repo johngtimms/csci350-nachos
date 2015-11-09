@@ -63,6 +63,8 @@ void ForkUserThread(int functionPtr) {
 void Fork_Syscall(int functionPtr) {
 	DEBUG('t', "In Fork_Syscall\n");
 
+	DEBUG('z', "--f-%d--", atoi(currentThread->getName()));
+
 	// Name the nth thread in the process (needed for networking)
 	char buf[10];
 	snprintf(buf, 10, "%d", currentThread->space->numThreads);
@@ -325,6 +327,7 @@ void Print_Syscall(int text, int num) {
 		delete[] buf;
 	}
 	buf[100] = '\0';
+	DEBUG('z', "--p-%d--", atoi(currentThread->getName()));
 	printf(buf, num);
 }
 
@@ -380,7 +383,7 @@ void DestroyLock_Syscall(unsigned int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxDestroyLock;
-    outMailHdr.from = -1; // no reply needed
+    outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -400,7 +403,10 @@ void Acquire_Syscall(unsigned int key) {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "Acquire process %d thread %d\n", processID, threadID);
+
+    DEBUG('z', "--a-%d--", atoi(currentThread->getName()));
+
+    DEBUG('z', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
@@ -433,13 +439,13 @@ void Release_Syscall(unsigned int key) {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "Release process %d thread %d\n", processID, threadID);
+    DEBUG('z', "Release - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxRelease;
-    outMailHdr.from = -1; // no reply needed
+    outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -459,7 +465,7 @@ int CreateCondition_Syscall() {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "CreateCondition process %d thread %d\n", processID, threadID);
+    DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
 
     // Construct packet header, mail header for the message
@@ -488,13 +494,13 @@ void DestroyCondition_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
-    DEBUG('z', "DestroyCondition process %d thread %d\n", processID, threadID);
+    DEBUG('z', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxDestroyCondition;
-    outMailHdr.from = -1; // no reply needed
+    outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -516,7 +522,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "Wait process %d thread %d\n", processID, threadID);
+    DEBUG('z', "Wait - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
@@ -572,7 +578,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
+    DEBUG('z', "Signal - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
@@ -600,7 +606,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxRelease;
-    outMailHdr.from = -1; // no reply needed
+    outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -622,7 +628,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     int processID = currentThread->space->spaceID;
     int threadID = atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "Signal process %d thread %d\n", processID, threadID);
+    DEBUG('z', "Broadcast - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
 
     // Construct packet header, mail header for the message
@@ -650,7 +656,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxRelease;
-    outMailHdr.from = mailbox; // no reply needed, but release will send one
+    outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
@@ -658,12 +664,6 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
     if ( !success )
       printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
-
-     // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    
-    if ( strcmp(test,recv) )
-        printf("WARN: Release (after Broadcast) failed. Recieved bad server message.\n");
 }
 
 void NetPrint_Syscall(int text, int num) {
