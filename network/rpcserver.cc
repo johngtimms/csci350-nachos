@@ -63,7 +63,7 @@ void RPCServer::Receive_DestroyLock() {
         networkLockTable->tableLock->Acquire();
 
         DEBUG('r', "DestroyLock networkLockTable size %d\n", networkLockTable->locks.size());
-        if (key >= 0 && key < networkLockTable->locks.size())
+        if (networkLockTable->locks.find(key) != networkLockTable->locks.end())
             lock = networkLockTable->locks[key];
         else 
             printf("WARN: DestroyLock failed. No such lock.\n"); // TODO this isn't accurate, not sure what needs to be done to fix
@@ -203,7 +203,7 @@ void RPCServer::Receive_DestroyCondition() {
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkConditionTable->conditions.size())
+        if(networkConditionTable->conditions.find(key) != networkConditionTable->conditions.end())
             condition = networkConditionTable->conditions[key];
         else 
             printf("WARN: DestroyCondition failed. No such condition.\n");

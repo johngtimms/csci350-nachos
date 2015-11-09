@@ -185,7 +185,7 @@ int CreateLock_Syscall() {
 void DestroyLock_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
-	if(key >= 0 && key < lockTable->locks.size())
+	if(lockTable->locks.find(key) != lockTable->locks.end())
 		lock = lockTable->locks[key];
 	else
 		DEBUG('l', "Attempt to destroy lock that doesn't exist\n");
@@ -239,7 +239,7 @@ int CreateCondition_Syscall() {
 void DestroyCondition_Syscall(unsigned int key) {
 	KernelCondition *condition;
 	conditionTable->tableLock->Acquire();
-	if(key >= 0 && key < conditionTable->conditions.size())
+	if(conditionTable->conditions.find(key) != conditionTable->conditions.end())
 		condition = conditionTable->conditions[key];
 	else
 		DEBUG('l', "Attempt to destroy condition that doesn't exist\n");
