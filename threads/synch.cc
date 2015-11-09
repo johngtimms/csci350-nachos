@@ -153,7 +153,7 @@ void Condition::Wait(Lock* conditionLock) {
     if(conditionLock != NULL) {
         if(lock == NULL)               // condition hasn't been assigned to a lock yet
             lock = conditionLock;
-        if(lock == conditionLock) {    // OK to wait
+        if(lock == conditionLock && conditionLock.isHeldByCurrentThread()) {    // OK to wait
             queue->Append((void*)currentThread);        // add currentThread to wait queue
             //printf(">Thread %s is waiting to be signalled by Condition %s\n", currentThread->getName(), name);
             lock->Release();                            // release waitingLock
