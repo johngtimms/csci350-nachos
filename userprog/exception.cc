@@ -187,7 +187,7 @@ int CreateLock_Syscall() {
 void DestroyLock_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
-	if(key >= 0 && key < lockTable->locks.size())
+	if(lockTable->locks.find(key) != lockTable->locks.end())
 		lock = lockTable->locks[key];
 	else
 		DEBUG('l', "Attempt to destroy lock that doesn't exist\n");
@@ -201,7 +201,7 @@ void DestroyLock_Syscall(unsigned int key) {
 void Acquire_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
-	if(key >= 0 && key < lockTable->locks.size())
+	if(lockTable->locks.find(key) != lockTable->locks.end())
 		lock = lockTable->locks[key];
 	else
 		DEBUG('l', "Attempt to acquire lock that doesn't exist\n");
@@ -215,7 +215,7 @@ void Acquire_Syscall(unsigned int key) {
 void Release_Syscall(unsigned int key) {
 	KernelLock *lock;
 	lockTable->tableLock->Acquire();
-	if(key >= 0 && key < lockTable->locks.size())
+	if(lockTable->locks.find(key) != lockTable->locks.end())
 		lock = lockTable->locks[key];
 	else
 		DEBUG('l', "Attempt to release lock that doesn't exist\n");
@@ -241,7 +241,7 @@ int CreateCondition_Syscall() {
 void DestroyCondition_Syscall(unsigned int key) {
 	KernelCondition *condition;
 	conditionTable->tableLock->Acquire();
-	if(key >= 0 && key < conditionTable->conditions.size())
+	if(conditionTable->conditions.find(key) != conditionTable->conditions.end())
 		condition = conditionTable->conditions[key];
 	else
 		DEBUG('l', "Attempt to destroy condition that doesn't exist\n");
@@ -257,7 +257,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	KernelLock *lock;
 	conditionTable->tableLock->Acquire();
 	lockTable->tableLock->Acquire();
-	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+	if(conditionTable->conditions.find(conditionKey) != conditionTable->conditions.end())
 		condition = conditionTable->conditions[conditionKey];
 	else
 		DEBUG('l', "Attempt to wait by condition that doesn't exist\n");
@@ -278,7 +278,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	KernelLock *lock;
 	conditionTable->tableLock->Acquire();
 	lockTable->tableLock->Acquire();
-	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+	if(conditionTable->conditions.find(conditionKey) != conditionTable->conditions.end())
 		condition = conditionTable->conditions[conditionKey];
 	else
 		DEBUG('l', "Attempt to signal by condition that doesn't exist\n");
@@ -299,7 +299,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 	KernelLock *lock;
 	conditionTable->tableLock->Acquire();
 	lockTable->tableLock->Acquire();
-	if(conditionKey >= 0 && conditionKey < conditionTable->conditions.size())
+	if(conditionTable->conditions.find(conditionKey) != conditionTable->conditions.end())
 		condition = conditionTable->conditions[conditionKey];
 	else
 		DEBUG('l', "Attempt to broadcast by condition that doesn't exist\n");
