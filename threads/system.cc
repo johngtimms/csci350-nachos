@@ -156,7 +156,8 @@ Initialize(int argc, char **argv) {
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
     // object to save its state. 
-    currentThread = new Thread("0");	// Name the first thread in the first process 0 (needed for networking)	
+    currentThread = new Thread("first thread");
+    currentThread->setID(0); // The first thread in the first process is 0 (needed for networking) 
     currentThread->setStatus(RUNNING);
 
     interrupt->Enable();

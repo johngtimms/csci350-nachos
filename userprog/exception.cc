@@ -63,13 +63,15 @@ void ForkUserThread(int functionPtr) {
 void Fork_Syscall(int functionPtr) {
 	DEBUG('t', "In Fork_Syscall\n");
 
-	DEBUG('z', "--f-%d--", atoi(currentThread->getName()));
+	DEBUG('z', "--f-%d--", currentThread->getID());
 
-	// Name the nth thread in the process (needed for networking)
-	char buf[10];
-	snprintf(buf, 10, "%d", currentThread->space->numThreads);
-	Thread *thread;
-	thread = new Thread(buf);
+	Thread *thread = new Thread("forked thread");
+
+	// Give the thread an ID (needed for networking)
+	threadIndexLock->Acquire();
+	thread->setID(++threadIndex);
+	threadIndexLock->Release();
+
 	// Finish creatng thread
 	thread->space = currentThread->space;
   	thread->space->CreateStack(thread);
@@ -326,7 +328,7 @@ void Print_Syscall(int text, int num) {
 		delete[] buf;
 	}
 	buf[100] = '\0';
-	DEBUG('z', "--p-%d--", atoi(currentThread->getName()));
+	DEBUG('z', "--p-%d--", currentThread->getID());
 	printf(buf, num);
 }
 
@@ -346,7 +348,6 @@ int CreateLock_Syscall() {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
@@ -377,7 +378,6 @@ void DestroyLock_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     DEBUG('z', "DestroyLock process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
@@ -391,7 +391,7 @@ void DestroyLock_Syscall(unsigned int key) {
     bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: DestroyLock failed. Server misconfigured.\n");
+    	printf("WARN: DestroyLock failed. Server misconfigured.\n");
 }
 
 void Acquire_Syscall(unsigned int key) {
@@ -403,10 +403,9 @@ void Acquire_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
 
-    DEBUG('z', "--a-%d--", atoi(currentThread->getName()));
+    DEBUG('z', "--a-%d--", currentThread->getID());
 
     DEBUG('z', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
@@ -421,7 +420,7 @@ void Acquire_Syscall(unsigned int key) {
     bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Acquire failed. Server misconfigured.\n");
+    	printf("WARN: Acquire failed. Server misconfigured.\n");
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -440,7 +439,6 @@ void Release_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Release - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
@@ -467,7 +465,6 @@ int CreateCondition_Syscall() {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d", processID, threadID);
@@ -482,7 +479,7 @@ int CreateCondition_Syscall() {
     bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: CreateCondition failed. Server misconfigured.\n");
+    	printf("WARN: CreateCondition failed. Server misconfigured.\n");
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -497,14 +494,8 @@ void DestroyCondition_Syscall(unsigned int key) {
 
     // Form the request message
     int processID = currentThread->space->spaceID;
-<<<<<<< Updated upstream
-    int threadID = atoi(currentThread->getName());
-    DEBUG('z', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
-=======
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
-    DEBUG('z', "DestroyCondition process %d thread %d\n", processID, threadID);
->>>>>>> Stashed changes
+    DEBUG('z', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
@@ -531,7 +522,6 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Wait - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
@@ -546,7 +536,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Wait failed. Server misconfigured.\n");
+    	printf("WARN: Wait failed. Server misconfigured.\n");
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -568,7 +558,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Acquire (after Wait) failed. Server misconfigured.\n");
+    	printf("WARN: Acquire (after Wait) failed. Server misconfigured.\n");
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -588,7 +578,6 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Signal - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
@@ -603,7 +592,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Signal failed. Server misconfigured.\n");
+    	printf("WARN: Signal failed. Server misconfigured.\n");
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -625,7 +614,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Release (after Signal) failed. Server misconfigured.\n");
+    	printf("WARN: Release (after Signal) failed. Server misconfigured.\n");
 }
 
 void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
@@ -639,7 +628,6 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    //atoi(currentThread->getName());
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "Broadcast - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
@@ -654,7 +642,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Broadcast failed. Server misconfigured.\n");
+    	printf("WARN: Broadcast failed. Server misconfigured.\n");
 
      // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
@@ -676,7 +664,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     success = postOffice->Send(outPktHdr, outMailHdr, send); 
 
     if ( !success )
-      printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
+    	printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
 }
 
 void NetPrint_Syscall(int text, int num) {
@@ -704,8 +692,8 @@ void NetPrint_Syscall(int text, int num) {
     bool success = postOffice->Send(outPktHdr, outMailHdr, buf); 
 
     if ( !success ) {
-      printf("ERROR: NetPrint failed. Server misconfigured. Terminating Nachos.\n");
-      interrupt->Halt();
+    	printf("ERROR: NetPrint failed. Server misconfigured. Terminating Nachos.\n");
+    	interrupt->Halt();
     }
 
     delete[] buf;
@@ -727,8 +715,8 @@ void NetHalt_Syscall() {
     bool success = postOffice->Send(outPktHdr, outMailHdr, buf); 
 
     if ( !success ) {
-      printf("ERROR: NetHalt failed. Server misconfigured. Terminating Nachos.\n");
-      interrupt->Halt();
+    	printf("ERROR: NetHalt failed. Server misconfigured. Terminating Nachos.\n");
+    	interrupt->Halt();
     }
 
     delete[] buf;

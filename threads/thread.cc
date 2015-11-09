@@ -32,21 +32,21 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
-{
+Thread::Thread(char* threadName) {
     name = threadName;
 
-    threadIndexLock->Acquire();
-    id = threadIndex;
-    threadIndex++;
-    threadIndexLock->Release();
-
+    // We only care about CERTAIN thread IDs (the very first thread, thread 0, and
+    // all threads Fork()-ed from exception.cc's Fork() syscall) so if there comes
+    // a bug that involes the thread ID being -1, you know where to look.
+    id = -1;
+    
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
-#ifdef USER_PROGRAM
-    space = NULL;
-#endif
+
+    #ifdef USER_PROGRAM
+        space = NULL;
+    #endif
 }
 
 //----------------------------------------------------------------------
