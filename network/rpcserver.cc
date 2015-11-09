@@ -97,7 +97,7 @@ void RPCServer::Receive_Acquire() {
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkLockTable->locks.size())
+        if (networkLockTable->locks.find(key) != networkLockTable->locks.end())
             lock = networkLockTable->locks[key];
         else {
             printf("ERROR: Acquire failed. No such lock. Terminating Nachos.\n");
@@ -136,7 +136,7 @@ void RPCServer::Receive_Release() {
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
 
-        if (key >= 0 && key < networkLockTable->locks.size())
+        if (networkLockTable->locks.find(key) != networkLockTable->locks.end())
             lock = networkLockTable->locks[key];
         else {
             printf("ERROR: Release failed. No such lock. Terminating Nachos.\n");
@@ -240,7 +240,7 @@ void RPCServer::Receive_Wait() {
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
+        if(networkConditionTable->conditions.find(conditionKey) != networkConditionTable->conditions.end())
             condition = networkConditionTable->conditions[conditionKey];
         else {
             printf("ERROR: Wait failed. No such condition. Terminating Nachos.\n");
@@ -290,7 +290,7 @@ void RPCServer::Receive_Signal() {
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
+        if(networkConditionTable->conditions.find(conditionKey) != networkConditionTable->conditions.end())
             condition = networkConditionTable->conditions[conditionKey];
         else {
             printf("ERROR: Signal failed. No such condition. Terminating Nachos.\n");
@@ -339,7 +339,7 @@ void RPCServer::Receive_Broadcast() {
         networkConditionTable->tableLock->Acquire();
         networkLockTable->tableLock->Acquire();
 
-        if (conditionKey >= 0 && conditionKey < networkConditionTable->conditions.size())
+        if(networkConditionTable->conditions.find(conditionKey) != networkConditionTable->conditions.end())
             condition = networkConditionTable->conditions[conditionKey];
         else {
             printf("ERROR: Broadcast failed. No such condition. Terminating Nachos.\n");
