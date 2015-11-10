@@ -2,6 +2,10 @@
 //	Data structures to keep track of executing user programs 
 //	(address spaces).
 //
+//	For now, we don't keep any information about address spaces.
+//	The user level CPU state is saved and restored in the thread
+//	executing the user program (see thread.h).
+//
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
@@ -12,13 +16,13 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "table.h"
-#include "ipt.h"
 
 class Thread;
 
-#define UserStackSize		1024 	// Increase this as necessary!
-#define MaxOpenFiles        256
-#define MaxChildSpaces      256
+#define UserStackSize		1024 	// increase this as necessary!
+
+#define MaxOpenFiles 256
+#define MaxChildSpaces 256
 
 class AddrSpace {
   public:
@@ -31,19 +35,15 @@ class AddrSpace {
     void CreateStack(Thread* thread);
     void ClearStack(unsigned int stackStart);
     void ClearPhysicalPage(int i);
-    void AddrSpace::handlePageFault(int vaddr);
-    int AddrSpace::handleIPTMiss(int vpn);
-    int AddrSpace::handleMemoryFull(int neededVPN);
     Table fileTable;            // Table of openfiles
     int spaceID;
     unsigned int numThreads;
     Thread* processThread;
-    IPTEntry *pageTable;
-
+    //vector<Thread*> threads;
  private:
+    TranslationEntry *pageTable;	// Assume linear page table translation for now!
     unsigned int numPages;		// Number of pages in the virtual address space
-    OpenFile *executable;
-    unsigned int codeInitPages;
+    
 };
 
 #endif // ADDRSPACE_H

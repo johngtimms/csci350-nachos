@@ -226,7 +226,6 @@ NetHalt:
 	j	$31
 	.end NetHalt
 
-
     .globl Rand
 	.ent	Rand
 Rand:
