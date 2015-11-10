@@ -44,7 +44,7 @@ void StartProcess(char *filename) {
     processTable->processID++;
     processTable->processes[space->spaceID] = space;
     processTable->numProcesses++;
-    delete executable;			// close file
+    //delete executable;			// close file, commented out for Project 3
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
     processTableLock->Release();

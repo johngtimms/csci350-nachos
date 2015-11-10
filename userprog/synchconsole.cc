@@ -68,4 +68,3 @@ SynchConsole::ReadLine(char *line, int size)
   DEBUG('r', "Read the %d character string %s into buffer of size %d\n",num_read, line-num_read, size);
   return num_read;
 }
-

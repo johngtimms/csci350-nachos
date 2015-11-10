@@ -1,3 +1,4 @@
+
 //	main.cc
 //
 //	Bootstrap code to initialize the operating system kernel.
@@ -51,7 +52,6 @@
 
 #include "utility.h"
 #include "system.h"
-
 // External functions used by this file
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
