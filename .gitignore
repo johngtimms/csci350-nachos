@@ -31,7 +31,6 @@
 swtch.s
 nachos
 *core
-*swapfile
 
 # NACHOS USER PROGRAMS
 *.coff
@@ -54,9 +53,6 @@ test/passportOffice
 test/assignmentThreeTests
 test/networkTests
 test/testMV
-test/testdpvm
 
 # MISC
 *.txt
-*.DS_Store
-

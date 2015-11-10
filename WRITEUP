@@ -9,14 +9,13 @@ I. Requirements:
 
     Part 1:
 
-	Implement software-management of the TLB using software page translation, including handling TLB misses.
+        
 
     Part 2:
 
-        Implement virtual memory, using the TLB, IPT, and a swapfile, being able to keep track of each virtual page, whether it is in memory, swap file, or the original exeuctable. And implementation should handle full memory, selecting a page to remove from memory to make room (Random and FIFO page replacement policy). An IPT, which translates virtual pages to physical pages, should be used to keep track of all the pages in the system that are currently in use. 
-
         
-	Part 3:
+
+    Part 3:
 
         Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
         implement Monitor syscalls using the new model. This will require changing exception.cc so that
@@ -27,65 +26,26 @@ II. Assumptions:
 
     Part 1:
 
-	   None    
+        
 
     Part 2:
 
-        None
-     Part 3:
+        
+
+    Part 3:
 
         None
 
 III. Design:
 
-    Part 1 & 2:
-        In exception.cc:  added a new handler for PageFaultExceptions 
-            if(which == PageFaultException) {
-                rv = machine->ReadRegister(BadVAddrReg);
-                currentThread->space->handlePageFault(rv);
-            }
-        Created a new class IPTEntry, that inherits from TranslationEntry. 
-        This class contains: 
-            an addrspace pointer - keeps track of the owner of page
-            byteOffset - keeps track of the offset location in the swapfile
-            location - keeps track of where the page is (either IN_SWAPFILE, IN_EXECUTABLE, IN_NEITHER)
+    Part 1:
 
-        machine.h
-            Changed the number of physical pages from 1000 pages to 32 pages, so swapping occurs frequently.
+        
 
-        Inside addrspace.h/cc, 
-            Changed the page tables to be instances of our new class IPTEntry 
+    Part 2:
 
-            Constructor: 
-                No longer deletes the executable, but saves its pointer so that its data can continue to be read during IPT misses
-                Values in the page table are no longer preloaded, but instead initialized
+        
 
-            AddrSpace::handlePageFault(int vaddr)
-                Calculates the vpn ( vaddr / PageSize )
-                Disabled interrupts
-                Searches the IPT for the needed vpn
-                    If IPT can't find the page, it searches for a new one, calling handleIPTMiss(vpn)
-                Propgate dirty bits from TLB to the IPT and page table
-                Load page from IPT to TLB (copies virtual page, physical page, valid, use, dirty, readOnly)
-                Restores interrupts
-
-            AddrSpace::handleIPTMiss(int vpn)
-                Searches for a new page from memory
-                    If memory is full, a page is going to be evicted, calling handleMemoryFull(need vpn)
-                Locate data (either from swapfile or executable) and store it into the new page in memory
-                    If it's in swap file, locate based off byteOffSet, read and store in page table
-                    If it's in executable, read it and store in page table
-
-            AddrSpace::handleMemoryFull(int neededVPN)
-                Find page to evict
-                    FIFO Eviction:
-                        Get oldest page in IPT, (first page in list that chronologically keeps track of pages being added to IPT)
-                    Random Eviction
-                        Genereate random number between the possible physical pages and get that page
-                    If page is dirty is dirty, write it to the swapfile, and update page table to show page moving from memory to swapfile
-                    Check if evicted page is in TLB
-                        Update IPT and TLB of process of evicted page
-                    Update page table and IPT
     Part 3:
 
         The server design is based on the provided post office code and is implemented in the rpcserver.h
@@ -113,13 +73,9 @@ IV. Implementation:
         threads/system.cc
         threads/system.h
         userprog/exception.cc
-        userprog/addrspace.h
-        userprog/addrspace.cc
         userprog/syscall.h
-        machine/machine.h
 
     Files Added:
-        vm/ipt.h
         network/rpcserver.cc
         network/rpcserver.h
         test/assignmentThreeTests.c
@@ -129,12 +85,10 @@ IV. Implementation:
         class RPCServer                         in network/rpcserver.h
 
     Data Structures Modified:
-    None
+        
+        None
 
     Functions Added:
-        AddrSpace::handlePageFault()            in userprog/addrspace.cc
-        AddrSpace::handleIPTMiss()              in userprog/addrspace.cc
-        AddrSpace::handleMemoryFull()           in userprog/addrspace.cc
         RPCServer::RPCServer()                  in network/rpcserver.cc
         RPCServer::~RPCServer()                 in network/rpcserver.cc
         RPCServer::Receive_CreateLock()         in network/rpcserver.cc
@@ -182,40 +136,25 @@ IV. Implementation:
         Condition::Broadcast()                  in threads/synch.cc
         Initialize()                            in threads/system.cc
         ExceptionHandler()                      in userprog/exception.cc
-        AddrSpace::AddrSpace()                  in userprog/addrspace.cc
-
 
 V. Testing:
 
     How To Test:
 
-    Part 1 & 2 (software-management of TLB and virtual memory):
-        
+        Part 1:
 
-        - FIFO vs. Random Eviction Policies
-          In Network folder:
-          Matmult:
-             nachos -x ../test/matmult -P RAND 
-             OR
-             nachos -x ../test/matmult -P FIFO 
-            Sort:
-              nachos -x ../test/sort -P RAND 
-              OR
-              nachos -x ../test/sort -P FIFO 
+            
 
-        - Demonstration of two programs running matmults
-          nachos -x ../test/testdpvm -P RAND
-          OR    
-          nachos -x ../test/testdpvm -P FIFO
-    
-    Part 3:
+        Part 2:
+
+            
+
+        Part 3:
 
             
 
 VI: Discussion:
 
-    Implementing the software memory management unit was challenging, in the sense that it was a little difficult to debug, but all the steps to implement virtual memory made logical sense, and so it eventually worked out. We were able to create a memory management system that seems to be capable of managing memory between multiple processes.
-    
     In exception.cc's ExceptionHandler(), we changed the functions called for each syscall that is backed
     by the network, to indicate that they are siginifcantly different. For example, CreateLock_Syscall()
     became CreateLock_Netcall(). Each ntcall uses the postOffice to Send() a message to the server.
@@ -228,4 +167,4 @@ VI: Discussion:
 
 VII. Miscellaneous:
 
-
+    

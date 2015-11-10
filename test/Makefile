@@ -30,7 +30,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c -w $(INCDIR)
 
-all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV
+all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests networkTests testMV
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -139,13 +139,6 @@ assignmentThreeTests: assignmentThreeTests.o start.o
 	$(LD) $(LDFLAGS) start.o assignmentThreeTests.o -o assignmentThreeTests.coff
 	../bin/coff2noff assignmentThreeTests.coff assignmentThreeTests
 
-
-testdpvm.o: testdpvm.c
-	$(CC) $(CFLAGS) -c testdpvm.c
-testdpvm: testdpvm.o start.o
-	$(LD) $(LDFLAGS) start.o testdpvm.o -o testdpvm.coff
-	../bin/coff2noff testdpvm.coff testdpvm
-
 networkTests.o: networkTests.c
 	$(CC) $(CFLAGS) -c networkTests.c
 networkTests: networkTests.o start.o
@@ -160,5 +153,4 @@ testMV: testMV.o start.o
 
 clean:
 	rm -f *.o *.coff
-	rm -f halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV
-
+	rm -f halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests networkTests

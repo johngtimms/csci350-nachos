@@ -11,6 +11,7 @@
 // of liability and disclaimer of warranty provisions.
 
 #include "copyright.h"
+
 #include "machine.h"
 #include "mipssim.h"
 #include "system.h"
@@ -688,4 +689,3 @@ Mult(int a, int b, bool signedArith, int* hiPtr, int* loPtr)
     *hiPtr = (int) hi;
     *loPtr = (int) lo;
 }
-
