@@ -28,13 +28,30 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+
+
+// Locks/Conditions
 LockTable *lockTable;
 ConditionTable *conditionTable;
+Lock *forkLock;
+
+// Physical Memory BitMap
 BitMap *memoryBitMap;
 Lock *memoryBitMapLock;
-Lock *forkLock;
+
+// Process Table
 ProcessTable *processTable;
 Lock *processTableLock;
+
+// DPVM
+int currentTLB;
+IPTEntry *ipt;
+OpenFile *swapfile;
+BitMap *swapfileBitMap;
+
+// Eviction Policy
+bool fifoEviction;
+List *fifo;
 #endif
 
 #ifdef NETWORK
@@ -91,6 +108,7 @@ Initialize(int argc, char **argv) {
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
+    fifoEviction = true;
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
@@ -113,11 +131,18 @@ Initialize(int argc, char **argv) {
 	    }
 	} else if (!strcmp(*argv, "-rs")) {
 	    ASSERT(argc > 1);
-	    RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
-						// number generator
+        // initialize pseudo-random number generator
+	    RandomInit(atoi(*(argv + 1)));
 	    randomYield = TRUE;
 	    argCount = 2;
-	}
+	} else if (!strcmp(*argv, "-P")) {
+        if(!strcmp(*(argv + 1), "RAND")) {
+            printf("RAND\n");
+            fifoEviction = false;
+            argCount = 2;
+        }
+    }
+
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
@@ -142,6 +167,7 @@ Initialize(int argc, char **argv) {
         destinationName = atoi(*(argv + 1));
         argCount = 2;
     }
+
 #endif
     }
 
@@ -173,6 +199,13 @@ Initialize(int argc, char **argv) {
     forkLock = new Lock();
     processTable = new ProcessTable();
     processTableLock = new Lock();
+    currentTLB = 0;
+    ipt = new IPTEntry[NumPhysPages];
+    swapfileBitMap = new BitMap(NumPhysPages * 100);
+    fifo = new List();
+    forkLock = new Lock();
+    processTable = new ProcessTable();
+    processTableLock = new Lock();
 #endif
 
 #ifdef FILESYS
@@ -181,6 +214,12 @@ Initialize(int argc, char **argv) {
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+    // Create swapfile
+    if(!fileSystem->Create("swapfile", NumPhysPages * 100 * PageSize)) {
+        printf("Could not create swapfile\n");
+        return;
+    }
+    swapfile = fileSystem->Open("swapfile");
 #endif
 
 #ifdef NETWORK
@@ -219,6 +258,10 @@ Cleanup() {
     delete forkLock;
     delete processTable;
     delete processTableLock;
+    delete ipt;
+    delete swapfile;
+    delete swapfileBitMap;
+    delete fifo;
 #endif
 
 #ifdef FILESYS_NEEDED
