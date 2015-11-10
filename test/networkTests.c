@@ -9,7 +9,6 @@ void TestWait() {
 	Wait(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tWait test (2/2): Finished waiting\n", 100);
 	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */
-	Print("EXIT TEST WAIT\n", 100);
 	Exit(0);
 }
 
@@ -18,7 +17,6 @@ void TestSignal() {
 	Print("\tWait test (1/2): Wait DID release the lock\n", 100);
 	Signal(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tSignal test (1/2): Finished signaling\n", 100);
-	Print("EXIT TEST SIGNAL\n", 100);
 	Exit(0);
 }
 
@@ -26,7 +24,6 @@ void TestBroadcast() {
 	Acquire(lockOne);
 	Broadcast(conditionOne, lockOne);
 	Print("\tBroadcast test (?/5): Finished broadcasting\n", 100);
-	Print("EXIT TEST BROADCAST\n", 100);
 	Exit(0);
 }
 
@@ -35,7 +32,6 @@ void TestBroadcastHelper() {
 	Wait(conditionOne, lockOne); /* lockOne will be released half-way through Wait, then gotten again */
 	Print("\tBroadcast test (?/5): Finished waiting\n", 100);
 	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */	
-	Print("EXIT TEST BROADCAST HELPER\n", 100);
 	Exit(0);
 }
 
