@@ -184,7 +184,7 @@ Initialize(int argc, char **argv) {
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(machineName, rely, 100);
+    postOffice = new PostOffice(machineName, rely, 1000);
     rpcServer = new RPCServer();
     networkLockTable = new NetworkLockTable();
     networkConditionTable = new NetworkConditionTable();
