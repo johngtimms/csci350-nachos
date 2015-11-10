@@ -63,8 +63,6 @@ void ForkUserThread(int functionPtr) {
 void Fork_Syscall(int functionPtr) {
 	DEBUG('t', "In Fork_Syscall\n");
 
-	DEBUG('z', "--f-%d--", currentThread->getID());
-
 	Thread *thread = new Thread("forked thread");
 
 	// Give the thread an ID (needed for networking)
@@ -328,7 +326,6 @@ void Print_Syscall(int text, int num) {
 		delete[] buf;
 	}
 	buf[100] = '\0';
-	DEBUG('z', "--p-%d--", currentThread->getID());
 	printf(buf, num);
 }
 
@@ -405,8 +402,6 @@ void Acquire_Syscall(unsigned int key) {
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
 
-    DEBUG('z', "--a-%d--", currentThread->getID());
-
     DEBUG('z', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
@@ -424,6 +419,8 @@ void Acquire_Syscall(unsigned int key) {
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+
+    DEBUG('z', "Acquire SUCCESS - process %d thread %d key %d\n", processID, threadID, key);
     
     char test[MaxMailSize];
     strcpy(test, "OK");
@@ -545,7 +542,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
         printf("WARN: Wait failed. Recieved bad server message.\n");
 
     // After getting the CV, we need to acquire the lock
-    DEBUG('z', "Acquire (after Wait) process %d thread %d\n", processID, threadID);
+    DEBUG('z', "Acquire (after Wait) - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
 
     // Construct packet header, mail header for the message
@@ -562,6 +559,8 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+
+	DEBUG('z', "Acquire (after Wait) SUCCESS - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     
     if ( strcmp(test,recv) )
         printf("WARN: Acquire (after Wait) failed. Recieved bad server message.\n");

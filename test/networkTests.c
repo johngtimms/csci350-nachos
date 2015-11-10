@@ -6,38 +6,36 @@ int conditionOne;
 
 void TestWait() {
 	Acquire(lockOne);
-	Print("TestWait has lockOne\n", 100);
 	Wait(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tWait test (2/2): Finished waiting\n", 100);
 	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */
+	Print("EXIT TEST WAIT\n", 100);
 	Exit(0);
 }
 
 void TestSignal() {
 	Acquire(lockOne);
-	Print("TestSignal has lockOne\n", 100);
 	Print("\tWait test (1/2): Wait DID release the lock\n", 100);
 	Signal(conditionOne, lockOne); /* lockOne will be released */
 	Print("\tSignal test (1/2): Finished signaling\n", 100);
+	Print("EXIT TEST SIGNAL\n", 100);
 	Exit(0);
 }
 
 void TestBroadcast() {
-	Print("TestBroadcast\n", 100);
 	Acquire(lockOne);
-	Print("TestBroadcast has lockOne\n", 100);
 	Broadcast(conditionOne, lockOne);
 	Print("\tBroadcast test (?/5): Finished broadcasting\n", 100);
+	Print("EXIT TEST BROADCAST\n", 100);
 	Exit(0);
 }
 
 void TestBroadcastHelper() {
-	Print("TestBroadcastHelper\n", 100);
 	Acquire(lockOne);
-	Print("TestBroadcastHelper has lockOne\n", 100);
 	Wait(conditionOne, lockOne); /* lockOne will be released half-way through Wait, then gotten again */
 	Print("\tBroadcast test (?/5): Finished waiting\n", 100);
 	Release(lockOne); /* release lockOne again, Wait re-acquired after Signal. */	
+	Print("EXIT TEST BROADCAST HELPER\n", 100);
 	Exit(0);
 }
 
@@ -80,9 +78,6 @@ int main() {
 	Fork(&TestSignal);
 	Acquire(lockOne);	/* Somehow lockOne is being acquired before it's apropriate */
 	Print("\tSignal test (2/2): Signal DID release the lock\n", 100);
-	Print("I think thread 0 gets lock key 2 before thread 1's Wait can get it.\n",100);
-	Print("Doing an extra Release here, because TestBroadcastHelpers do their own acquire anyway.\n",100);
-	Print("Should immediately see Wait test (2/2)\n",100);
 	Release(lockOne);
 
 	/* Test Broadcast */
@@ -94,6 +89,7 @@ int main() {
 	Fork(&TestBroadcast);
 	Acquire(lockOne);
 	Print("\tBroadcast test (5/5): Broadcast DID release the lock\n", 100);
+	Release(lockOne);
 
 	/* Test DestroyCondition */
 	DestroyCondition(conditionOne);

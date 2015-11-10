@@ -517,9 +517,6 @@ int RPCServer::ClientMailbox(int process, int thread) {
     strcat(str1, str2);
     int mailbox = atoi(str1);
 
-    DEBUG('r', "Client Mailbox %d process %d thread %d\n", mailbox, process, thread);
-    DEBUG('z', "Client Mailbox %d process %d thread %d\n", mailbox, process, thread);
-
     return mailbox;
 }
 
