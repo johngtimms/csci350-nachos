@@ -378,6 +378,132 @@ void RPCServer::Receive_NetHalt() {
     }
 }
 
+void RPCServer::Receive_CreateMV() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxCreateMV, &inPktHdr, &inMailHdr, recv);
+
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+
+        // Process the message (identical to original syscall)
+        NetworkMV *mv = new NetworkMV(inPktHdr.from, processID);
+        networkMVTable->tableLock->Acquire();
+        int key = networkMVTable->index;
+        //networkMVTable->mvs[key] = mv->Get(processID);
+        networkMVTable->mvs[key] = mv;
+        networkMVTable->index++;
+        networkMVTable->tableLock->Release();
+
+        // Reply with the key
+        DEBUG('r', "CreateMV - process %d thread %d key %d (new)\n", processID, threadID, key);
+        SendResponse(inPktHdr.from, inMailHdr.from, key);
+    }
+}
+
+void RPCServer::Receive_DestroyMV() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+
+    NetworkMV *mv;
+
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxDestroyMV, &inPktHdr, &inMailHdr, recv);
+
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+        unsigned int key = atoi(strtok(NULL,","));
+        DEBUG('r', "DestroyMV - process %d thread %d key %d\n", processID, threadID, key);
+
+        // Process the message (identical to original syscall)
+        networkMVTable->tableLock->Acquire();
+
+        mv = networkMVTable->mvs[key];
+        if (mv != NULL) {
+            if (mv->IsOwner(processID))
+                networkMVTable->mvs.erase(key);
+            else
+              printf("WARN: DestroyMV failed. Client does not own MV.\n");  
+        } else
+            printf("WARN: DestroyMV failed. No such MV.\n");
+        networkMVTable->tableLock->Release();
+    }
+}
+
+void RPCServer::Receive_GetMV() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+
+    NetworkMV *mv;
+    int value;
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxGetMV, &inPktHdr, &inMailHdr, recv);
+
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+        unsigned int key = atoi(strtok(NULL,","));
+        DEBUG('r', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
+
+        // Process the message (identical to original syscall)
+        networkMVTable->tableLock->Acquire();
+
+        mv = networkMVTable->mvs[key];
+        if (mv != NULL) {
+            if (mv->IsOwner(processID))
+                SendResponse(inPktHdr.from, inMailHdr.from, mv->value);
+            else
+              printf("WARN: GetMV failed. Client does not own MV.\n");  
+        } else
+            printf("WARN: GetMV failed. No such MV.\n");
+
+        networkMVTable->tableLock->Release();
+    }
+}
+
+void RPCServer::Receive_SetMV() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+
+    NetworkMV *mv;
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxSetMV, &inPktHdr, &inMailHdr, recv);
+
+        // Read the message
+        int processID = atoi(strtok(recv,","));
+        int threadID = atoi(strtok(NULL,","));
+        unsigned int key = atoi(strtok(NULL,","));
+        unsigned int value = atoi(strtok(NULL,","));
+        DEBUG('r', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
+
+        // Process the message (identical to original syscall)
+        networkMVTable->tableLock->Acquire();
+
+        mv = networkMVTable->mvs[key];
+        if (mv != NULL) {
+            if (mv->IsOwner(processID))
+                mv->value = value;
+            else
+              printf("WARN: GetMV failed. Client does not own MV.\n");  
+        } else
+            printf("WARN: GetMV failed. No such MV.\n");
+
+        networkMVTable->tableLock->Release();
+    }
+}
+
 //-----------------------------------------------------------------------------------------------//
 // When replying to the client, must reply to the individual process/thread box.
 //-----------------------------------------------------------------------------------------------//
@@ -445,6 +571,10 @@ static void DummyReceive_Signal(int arg) { RPCServer* rpcs = (RPCServer *) arg; 
 static void DummyReceive_Broadcast(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_Broadcast(); }
 static void DummyReceive_NetPrint(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_NetPrint(); }
 static void DummyReceive_NetHalt(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_NetHalt(); }
+static void DummyReceive_CreateMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_CreateMV(); }
+static void DummyReceive_DestroyMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_DestroyMV(); }
+static void DummyReceive_GetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_GetMV(); }
+static void DummyReceive_SetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_SetMV(); }
 
 //-----------------------------------------------------------------------------------------------//
 // RunServer() is called from main.cc when the "--server" flag is used.
@@ -493,6 +623,18 @@ void RunServer() {
 
     Thread *tNetHalt = new Thread("NetHalt thread");
     tNetHalt->Fork(DummyReceive_NetHalt, (int) rpcServer);
+
+    Thread *tCreateMV = new Thread("CreateMV thread");
+    tCreateMV->Fork(DummyReceive_CreateMV, (int) rpcServer);
+
+    Thread *tDestroyMV = new Thread("DestroyMV thread");
+    tDestroyMV->Fork(DummyReceive_DestroyMV, (int) rpcServer);
+
+    Thread *tGetMV = new Thread("GetMV thread");
+    tGetMV->Fork(DummyReceive_GetMV, (int) rpcServer);
+
+    Thread *tSetMV = new Thread("SetMV thread");
+    tSetMV->Fork(DummyReceive_SetMV, (int) rpcServer);
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -628,8 +770,8 @@ void NetworkCondition::Signal(int process, int _thread, NetworkLock* lock) {
                 DEBUG('r', "Signal thread process %d thread %d thread %d (given)\n", processID, thread, _thread);
                 RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, thread), -1);
                 RPCServer::SendResponse(machineID, RPCServer::ClientMailbox(processID, _thread), -1);
-                // MUST Release() following this call to Signal() in exception.cc, otherwise the thread signaled will be stuck
-                // That's why the second response is sent (so Signal() knows to go ahead and Release())
+                // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
+                // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
                 // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
             } else {
                 printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
@@ -675,5 +817,34 @@ void NetworkCondition::Broadcast(int process, int _thread, NetworkLock* lock) {
 }
 
 bool NetworkCondition::IsOwner(int process) {
+    return (processID == process);
+}
+
+NetworkMV::NetworkMV(int _machineID, int process) {
+    machineID = _machineID;
+    processID = process;
+    value = -1;
+}
+
+NetworkMV::~NetworkMV() {}
+
+/*
+int NetworkMV::Get(int process) {
+    if (IsOwner(process)) {
+        printf("ERROR: NetworkMV::Get() failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+    return value;
+}
+
+void NetworkMV::Set(int process, int _value) {
+    if (isOwner(process)) {
+        printf("ERROR: NetworkMV::Set() failed. Owner error. Terminating Nachos.\n");
+        interrupt->Halt();
+    }
+    value = value;
+}
+*/
+bool NetworkMV::IsOwner(int process) {
     return (processID == process);
 }

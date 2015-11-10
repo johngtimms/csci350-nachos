@@ -44,6 +44,7 @@ Lock *processTableLock;
     int destinationName;    // The remote OS's network name
     NetworkLockTable *networkLockTable;
     NetworkConditionTable *networkConditionTable;
+    NetworkMVTable *networkMVTable;
 
     int threadIndex;
     Lock *threadIndexLock;
@@ -183,10 +184,11 @@ Initialize(int argc, char **argv) {
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(machineName, rely, 9999);
+    postOffice = new PostOffice(machineName, rely, 100);
     rpcServer = new RPCServer();
     networkLockTable = new NetworkLockTable();
     networkConditionTable = new NetworkConditionTable();
+    networkMVTable = new NetworkMVTable();
     threadIndex = 0;
     threadIndexLock = new Lock();
 #endif
@@ -204,6 +206,7 @@ Cleanup() {
     delete rpcServer;
     delete networkLockTable;
     delete networkConditionTable;
+    delete networkMVTable;
     delete threadIndexLock;
 #endif
     

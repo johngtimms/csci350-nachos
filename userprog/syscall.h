@@ -40,6 +40,10 @@
 #define SC_Rand       		21
 #define SC_NetPrint			22
 #define SC_NetHalt			23
+#define SC_CreateMV			24
+#define SC_DestroyMV		25
+#define SC_GetMV			26
+#define SC_SetMV 			27
 
 #define MAXFILENAME 256
 
@@ -130,6 +134,10 @@ void Signal(int conditionKey, int lockKey);
 void Broadcast(int conditionKey, int lockKey);
 void Print(int text, int num);
 int Rand();
+int CreateMV();
+void DestroyMV(int key);
+int GetMV(int key);
+void SetMV(int key, int value);
 
 #endif /* IN_ASM */
 #endif /* SYSCALL_H */

@@ -722,6 +722,116 @@ void NetHalt_Syscall() {
     delete[] buf;
 }
 
+int CreateMV_Syscall() {
+	PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
+
+    // Form the request message
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    DEBUG('z', "CreateMV process %d thread %d\n", processID, threadID);
+    sprintf(send, "%d,%d", processID, threadID);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxCreateMV;
+    outMailHdr.from = mailbox; // need a reply, send my mailbox
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: CreateMV failed. Server misconfigured.\n");
+
+    // Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    int key = atoi(recv);
+    return key;
+}
+
+void DestroyMV_Syscall(int key) {
+	PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
+
+    // Form the request message
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    DEBUG('z', "DestroyMV - process %d thread %d key %d\n", processID, threadID, key);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxDestroyMV;
+    outMailHdr.from = 0; // no reply needed
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: DestroyMV failed. Server misconfigured.\n");
+}
+
+int GetMV_Syscall(int key) {
+	PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
+
+    // Form the request message
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    DEBUG('z', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
+    sprintf(send, "%d,%d,%d", processID, threadID, key);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxGetMV;
+    outMailHdr.from = 0; // no reply needed
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: GetMV failed. Server misconfigured.\n");
+
+  	// Get the response back
+    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+    int value = atoi(recv);
+    return value;
+}
+
+void SetMV_Syscall(int key, int value) {
+	PacketHeader outPktHdr;
+    MailHeader outMailHdr;
+    char send[MaxMailSize];
+
+    // Form the request message
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    DEBUG('z', "SetMV - process %d thread %d key %d value %d\n", processID, threadID, key, value);
+    sprintf(send, "%d,%d,%d,%d", processID, threadID, key, value);
+
+    // Construct packet header, mail header for the message
+    outPktHdr.to = destinationName;     
+    outMailHdr.to = MailboxSetMV;
+    outMailHdr.from = 0; // no reply needed
+    outMailHdr.length = strlen(send) + 1;
+
+    // Send the request message
+    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+    if ( !success )
+      printf("WARN: SetMV failed. Server misconfigured.\n");
+}
+
 #endif
 
 void ExceptionHandler(ExceptionType which) {
@@ -825,6 +935,18 @@ void ExceptionHandler(ExceptionType which) {
                 case SC_NetHalt:
                     NetHalt_Syscall();
                     break;
+                case SC_CreateMV:
+                	rv = CreateMV_Syscall();
+                	break;
+                case SC_DestroyMV:
+                	DestroyMV_Syscall(machine->ReadRegister(4));
+                	break;
+                case SC_GetMV:
+                	rv = GetMV_Syscall(machine->ReadRegister(4));
+                	break;
+                case SC_SetMV:
+                	SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                	break;
             #endif
 		}
 		// Put in the return value and increment the PC
