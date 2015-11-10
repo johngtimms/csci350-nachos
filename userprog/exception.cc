@@ -796,7 +796,7 @@ int GetMV_Syscall(int key) {
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
     outMailHdr.to = MailboxGetMV;
-    outMailHdr.from = 0; // no reply needed
+    outMailHdr.from = mailbox; 
     outMailHdr.length = strlen(send) + 1;
 
     // Send the request message
