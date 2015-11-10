@@ -635,7 +635,7 @@ void RunServer() {
 }
 
 //-----------------------------------------------------------------------------------------------//
-// Create new NetworkLock
+// Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
 NetworkLock::NetworkLock(int _machineID, int process) {
@@ -703,7 +703,7 @@ bool NetworkLock::HasAcquired(int thread) {
 }
 
 //-----------------------------------------------------------------------------------------------//
-// Create new NetworkCondition
+// Create NetworkCondition
 //-----------------------------------------------------------------------------------------------//
 
 NetworkCondition::NetworkCondition(int _machineID, int process) {
@@ -817,6 +817,10 @@ bool NetworkCondition::IsOwner(int process) {
     return (processID == process);
 }
 
+//-----------------------------------------------------------------------------------------------//
+// Create NetworkMV
+//-----------------------------------------------------------------------------------------------//
+
 NetworkMV::NetworkMV(int _machineID, int process) {
     machineID = _machineID;
     processID = process;
@@ -825,23 +829,6 @@ NetworkMV::NetworkMV(int _machineID, int process) {
 
 NetworkMV::~NetworkMV() {}
 
-/*
-int NetworkMV::Get(int process) {
-    if (IsOwner(process)) {
-        printf("ERROR: NetworkMV::Get() failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    return value;
-}
-
-void NetworkMV::Set(int process, int _value) {
-    if (isOwner(process)) {
-        printf("ERROR: NetworkMV::Set() failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    value = value;
-}
-*/
 bool NetworkMV::IsOwner(int process) {
     return (processID == process);
 }

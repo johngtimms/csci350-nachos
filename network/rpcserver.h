@@ -84,14 +84,11 @@ class NetworkMV {
     public:
         NetworkMV(int _machineID, int process);
         ~NetworkMV();
-        //void Get(int process);
-        //void Set(int process, int _value);
         bool IsOwner(int process);
         int value;
     private:
         int machineID;
         int processID;
-        //int value;
 };
 
 struct NetworkLockTable {
