@@ -101,10 +101,12 @@ class Thread {
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+    void setID(int _id) { id = _id; }
+    int getID() {return id;}
 
   private:
     // some of the private data for this class is listed above
-    
+    int id;      // Needed for networking
     int* stack; 	 		// Bottom of the stack 
 					// NULL if this is the main thread
 					// (If NULL, don't deallocate stack)

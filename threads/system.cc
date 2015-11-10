@@ -61,6 +61,10 @@ List *fifo;
     int destinationName;    // The remote OS's network name
     NetworkLockTable *networkLockTable;
     NetworkConditionTable *networkConditionTable;
+    NetworkMVTable *networkMVTable;
+
+    int threadIndex;
+    Lock *threadIndexLock;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -178,8 +182,9 @@ Initialize(int argc, char **argv) {
 
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
-    // object to save its state.
-    currentThread = new Thread("0");	// Name the first thread in the first process 0 (needed for networking)
+    // object to save its state. 
+    currentThread = new Thread("first thread");
+    currentThread->setID(0); // The first thread in the first process is 0 (needed for networking) 
     currentThread->setStatus(RUNNING);
 
     interrupt->Enable();
@@ -222,6 +227,9 @@ Initialize(int argc, char **argv) {
     rpcServer = new RPCServer();
     networkLockTable = new NetworkLockTable();
     networkConditionTable = new NetworkConditionTable();
+    networkMVTable = new NetworkMVTable();
+    threadIndex = 0;
+    threadIndexLock = new Lock();
 #endif
 }
 
@@ -235,6 +243,10 @@ Cleanup() {
 #ifdef NETWORK
     delete postOffice;
     delete rpcServer;
+    delete networkLockTable;
+    delete networkConditionTable;
+    delete networkMVTable;
+    delete threadIndexLock;
 #endif
     
 #ifdef USER_PROGRAM

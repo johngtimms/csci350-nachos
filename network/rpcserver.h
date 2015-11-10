@@ -18,6 +18,10 @@
 #define MailboxBroadcast            8
 #define MailboxNetPrint             9
 #define MailboxNetHalt              10
+#define MailboxCreateMV             11
+#define MailboxDestroyMV            12
+#define MailboxGetMV                13
+#define MailboxSetMV                14
 
 class RPCServer {
     public:
@@ -35,6 +39,10 @@ class RPCServer {
         void Receive_Broadcast();
         void Receive_NetPrint();
         void Receive_NetHalt();
+        void Receive_CreateMV();
+        void Receive_DestroyMV();
+        void Receive_GetMV();
+        void Receive_SetMV();
 
         static int ClientMailbox(int process, int thread);
         static void SendResponse(int machineID, int mailbox, int response);
@@ -72,6 +80,20 @@ class NetworkCondition {
         List *queue;
 };
 
+class NetworkMV {
+    public:
+        NetworkMV(int _machineID, int process);
+        ~NetworkMV();
+        //void Get(int process);
+        //void Set(int process, int _value);
+        bool IsOwner(int process);
+        int value;
+    private:
+        int machineID;
+        int processID;
+        //int value;
+};
+
 struct NetworkLockTable {
     int index;
     Lock *tableLock;
@@ -98,6 +120,21 @@ struct NetworkConditionTable {
     }
 
     ~NetworkConditionTable() {
+        delete tableLock;
+    }
+};
+
+struct NetworkMVTable {
+    int index;
+    Lock *tableLock;
+    std::map<int, NetworkMV*> mvs;
+
+    NetworkMVTable() {
+        index = 0;
+        tableLock = new Lock();
+    }
+
+    ~NetworkMVTable() {
         delete tableLock;
     }
 };

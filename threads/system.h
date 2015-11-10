@@ -72,6 +72,10 @@ extern SynchDisk *synchDisk;
     extern int destinationName;
     extern NetworkLockTable* networkLockTable;
     extern NetworkConditionTable* networkConditionTable;
+    extern NetworkMVTable* networkMVTable;
+
+    extern int threadIndex;
+    extern Lock *threadIndexLock;
 #endif
 
 #endif // SYSTEM_H
