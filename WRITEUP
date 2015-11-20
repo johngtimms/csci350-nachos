@@ -1,5 +1,5 @@
 Title: Writeup for Assignment 3, Fall 2015
-Date:  
+Date:  November 8, 2015
 Group: Name                 Email
        Nicholas Roubal      nroubal@usc.edu
        Yetsebaot Sisay      sisay@usc.edu
@@ -9,14 +9,17 @@ I. Requirements:
 
     Part 1:
 
-	Implement software-management of the TLB using software page translation, including handling TLB misses.
+       Implement software-management of the TLB using software page translation, including handling TLB misses.
 
     Part 2:
 
-        Implement virtual memory, using the TLB, IPT, and a swapfile, being able to keep track of each virtual page, whether it is in memory, swap file, or the original exeuctable. And implementation should handle full memory, selecting a page to remove from memory to make room (Random and FIFO page replacement policy). An IPT, which translates virtual pages to physical pages, should be used to keep track of all the pages in the system that are currently in use. 
-
+        Implement virtual memory, using the TLB, IPT, and a swapfile, being able to keep track of each virtual page,
+        whether it is in memory, swap file, or the original exeuctable. And implementation should handle full memory, 
+        selecting a page to remove from memory to make room (Random and FIFO page replacement policy). An IPT, which 
+        translates virtual pages to physical pages, should be used to keep track of all the pages in the system that 
+        are currently in use. 
         
-	Part 3:
+    Part 3:
 
         Implement a client/server model in Nachos, replacing Lock and Condition syscalls. In addition,
         implement Monitor syscalls using the new model. This will require changing exception.cc so that
@@ -27,11 +30,12 @@ II. Assumptions:
 
     Part 1:
 
-	   None    
+        None
 
     Part 2:
 
         None
+
      Part 3:
 
         None
@@ -39,12 +43,16 @@ II. Assumptions:
 III. Design:
 
     Part 1 & 2:
+
         In exception.cc:  added a new handler for PageFaultExceptions 
+
             if(which == PageFaultException) {
                 rv = machine->ReadRegister(BadVAddrReg);
                 currentThread->space->handlePageFault(rv);
             }
+
         Created a new class IPTEntry, that inherits from TranslationEntry. 
+
         This class contains: 
             an addrspace pointer - keeps track of the owner of page
             byteOffset - keeps track of the offset location in the swapfile
@@ -86,6 +94,7 @@ III. Design:
                     Check if evicted page is in TLB
                         Update IPT and TLB of process of evicted page
                     Update page table and IPT
+
     Part 3:
 
         The server design is based on the provided post office code and is implemented in the rpcserver.h
@@ -99,10 +108,14 @@ III. Design:
         contain the loops that runs waiting for new mail in each mailbox. The file rpcserver.h defines which
         mailbox belongs to each syscall.
 
+        This part also required implementing Lock, Condition, and MV classes in rpcserver.h/.cc that work
+        with the networking model. 
+
 IV. Implementation:
 
     Files Modified:
         Makefile.common
+        machine/machine.h
         test/halt.c
         test/Makefile
         test/start.s
@@ -112,24 +125,34 @@ IV. Implementation:
         threads/synch.h
         threads/system.cc
         threads/system.h
-        userprog/exception.cc
+        threads/thread.cc
+        threads/thread.h
         userprog/addrspace.h
         userprog/addrspace.cc
+        userprog/exception.cc
+        userprog/progtest.cc
         userprog/syscall.h
-        machine/machine.h
+        vm/Makefile
 
     Files Added:
-        vm/ipt.h
         network/rpcserver.cc
         network/rpcserver.h
         test/assignmentThreeTests.c
         test/networkTests.c
+        test/test.c
+        test/testdpvm.c
+        test/testMV.c
+        userprog/ipt.h
+        vm/ipt.h
 
     Data Structures Added:
         class RPCServer                         in network/rpcserver.h
-
-    Data Structures Modified:
-    None
+        class NetworkLock                       in network/rpcserver.h
+        class NetworkCondition                  in network/rpcserver.h
+        class NetworkMV                         in network/rpcserver.h
+        struct NetworkLockTable                 in network/rpcserver.h
+        struct NetworkConditionTable            in network/rpcserver.h
+        struct NetworkMVTable                   in network/rpcserver.h
 
     Functions Added:
         AddrSpace::handlePageFault()            in userprog/addrspace.cc
@@ -184,37 +207,44 @@ IV. Implementation:
         ExceptionHandler()                      in userprog/exception.cc
         AddrSpace::AddrSpace()                  in userprog/addrspace.cc
 
-
 V. Testing:
 
     How To Test:
 
-    Part 1 & 2 (software-management of TLB and virtual memory):
-        
+        Part 1 & 2 (software-management of TLB and virtual memory):
+            Run all tests from VM folder.
 
-        - FIFO vs. Random Eviction Policies
-          In Network folder:
-          Matmult:
-             nachos -x ../test/matmult -P RAND 
-             OR
-             nachos -x ../test/matmult -P FIFO 
-            Sort:
-              nachos -x ../test/sort -P RAND 
-              OR
-              nachos -x ../test/sort -P FIFO 
+            - FIFO vs. Random Eviction Policies
+                Matmult:
+                    nachos -x ../test/matmult -P RAND 
+                    OR
+                    nachos -x ../test/matmult -P FIFO 
+                Sort:
+                    nachos -x ../test/sort -P RAND 
+                    OR
+                    nachos -x ../test/sort -P FIFO 
 
-        - Demonstration of two programs running matmults
-          nachos -x ../test/testdpvm -P RAND
-          OR    
-          nachos -x ../test/testdpvm -P FIFO
+            - Demonstration of two programs running matmults
+                  nachos -x ../test/testdpvm -P RAND
+                  OR    
+                  nachos -x ../test/testdpvm -P FIFO
     
-    Part 3:
+        Part 3:
+            Run all tests from VM folder. You will need two console windows.
+            Restart the server after each test!!
 
-            
+            In one window, run:
+                nachos --server -m 1
+            In another window, run:
+                nachos -x ../test/networkTests -m 0 -o 1
+                nachos -x ../test/testMV -m 0 -o 1
 
 VI: Discussion:
 
-    Implementing the software memory management unit was challenging, in the sense that it was a little difficult to debug, but all the steps to implement virtual memory made logical sense, and so it eventually worked out. We were able to create a memory management system that seems to be capable of managing memory between multiple processes.
+    Implementing the software memory management unit was challenging, in the sense that it was a 
+    little difficult to debug, but all the steps to implement virtual memory made logical sense, and so 
+    it eventually worked out. We were able to create a memory management system that seems to be capable 
+    of managing memory between multiple processes.
     
     In exception.cc's ExceptionHandler(), we changed the functions called for each syscall that is backed
     by the network, to indicate that they are siginifcantly different. For example, CreateLock_Syscall()
@@ -228,4 +258,6 @@ VI: Discussion:
 
 VII. Miscellaneous:
 
-
+    Lock and Condition have totally separate methods (NetworkLock->Acquire,
+    for instance) that are called by the network call handlers. This is confusing, so NetworkMV combined
+    all the functionality into one call.
