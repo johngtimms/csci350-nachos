@@ -4,7 +4,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			5
+#define NUM_CUSTOMERS			10
 #define NUM_APPLICATION_CLERKS	1
 #define NUM_PICTURE_CLERKS		1
 #define NUM_PASSPORT_CLERKS		1
@@ -460,7 +460,7 @@ void runApplicationClerk() {
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
 	Release(applicationClerkIndexLock);
 	Print("Running ApplicationClerk: %i\n",i);
-	initClerk(APPLICATION_CLERK, i);
+	/*initClerk(APPLICATION_CLERK, i);*/
 	while(true) {
     	if(applicationClerks[i].senatorLineLength > 0) {
     		Acquire(applicationClerks[i].senatorLineLock);
@@ -536,7 +536,7 @@ void runPictureClerk() {
 	Release(pictureClerkIndexLock);
 	/*Print("After Release(pictureClerkIndexLock);\n",0);*/
 	Print("Running PictureClerk: %i\n",i);
-	initClerk(PICTURE_CLERK, i);
+	/*initClerk(PICTURE_CLERK, i);*/
 	while(true) {
     	if(pictureClerks[i].senatorLineLength > 0) {
     		Acquire(pictureClerks[i].senatorLineLock);
@@ -644,7 +644,7 @@ void runPassportClerk() {
 	Release(passportClerkIndexLock);
 	/*Print("After Release(passportClerkIndexLock);\n", 0); */
 	Print("Running PassportClerk: %i\n",i);
-	initClerk(PASSPORT_CLERK, i);
+	/*initClerk(PASSPORT_CLERK, i);*/
 	while(true) {
     	if(passportClerks[i].senatorLineLength > 0) {
     		Acquire(passportClerks[i].senatorLineLock);
@@ -753,7 +753,7 @@ void runCashier() {
 	nextAvailableCashierIndex = nextAvailableCashierIndex + 1;
 	Release(cashierIndexLock);
 	Print("Running Cashier: %i\n", i);
-	initClerk(CASHIER, i);
+	/*initClerk(CASHIER, i);*/
 	while(true) {
     	if(cashiers[i].senatorLineLength > 0) {
     		Acquire(cashiers[i].senatorLineLock);
@@ -910,6 +910,7 @@ void runManager() {
 			if(applicationClerks[k].state != BREAK)
 				allClerksOnBreak = false; 
 			else {
+				Acquire(applicationClerks[k].clerkLock);
 				Acquire(applicationClerks[k].bribeLineLock);
 				Acquire(applicationClerks[k].lineLock);
 				if((applicationClerks[k].bribeLineLength + applicationClerks[k].lineLength) >= 3 || applicationClerks[k].senatorLineLength > 0) {
@@ -919,6 +920,7 @@ void runManager() {
 				}
 				Release(applicationClerks[k].lineLock);
 				Release(applicationClerks[k].bribeLineLock);
+				Release(applicationClerks[k].clerkLock);
 			}
 		}
 		/*Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);*/
@@ -929,6 +931,7 @@ void runManager() {
 			if(pictureClerks[k].state != BREAK)
 				allClerksOnBreak = false; 
 			else {
+				Acquire(pictureClerks[k].clerkLock);
 				Acquire(pictureClerks[k].bribeLineLock);
 				Acquire(pictureClerks[k].lineLock);
 				if((pictureClerks[k].bribeLineLength + pictureClerks[k].lineLength) >= 3 || pictureClerks[k].senatorLineLength > 0) {
@@ -938,6 +941,7 @@ void runManager() {
 				}
 				Release(pictureClerks[k].lineLock);
 				Release(pictureClerks[k].bribeLineLock);
+				Release(pictureClerks[k].clerkLock);
 			}
 		}
 		/*Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);*/
@@ -948,6 +952,7 @@ void runManager() {
 			if(passportClerks[k].state != BREAK)
 				allClerksOnBreak = false; 
 			else {
+				Acquire(passportClerks[k].clerkLock);
 				Acquire(passportClerks[k].bribeLineLock);
 				Acquire(passportClerks[k].lineLock);
 				if((passportClerks[k].bribeLineLength + passportClerks[k].lineLength) >= 3 || passportClerks[k].senatorLineLength > 0) {
@@ -957,6 +962,7 @@ void runManager() {
 				}
 				Release(passportClerks[k].lineLock);
 				Release(passportClerks[k].bribeLineLock);
+				Release(passportClerks[k].clerkLock);
 			}
 		}
 		/*Print("Manager has counted a total of $%i for PassportClerks\n", passportClerkMoneyTotal);*/
@@ -967,6 +973,7 @@ void runManager() {
 			if(cashiers[k].state != BREAK)
 				allClerksOnBreak = false; 
 			else {
+				Acquire(cashiers[k].clerkLock);
 				Acquire(cashiers[k].bribeLineLock);
 				Acquire(cashiers[k].lineLock);
 				if((cashiers[k].bribeLineLength + cashiers[k].lineLength) >= 3 || cashiers[k].senatorLineLength > 0) {
@@ -976,6 +983,7 @@ void runManager() {
 				}
 				Release(cashiers[k].lineLock);
 				Release(cashiers[k].bribeLineLock);
+				Release(cashiers[k].clerkLock);
 			}
 		}
 		/*Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);*/
@@ -1026,6 +1034,18 @@ int main() {
 	Print("Number of PassportClerks: %i\n", numPassportClerks);
 	Print("Number of Cashiers: %i\n", numCashiers);
 	Print("Number of Senators: %i\n", numSenators);
+	for(k = 0; k < numApplicationClerks; k++) {
+		initClerk(APPLICATION_CLERK,k);
+	}
+	for(k = 0; k < numPictureClerks; k++) {
+		initClerk(PICTURE_CLERK,k);
+	}
+	for(k = 0; k < numPassportClerks; k++) {
+		initClerk(PASSPORT_CLERK,k);
+	}
+	for(k = 0; k < numCashiers; k++) {
+		initClerk(CASHIER,k);
+	}
 	
 	
 	for(k = 0 ; k < numCashiers ; k++)
