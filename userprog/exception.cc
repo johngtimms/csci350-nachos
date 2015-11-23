@@ -350,7 +350,7 @@ int CreateLock_Syscall() {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
-    DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
+    
     sprintf(send, "%d,%d", processID, threadID);
     
     // Construct packet header, mail header for the message
@@ -358,10 +358,10 @@ int CreateLock_Syscall() {
     outMailHdr.to = MailboxCreateLock;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
-    
+    DEBUG('l', "outMailHr.to: %i, mailbox: %i\n",MailboxCreateLock,mailbox);
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
+    DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
     if ( !success )
         printf("WARN: CreateLock failed. Server misconfigured.\n");
     
@@ -602,7 +602,10 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     
     if ( strcmp(test,recv) )
         printf("WARN: Signal failed. Recieved bad server message.\n");
-    
+     
+    /* Peppy - i don't think signal should be releasing the lock, so im commenting this next part
+                I could be wrong though...
+                
     // After signaling, need to release the lock so the waiting thread can acquire
     DEBUG('z', "Release (after Signal) process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
@@ -618,6 +621,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     
     if ( !success )
         printf("WARN: Release (after Signal) failed. Server misconfigured.\n");
+    */
 }
 
 void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
