@@ -508,9 +508,10 @@ void runApplicationClerk() {
             Print("has recieved SSN %i ", customers[myCustomer].SSN);
             Print("from Customer %i\n", customers[myCustomer].SSN);
             Signal(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);    /* Process application */
+            Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);		/* Wait for Customer to accept completed application */
             Print("ApplicationClerk %i ", i);
             Print("has accepted application from Customer %i\n", customers[myCustomer].SSN);
-            Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for Customer to accept completed application */
+            /*Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for Customer to accept completed application */
             applicationClerks[i].customerID = -1;  
             Release(applicationClerks[i].clerkLock);
             applicationClerks[i].state = FREE;
