@@ -741,7 +741,7 @@ void NetworkCondition::Wait(int process, int thread, NetworkLock* lock) {
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Unacquired lock. Terminating Nachos.\n");
+            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %i Terminating Nachos.\n",process,thread,lock);
             interrupt->Halt();
         }
     } else {
