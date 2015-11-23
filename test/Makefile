@@ -30,7 +30,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c -w $(INCDIR)
 
-all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV
+all: halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV customer applicationclerk newpassportoffice
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -158,7 +158,25 @@ testMV: testMV.o start.o
 	$(LD) $(LDFLAGS) start.o testMV.o -o testMV.coff
 	../bin/coff2noff testMV.coff testMV
 
+customer.o: customer.c
+	$(CC) $(CFLAGS) -c customer.c
+customer: customer.o start.o
+	$(LD) $(LDFLAGS) start.o customer.o -o customer.coff
+	../bin/coff2noff customer.coff customer
+
+applicationclerk.o: applicationclerk.c
+	$(CC) $(CFLAGS) -c applicationclerk.c
+applicationclerk: applicationclerk.o start.o
+	$(LD) $(LDFLAGS) start.o applicationclerk.o -o applicationclerk.coff
+	../bin/coff2noff applicationclerk.coff applicationclerk
+
+newpassportoffice.o: newpassportoffice.c
+	$(CC) $(CFLAGS) -c newpassportoffice.c
+newpassportoffice: newpassportoffice.o start.o
+	$(LD) $(LDFLAGS) start.o newpassportoffice.o -o newpassportoffice.coff
+	../bin/coff2noff newpassportoffice.coff newpassportoffice
+
 clean:
 	rm -f *.o *.coff
-	rm -f halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV
+	rm -f halt matmult sort testfiles testexec tester tester2 passportOffice test1 test2 test3 test4 test5 test6 test7a test7b assignmentThreeTests testdpvm networkTests testMV customer applicationclerk newpassportoffice
 
