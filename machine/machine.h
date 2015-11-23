@@ -34,7 +34,7 @@ using namespace std;
 					// the disk sector size, for
 					// simplicity
 
-#define NumPhysPages    32 // Changed to a large value for Assignment 2, per the assignment
+#define NumPhysPages    512 // Changed to a large value for Assignment 2, per the assignment
                             // documentation file.
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
