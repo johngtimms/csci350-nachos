@@ -1035,18 +1035,18 @@ int main() {
 	Print("Number of PassportClerks: %i\n", numPassportClerks);
 	Print("Number of Cashiers: %i\n", numCashiers);
 	Print("Number of Senators: %i\n", numSenators);
-	for(k = 0; k < numApplicationClerks; k++) {
+	for(k = 0; k < numApplicationClerks; k++)
 		initClerk(APPLICATION_CLERK,k);
-	}
-	for(k = 0; k < numPictureClerks; k++) {
+	
+	for(k = 0; k < numPictureClerks; k++)
 		initClerk(PICTURE_CLERK,k);
-	}
-	for(k = 0; k < numPassportClerks; k++) {
+	
+	for(k = 0; k < numPassportClerks; k++) 
 		initClerk(PASSPORT_CLERK,k);
-	}
-	for(k = 0; k < numCashiers; k++) {
+	
+	for(k = 0; k < numCashiers; k++) 
 		initClerk(CASHIER,k);
-	}
+	
 	
 	
 	for(k = 0 ; k < numCashiers ; k++)

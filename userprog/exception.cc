@@ -94,7 +94,7 @@ void Exit_Syscall(int status) {
         processTableLock->Release();
         // delete kernelLockTable & kernelCVTable
         DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
-        printf("machine->ReadRegister(4) =  %d\n", machine->ReadRegister(4));
+        //printf("machine->ReadRegister(4) =  %d\n", machine->ReadRegister(4));
         printf("Terminating Nachos\n");
         interrupt->Halt();
     }
@@ -111,7 +111,6 @@ void Exit_Syscall(int status) {
         currentThread->space = NULL;
         processTableLock->Release();
         DEBUG('t', "Exit_Syscall Case 2 (Last thread belonging to process called Exit)\n");
-        printf("status =  %d\n", status);
         currentThread->Finish();
     }
     // CASE 3: The exiting thread is a thread that was forked in a process
@@ -358,7 +357,7 @@ int CreateLock_Syscall() {
     outMailHdr.to = MailboxCreateLock;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
-    DEBUG('l', "outMailHr.to: %i, mailbox: %i\n",MailboxCreateLock,mailbox);
+    DEBUG('l', "outMailHr.to: %i, mailbox: %i\n", MailboxCreateLock, mailbox);
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
     DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);

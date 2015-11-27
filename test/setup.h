@@ -32,18 +32,9 @@ int nextAvailableApplicationClerkIndex = 0;
 int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
 int totalMoneyMade;
 
-bool runningTest1 = false;
-bool runningTest2 = false;
-bool runningTest3 = false;
-bool runningTest4 = false;
-bool runningTest5 = false;
-bool runningTest6 = false;
-bool runningTest7a = false;
-bool runningTest7b = false;
-
 typedef enum {FREE, BUSY, BREAK} ClerkState;
 typedef enum {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER} ClerkType;
-int amounts[] = {100, 600, 1100, 1600}; /*random amounts of money customer can start with */
+int amounts[] = {100, 600, 1100, 1600};
 
 
 typedef struct Customer {
@@ -83,36 +74,97 @@ Clerk pictureClerks[10];
 Clerk applicationClerks[10];
 
 
-
-void initGlobalVariables() {
-	int k;
-	senatorOutsideLineLock = CreateLock();
-	senatorOutsideLineCV = CreateCondition();
-	senatorInsideLock = CreateLock();
-	customerOutsideLineLock = CreateLock();
-	customerOutsideLineCV = CreateCondition();
-	customerIndexLock = CreateLock();
-	applicationClerkIndexLock = CreateLock();
-	pictureClerkIndexLock = CreateLock();
-	passportClerkIndexLock = CreateLock();
-	cashierIndexLock = CreateLock();
-	
-	numCustomers = CreateMV();
-	numApplicationClerks = CreateMV();
-	numPictureClerks = CreateMV();
-	numPassportClerks = CreateMV();
-	numCashiers = CreateMV();
-	numSenators = CreateMV();
-
-	SetMV(numCustomers, NUM_CUSTOMERS);
-	SetMV(numApplicationClerks, NUM_APPLICATION_CLERKS);
-	SetMV(numPictureClerks, NUM_PICTURE_CLERKS);
-	SetMV(numPassportClerks, NUM_PASSPORT_CLERKS);
-	SetMV(numCashiers, NUM_CASHIERS);
-	SetMV(numSenators, NUM_SENATORS);
-
+void initClerk(ClerkType clerkType, int i) {
+	switch(clerkType) {
+		case APPLICATION_CLERK:
+			applicationClerks[i].lineLength = 0;
+			applicationClerks[i].bribeLineLength = 0;
+			applicationClerks[i].senatorLineLength = 0;
+			applicationClerks[i].money = 0;
+			applicationClerks[i].state = BUSY;
+			applicationClerks[i].lineLock = CreateLock();
+			applicationClerks[i].bribeLineLock = CreateLock();
+			applicationClerks[i].senatorLineLock = CreateLock();
+			applicationClerks[i].clerkLock = CreateLock();
+			applicationClerks[i].moneyLock = CreateLock();
+			applicationClerks[i].lineCV = CreateCondition();
+			applicationClerks[i].bribeLineCV = CreateCondition();
+			applicationClerks[i].senatorLineCV = CreateCondition();
+			applicationClerks[i].clerkCV = CreateCondition();
+			applicationClerks[i].breakCV = CreateCondition();
+			applicationClerks[i].clerkType = clerkType;
+			break;
+		case PICTURE_CLERK:
+			pictureClerks[i].lineLength = 0;
+			pictureClerks[i].bribeLineLength = 0;
+			pictureClerks[i].senatorLineLength = 0;
+			pictureClerks[i].money = 0;
+			pictureClerks[i].state = BUSY;
+			pictureClerks[i].lineLock = CreateLock();
+			pictureClerks[i].bribeLineLock = CreateLock();
+			pictureClerks[i].senatorLineLock = CreateLock();
+			pictureClerks[i].clerkLock = CreateLock();
+			pictureClerks[i].moneyLock = CreateLock();
+			pictureClerks[i].lineCV = CreateCondition();
+			pictureClerks[i].bribeLineCV = CreateCondition();
+			pictureClerks[i].senatorLineCV = CreateCondition();
+			pictureClerks[i].clerkCV = CreateCondition();
+			pictureClerks[i].breakCV = CreateCondition();
+			pictureClerks[i].clerkType = clerkType;
+			break;
+		case PASSPORT_CLERK:
+			passportClerks[i].lineLength = 0;
+			passportClerks[i].bribeLineLength = 0;
+			passportClerks[i].senatorLineLength = 0;
+			passportClerks[i].money = 0;
+			passportClerks[i].state = BUSY;
+			passportClerks[i].lineLock = CreateLock();
+			passportClerks[i].bribeLineLock = CreateLock();
+			passportClerks[i].senatorLineLock = CreateLock();
+			passportClerks[i].clerkLock = CreateLock();
+			passportClerks[i].moneyLock = CreateLock();
+			passportClerks[i].lineCV = CreateCondition();
+			passportClerks[i].bribeLineCV = CreateCondition();
+			passportClerks[i].senatorLineCV = CreateCondition();
+			passportClerks[i].clerkCV = CreateCondition();
+			passportClerks[i].breakCV = CreateCondition();
+			passportClerks[i].clerkType = clerkType;
+			break;
+		case CASHIER:
+			cashiers[i].lineLength = 0;
+			cashiers[i].bribeLineLength = 0;
+			cashiers[i].senatorLineLength = 0;
+			cashiers[i].money = 0;
+			cashiers[i].state = BUSY;
+			cashiers[i].lineLock = CreateLock();
+			cashiers[i].bribeLineLock = CreateLock();
+			cashiers[i].senatorLineLock = CreateLock();
+			cashiers[i].clerkLock = CreateLock();
+			cashiers[i].moneyLock = CreateLock();
+			cashiers[i].lineCV = CreateCondition();
+			cashiers[i].bribeLineCV = CreateCondition();
+			cashiers[i].senatorLineCV = CreateCondition();
+			cashiers[i].clerkCV = CreateCondition();
+			cashiers[i].breakCV = CreateCondition();
+			cashiers[i].clerkType = clerkType;
+			break;
+	}
 }
 
+void initCustomer(int i, bool _isSenator){
+	customers[i].isSenator = _isSenator;
+    customers[i].clerkID = -1;
+    customers[i].SSN = i;
+    customers[i].money = amounts[(int)(Rand() % 4)];
+    customers[i].hasApp = false;
+    customers[i].hasPic = false;
+    customers[i].certifiedByPassportClerk = false;
+    customers[i].hasPassport = false;
+    customers[i].seenApp = false;
+    customers[i].seenPic = false;
+    customers[i].likedPic = false;
+    customers[i].hasPaidForPassport = false;
+}
 
 
 
