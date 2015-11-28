@@ -3,6 +3,7 @@
 
 int main() {
 	int k;
+    /*
 	senatorOutsideLineLock = CreateLock();
 	senatorOutsideLineCV = CreateCondition();
 	senatorInsideLock = CreateLock();
@@ -13,13 +14,14 @@ int main() {
 	pictureClerkIndexLock = CreateLock();
 	passportClerkIndexLock = CreateLock();
 	cashierIndexLock = CreateLock();
+     */
 	
-	numCustomers = NUM_CUSTOMERS;
-	numApplicationClerks = NUM_APPLICATION_CLERKS;
-	numPictureClerks = NUM_PICTURE_CLERKS;
-	numPassportClerks = NUM_PASSPORT_CLERKS;
-	numCashiers = NUM_CASHIERS;
-	numSenators = NUM_SENATORS;
+	numCustomers = 2;
+	numApplicationClerks = 0;
+    numPictureClerks = 0;
+	numPassportClerks = 0;
+	numCashiers = 0;
+	numSenators = 0;
 
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
@@ -27,7 +29,8 @@ int main() {
 	Print("Number of PassportClerks: %i\n", numPassportClerks);
 	Print("Number of Cashiers: %i\n", numCashiers);
 	Print("Number of Senators: %i\n", numSenators);
-
+    
+/*
 	for(k = 0; k < numApplicationClerks; k++)
 		initClerk(APPLICATION_CLERK,k);
 	
@@ -58,15 +61,16 @@ int main() {
 		Exec("../test/pictureclerk", 20);
 	
 	for(k = 0 ; k < numApplicationClerks; k++)
-		Exec("../test/applicationclerk", 23);
-	
+		Exec("../test/applicationclerk", 24);
+	*/
 	for(k = 0 ; k < numCustomers; k++)
 		Exec("../test/customer", 16);
 
 	for(k = 0 ; k < numSenators; k++)
-		Exec("../test/customer", 15);
-
+		Exec("../test/customer", 16);
+    /*
 	Exec("../test/manager", 15);
+     */
 
 
 	Exit(0);

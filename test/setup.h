@@ -14,6 +14,7 @@ typedef int bool;
 struct Customer;
 struct Clerk;
 
+int globalDataLock;
 int senatorOutsideLineLock;
 int senatorOutsideLineCV;
 int senatorsOutside = 0;
@@ -82,7 +83,7 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].senatorLineLength = 0;
 			applicationClerks[i].money = 0;
 			applicationClerks[i].state = BUSY;
-			applicationClerks[i].lineLock = CreateLock();
+			applicationClerks[i].lineLock = CreateLock("applicationClerkLineLock");
 			applicationClerks[i].bribeLineLock = CreateLock();
 			applicationClerks[i].senatorLineLock = CreateLock();
 			applicationClerks[i].clerkLock = CreateLock();
@@ -164,6 +165,61 @@ void initCustomer(int i, bool _isSenator){
     customers[i].seenPic = false;
     customers[i].likedPic = false;
     customers[i].hasPaidForPassport = false;
+}
+
+void init_locks(){
+	int k;
+	
+	/*
+	globalDataLock = CreateLock("globalDataLock", 14);
+	senatorOutsideLineLock = CreateLock("senatorOutsideLineLock", 22);
+	senatorOutsideLineCV = CreateCondition("senatorOutsideLineCV", 20);
+	senatorInsideLock = CreateLock("senatorInsideLock", 17);
+	customerOutsideLineLock = CreateLock("customerOutsideLineLock",23);
+	customerOutsideLineCV = CreateCondition("customerOutsideLineCV", 21);
+	*/
+	customerIndexLock = CreateLock("customerIndexLock",17);
+	/*
+	applicationClerkIndexLock = CreateLock("applicationClerkIndexLock", 25);
+	pictureClerkIndexLock = CreateLock("pictureClerkIndexLock", 21);
+	passportClerkIndexLock = CreateLock("passportClerkIndexLock", 22);
+	cashierIndexLock = CreateLock("cashierIndexLock", 16);
+	*/
+	nextAvailableCustomerIndex = CreateMV("customerIndex",13);
+	/*
+	nextAvailablePictureClerkIndex = CreateMV("nextAvailablePictureClerkIndex", 30);
+	nextAvailablePassportClerkIndex = CreateMV("nextAvailablePassportClerkIndex", 31);
+	nextAvailableCashierIndex = CreateMV("nextAvailableCashierIndex", 25);
+	nextAvailableApplicationClerkIndex = CreateMV("nextAvailableApplicationClerkIndex", 34);
+	
+
+	SetMV(nextAvailableCustomerIndex, 0);
+	SetMV(nextAvailablePictureClerkIndex, 0);
+	SetMV(nextAvailablePassportClerkIndex, 0);
+	SetMV(nextAvailableCashierIndex, 0);
+	SetMV(nextAvailableApplicationClerkIndex, 0);
+
+	Print("all locks init'd \n",0);
+
+	for(k = 0; k < numApplicationClerks; k++)
+		initClerk(APPLICATION_CLERK,k);
+	
+	for(k = 0; k < numPictureClerks; k++)
+		initClerk(PICTURE_CLERK,k);
+	
+	for(k = 0; k < numPassportClerks; k++)
+		initClerk(PASSPORT_CLERK,k);
+	
+	for(k = 0; k < numCashiers; k++)
+		initClerk(CASHIER,k);
+	*/
+	for(k = 0; k < numCustomers; k++)
+		initCustomer(k, false);
+	/*
+
+	for(k = 0; k < numSenators; k++)
+		initCustomer(k, true);
+		*/
 }
 
 

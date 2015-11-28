@@ -627,14 +627,21 @@ void runCustomer() {
 }
 
 int main() {
-	Acquire(customerIndexLock);
-	ssn = nextAvailableCustomerIndex;
-	nextAvailableCustomerIndex = nextAvailableCustomerIndex + 1;
-	Release(customerIndexLock);
+    init_locks();
+    
+    Acquire(customerIndexLock);
+    ssn = GetMV(nextAvailableCustomerIndex);
+    SetMV(nextAvailableCustomerIndex, ssn + 1);
+    Release(customerIndexLock);
+    Print("My ssn: %i\n",ssn);
+    /*
+    
 	if(customers[ssn].isSenator)
 		runSenator();
 	else
 		runCustomer();
+     */
+    
 	Exit(0);
 }
 
