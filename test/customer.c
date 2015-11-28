@@ -252,7 +252,7 @@ int chooseLine(ClerkType clerkType) {
 	/* Choose the shortest line possible */
 	switch(clerkType) {
 		case APPLICATION_CLERK:
-			for(i = 0; i < numApplicationClerks; i++) {
+			for(i = 0; i < NUM_APPLICATION_CLERKS; i++) {
 				if(applicationClerks[i].lineLength < minLength) {
 					customers[ssn].clerkID = i;
 					minLength = applicationClerks[i].lineLength;
@@ -268,7 +268,7 @@ int chooseLine(ClerkType clerkType) {
 			}
 			break;
 		case PICTURE_CLERK:
-			for(i = 0; i < numPictureClerks; i++) {
+			for(i = 0; i < NUM_PICTURE_CLERKS; i++) {
 				if(pictureClerks[i].lineLength < minLength) {
 					customers[ssn].clerkID = i;
 					minLength = pictureClerks[i].lineLength;
@@ -284,7 +284,7 @@ int chooseLine(ClerkType clerkType) {
 			}
 			break;
 		case PASSPORT_CLERK:
-			for(i = 0; i < numPassportClerks; i++) {
+			for(i = 0; i < NUM_PASSPORT_CLERKS; i++) {
 				if(passportClerks[i].lineLength < minLength) {
 					customers[ssn].clerkID = i;
 					minLength = passportClerks[i].lineLength;
@@ -300,7 +300,7 @@ int chooseLine(ClerkType clerkType) {
 			}
 			break;
 		case CASHIER:
-			for(i = 0; i < numCashiers; i++) {
+			for(i = 0; i < NUM_CASHIERS; i++) {
 				if(cashiers[i].lineLength < minLength) {
 					customers[ssn].clerkID = i;
 					minLength = cashiers[i].lineLength;
@@ -510,7 +510,7 @@ void runSenator() {
 	Release(senatorOutsideLineLock);
 		
 	/* Senator entering, alert all lines to empty */
-	for(k = 0; k < numApplicationClerks; k++) {
+	for(k = 0; k < NUM_APPLICATION_CLERKS; k++) {
 		Acquire(applicationClerks[k].lineLock);
 		if(applicationClerks[k].lineLength > 0)
 			Broadcast(applicationClerks[k].lineCV, applicationClerks[k].lineLock);
@@ -520,7 +520,7 @@ void runSenator() {
 			Broadcast(applicationClerks[k].bribeLineCV, applicationClerks[k].bribeLineLock);
 		Release(applicationClerks[k].bribeLineLock);
 	}
-	for(k = 0; k < numPictureClerks; k++) {
+	for(k = 0; k < NUM_PICTURE_CLERKS; k++) {
 		Acquire(pictureClerks[k].lineLock);
 		if(pictureClerks[k].lineLength > 0)
 			Broadcast(pictureClerks[k].lineCV, pictureClerks[k].lineLock);
@@ -530,7 +530,7 @@ void runSenator() {
 			Broadcast(pictureClerks[k].bribeLineCV, pictureClerks[k].bribeLineLock);
 		Release(pictureClerks[k].bribeLineLock);
 	}
-	for(k = 0; k < numPassportClerks; k++) {
+	for(k = 0; k < NUM_PASSPORT_CLERKS; k++) {
 		Acquire(passportClerks[k].lineLock);
 		if(passportClerks[k].lineLength > 0)
 			Broadcast(passportClerks[k].lineCV, passportClerks[k].lineLock);
@@ -540,7 +540,7 @@ void runSenator() {
 			Broadcast(passportClerks[k].bribeLineCV, passportClerks[k].bribeLineLock);
 		Release(passportClerks[k].bribeLineLock);
 	}
-	for(k = 0; k < numCashiers; k++) {
+	for(k = 0; k < NUM_CASHIERS; k++) {
 		Acquire(cashiers[k].lineLock);
 		if(cashiers[k].lineLength > 0)
 			Broadcast(cashiers[k].lineCV, cashiers[k].lineLock);

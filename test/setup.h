@@ -14,6 +14,18 @@ typedef int bool;
 struct Customer;
 struct Clerk;
 
+int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
+
+int nextAvailableCustomerIndex = 0; 
+int nextAvailablePictureClerkIndex = 0; 
+int nextAvailablePassportClerkIndex = 0;
+int nextAvailableCashierIndex = 0;
+int nextAvailableApplicationClerkIndex = 0;
+int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
+
+int amounts[] = {100, 600, 1100, 1600};
+int totalMoneyMade;
+
 int senatorOutsideLineLock;
 int senatorOutsideLineCV;
 int senatorsOutside = 0;
@@ -22,20 +34,9 @@ bool senatorInside = false;
 int customerOutsideLineLock;
 int customerOutsideLineCV;
 int customersOutside = 0;
-int numCustomers, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers, numSenators;
-int nextAvailableCustomerIndex = 0;
-int nextAvailablePictureClerkIndex = 0;
-int nextAvailablePassportClerkIndex = 0;
-int nextAvailableCashierIndex = 0;
-int nextAvailableApplicationClerkIndex = 0;
-
-int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
-int totalMoneyMade;
 
 typedef enum {FREE, BUSY, BREAK} ClerkState;
 typedef enum {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER} ClerkType;
-int amounts[] = {100, 600, 1100, 1600};
-
 
 typedef struct Customer {
 	int money;
@@ -151,21 +152,41 @@ void initClerk(ClerkType clerkType, int i) {
 	}
 }
 
-void initCustomer(int i, bool _isSenator){
-	customers[i].isSenator = _isSenator;
-    customers[i].clerkID = -1;
-    customers[i].SSN = i;
-    customers[i].money = amounts[(int)(Rand() % 4)];
-    customers[i].hasApp = false;
-    customers[i].hasPic = false;
-    customers[i].certifiedByPassportClerk = false;
-    customers[i].hasPassport = false;
-    customers[i].seenApp = false;
-    customers[i].seenPic = false;
-    customers[i].likedPic = false;
-    customers[i].hasPaidForPassport = false;
+void initCustomer(int ssn, bool _isSenator){
+	customers[ssn].isSenator = _isSenator;
+    customers[ssn].clerkID = -1;
+    customers[ssn].SSN = ssn;
+    customers[ssn].money = amounts[(int)(Rand() % 4)];
+    customers[ssn].hasApp = false;
+    customers[ssn].hasPic = false;
+    customers[ssn].certifiedByPassportClerk = false;
+    customers[ssn].hasPassport = false;
+    customers[ssn].seenApp = false;
+    customers[ssn].seenPic = false;
+    customers[ssn].likedPic = false;
+    customers[ssn].hasPaidForPassport = false;
 }
 
+void setup() {
+	senatorOutsideLineLock = CreateLock();
+	senatorOutsideLineCV = CreateCondition();
+	senatorInsideLock = CreateLock();
+	customerOutsideLineLock = CreateLock();
+	customerOutsideLineCV = CreateCondition();
+
+	customerIndexLock = CreateLock();
+	applicationClerkIndexLock = CreateLock();
+	pictureClerkIndexLock = CreateLock();
+	passportClerkIndexLock = CreateLock();
+	cashierIndexLock = CreateLock();
+
+	nextAvailableCustomerIndex = CreateMV();
+	nextAvailableApplicationClerkIndex = CreateMV();
+	nextAvailablePictureClerkIndex = CreateMV();
+	nextAvailablePassportClerkIndex = CreateMV();
+	nextAvailableCashierIndex = CreateMV();
+
+}
 
 
 

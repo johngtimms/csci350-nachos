@@ -12,7 +12,7 @@ void runManager() {
 		passportClerkMoneyTotal = 0;
 		cashierMoneyTotal = 0;
 
-		for(k = 0; k < numApplicationClerks; k++) { 
+		for(k = 0; k < NUM_APPLICATION_CLERKS; k++) { 
 			Acquire(applicationClerks[k].moneyLock);
 			applicationClerkMoneyTotal = applicationClerkMoneyTotal + applicationClerks[k].money;
 			Release(applicationClerks[k].moneyLock);
@@ -32,7 +32,7 @@ void runManager() {
 				Release(applicationClerks[k].clerkLock);
 			}
 		}
-		for(k = 0; k < numPictureClerks; k++) { 
+		for(k = 0; k < NUM_PICTURE_CLERKS; k++) { 
 			Acquire(pictureClerks[k].moneyLock);
 			pictureClerkMoneyTotal = pictureClerkMoneyTotal + pictureClerks[k].money;
 			Release(pictureClerks[k].moneyLock);
@@ -52,7 +52,7 @@ void runManager() {
 				Release(pictureClerks[k].clerkLock);
 			}
 		}
-		for(k = 0; k < numPassportClerks; k++) { 
+		for(k = 0; k < NUM_PASSPORT_CLERKS; k++) { 
 			Acquire(passportClerks[k].moneyLock);
 			passportClerkMoneyTotal = passportClerkMoneyTotal + passportClerks[k].money;
 			Release(passportClerks[k].moneyLock);
@@ -72,7 +72,7 @@ void runManager() {
 				Release(passportClerks[k].clerkLock);
 			}
 		}
-		for(k = 0; k < numCashiers; k++) { 
+		for(k = 0; k < NUM_CASHIERS; k++) { 
 			Acquire(cashiers[k].moneyLock);
 			cashierMoneyTotal = cashierMoneyTotal + cashiers[k].money;
 			Release(cashiers[k].moneyLock);

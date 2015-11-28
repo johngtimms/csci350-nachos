@@ -824,7 +824,7 @@ bool NetworkCondition::IsOwner(int process) {
 NetworkMV::NetworkMV(int _machineID, int process) {
     machineID = _machineID;
     processID = process;
-    value = -1;
+    value = 0;
 }
 
 NetworkMV::~NetworkMV() {}
