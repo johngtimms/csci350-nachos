@@ -153,6 +153,11 @@ int Exec_Syscall(unsigned int vaddr, int len) {
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
     Thread *thread = new Thread("0"); // Name the first thread in the new process 0 (needed for networking)
+    
+    threadIndexLock->Acquire();
+    thread->setID(++threadIndex);
+    threadIndexLock->Release();
+    
     // New process bookkeeping
     thread->space = space;
     thread->space->CreateStack(thread);
@@ -339,7 +344,15 @@ int Rand_Syscall() {
 #ifdef NETWORK
 
 // Sends a request with the process's ID, gets a lock ID back
-int CreateLock_Syscall() {
+int CreateLock_Syscall(unsigned int vaddr, int len) {
+    char *name = new char[len+1];
+    if( copyin(vaddr,len,name) == -1 ) {
+        printf("%s","Bad pointer passed to CreateMV\n");
+        delete name;
+        return -1;
+    }
+    name[len] = '\0';
+    
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
@@ -350,7 +363,7 @@ int CreateLock_Syscall() {
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     
-    sprintf(send, "%d,%d", processID, threadID);
+    sprintf(send, "%d,%d,%s", processID, threadID, name);
     
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;
@@ -360,13 +373,14 @@ int CreateLock_Syscall() {
     DEBUG('l', "outMailHr.to: %i, mailbox: %i\n", MailboxCreateLock, mailbox);
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    DEBUG('z', "CreateLock process %d thread %d\n", processID, threadID);
+    
     if ( !success )
         printf("WARN: CreateLock failed. Server misconfigured.\n");
     
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
+    DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
     return key;
 }
 
@@ -405,7 +419,7 @@ void Acquire_Syscall(unsigned int key) {
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
 
-    DEBUG('z', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
+    DEBUG('z', "Acquire - mailbox %d key %i\n", mailbox, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
     
     // Construct packet header, mail header for the message
@@ -456,7 +470,15 @@ void Release_Syscall(unsigned int key) {
         printf("WARN: Release failed. Server misconfigured.\n");
 }
 
-int CreateCondition_Syscall() {
+int CreateCondition_Syscall(unsigned int vaddr, int len) {
+    char *name = new char[len+1];
+    if( copyin(vaddr,len,name) == -1 ) {
+        printf("%s","Bad pointer passed to CreateMV\n");
+        delete name;
+        return -1;
+    }
+    name[len] = '\0';
+    
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
@@ -467,7 +489,7 @@ int CreateCondition_Syscall() {
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
-    sprintf(send, "%d,%d", processID, threadID);
+    sprintf(send, "%d,%d,%s", processID, threadID, name);
     
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;
@@ -728,7 +750,15 @@ void NetHalt_Syscall() {
     delete[] buf;
 }
 
-int CreateMV_Syscall() {
+int CreateMV_Syscall(unsigned int vaddr, int len) {
+    char *name = new char[len+1];
+    if( copyin(vaddr,len,name) == -1 ) {
+        printf("%s","Bad pointer passed to CreateMV\n");
+        delete name;
+        return -1;
+    }
+    name[len] = '\0';
+    
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
@@ -739,7 +769,7 @@ int CreateMV_Syscall() {
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(processID, threadID);
     DEBUG('z', "CreateMV process %d thread %d\n", processID, threadID);
-    sprintf(send, "%d,%d", processID, threadID);
+    sprintf(send, "%d,%d,%s", processID, threadID, name);
 
     // Construct packet header, mail header for the message
     outPktHdr.to = destinationName;     
@@ -893,7 +923,7 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateLock:
                 DEBUG('a', "CreateLock syscall.\n");
-                rv = CreateLock_Syscall();
+                rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_DestroyLock:
                 DEBUG('a', "DestroyLock syscall.\n");
@@ -909,7 +939,7 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateCondition:
                 DEBUG('a', "CreateCondition syscall.\n");
-                rv = CreateCondition_Syscall();
+                rv = CreateCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_DestroyCondition:
                 DEBUG('a', "DestroyCondition syscall.\n");
@@ -942,7 +972,7 @@ void ExceptionHandler(ExceptionType which) {
                     NetHalt_Syscall();
                     break;
                 case SC_CreateMV:
-                	rv = CreateMV_Syscall();
+                	rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 	break;
                 case SC_DestroyMV:
                 	DestroyMV_Syscall(machine->ReadRegister(4));
