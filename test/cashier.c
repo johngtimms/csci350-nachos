@@ -20,13 +20,16 @@ void runCashier() {
             Print("Cashier %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Senator %i\n", myCustomer);
-            if(customers[myCustomer].certifiedByPassportClerk) {
+            /*if(customers[myCustomer].certifiedByPassportClerk) {*/
+            if(GetMV(customers[myCustomer].certifiedByPassportClerk)) {
             	Print("Cashier %i has verified that ", i);
             	Print("Senator %i has been certified by a PassportClerk\n", myCustomer);
-            	if(customers[myCustomer].hasPaidForPassport == false){
+                /*if(customers[myCustomer].hasPaidForPassport == false) {*/
+            	if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
 		        	Print("Cashier %i has receieved the $100 from ", i);
             		Print("Senator %i after ceritification\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);
@@ -38,10 +41,12 @@ void runCashier() {
             	Print("Cashier %i has recorded that ", i);
     			Print("Senator %i has been given their completed passport.\n", myCustomer);
             } else {
-            	if(customers[myCustomer].hasPaidForPassport == false) {
+            	/*if(customers[myCustomer].hasPaidForPassport == false) {*/
+                if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
             		Print("Senator %i before ceritification\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);
@@ -69,13 +74,16 @@ void runCashier() {
             Print("Cashier %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            if(customers[myCustomer].certifiedByPassportClerk) {
+            /*if(customers[myCustomer].certifiedByPassportClerk) {*/
+            if(GetMV(customers[myCustomer].certifiedByPassportClerk)) {
             	Print("Cashier %i has verified that ", i);
             	Print("Customer %i has been certified by a PassportClerk\n", myCustomer);
-            	if(customers[myCustomer].hasPaidForPassport == false) {
+            	/*if(customers[myCustomer].hasPaidForPassport == false) {*/
+                if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
 		        	Print("Cashier %i has receieved the $100 from ", i);
             		Print("Customer %i after ceritification\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);
@@ -88,10 +96,12 @@ void runCashier() {
             	Print("Cashier %i has recorded that ", i);
     			Print("Customer %i has been given their completed passport.\n", myCustomer);
             } else {
-            	if(customers[myCustomer].hasPaidForPassport == false) {
+            	/*if(customers[myCustomer].hasPaidForPassport == false) {*/
+                if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
             		Print("Customer %i before ceritification\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);
@@ -119,13 +129,16 @@ void runCashier() {
             Print("Cashier %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            if(customers[myCustomer].certifiedByPassportClerk) {
+            /*if(customers[myCustomer].certifiedByPassportClerk) {*/
+            if(GetMV(customers[myCustomer].certifiedByPassportClerk)) {
             	Print("Cashier %i has verified that ", i);
             	Print("Customer %i has been certified by a PassportClerk\n", myCustomer);
-            	if(customers[myCustomer].hasPaidForPassport == false) {
+            	/*if(customers[myCustomer].hasPaidForPassport == false) {*/
+                if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
 		        	Print("Cashier %i has receieved the $100 from ", i);
             		Print("Customer %i after ceritification\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);
@@ -137,10 +150,12 @@ void runCashier() {
             	Print("Cashier %i has recorded that ", i);
     			Print("Customer %i has been given their completed passport.\n", myCustomer);
             } else {
-            	if(customers[myCustomer].hasPaidForPassport == false) {
+            	/*if(customers[myCustomer].hasPaidForPassport == false) {*/
+                if(GetMV(customers[myCustomer].hasPaidForPassport) == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
             		Print("Customer %i before ceritification.\n", myCustomer);
-		        	customers[myCustomer].hasPaidForPassport = true;
+		        	/*customers[myCustomer].hasPaidForPassport = true;*/
+                    SetMV(customers[myCustomer].hasPaidForPassport, true);
 	                Acquire(cashiers[i].moneyLock);
 	                /*cashiers[i].money = cashiers[i].money + 100;*/
                     money = GetMV(cashiers[i].money);

@@ -198,7 +198,8 @@ void initClerk(ClerkType clerkType, int i) {
 	}
 }
 
-void initCustomer(int ssn, bool _isSenator){
+void initCustomer(int ssn, bool _isSenator) {
+	/*
 	customers[ssn].isSenator = _isSenator;
     customers[ssn].clerkID = -1;
     customers[ssn].SSN = ssn;
@@ -211,6 +212,24 @@ void initCustomer(int ssn, bool _isSenator){
     customers[ssn].seenPic = false;
     customers[ssn].likedPic = false;
     customers[ssn].hasPaidForPassport = false;
+	*/
+
+    customers[ssn].isSenator = CreateMV(concatenate("CustomerIsSenator", ssn), sizeof("CustomerIsSenator") + 2);
+    customers[ssn].clerkID = CreateMV(concatenate("CustomerClerkID", ssn), sizeof("CustomerClerkID") + 2);
+    customers[ssn].SSN = CreateMV(concatenate("CustomerSSN", ssn), sizeof("CustomerSSN") + 2);
+    customers[ssn].money = CreateMV(concatenate("CustomerMoney", ssn), sizeof("CustomerMoney") + 2);
+    customers[ssn].hasApp = CreateMV(concatenate("CustomerHasApp", ssn), sizeof("CustomerHasApp") + 2);
+    customers[ssn].hasPic = CreateMV(concatenate("CustomerHasPic", ssn), sizeof("CustomerHasPic") + 2);
+    customers[ssn].certifiedByPassportClerk = CreateMV(concatenate("CustomerCertified", ssn), sizeof("CustomerCertified") + 2);
+    customers[ssn].hasPassport = CreateMV(concatenate("CustomerHasPassport", ssn), sizeof("CustomerHasPassport") + 2);
+    customers[ssn].seenApp = CreateMV(concatenate("CustomerSeenApp", ssn), sizeof("CustomerSeenApp") + 2);
+    customers[ssn].seenPic = CreateMV(concatenate("CustomerSeenPic", ssn), sizeof("CustomerSeenPic") + 2);
+    customers[ssn].likedPic = CreateMV(concatenate("CustomerLikedPic", ssn), sizeof("CustomerLikedPic") + 2);
+    customers[ssn].hasPaidForPassport = CreateMV(concatenate("CustomerHasPaid", ssn), sizeof("CustomerHasPaid") + 2);
+    SetMV(customers[ssn].isSenator, _isSenator);
+    SetMV(customers[ssn].clerkID, -1);
+    SetMV(customers[ssn].SSN, ssn);
+    SetMV(customers[ssn].money, amounts[(int)(Rand() % 4)]);
 }
 
 void setup() {

@@ -22,7 +22,8 @@ void runPassportClerk() {
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Senator %i\n", myCustomer);
-            if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
+            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
+            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -30,7 +31,8 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Senator %i's passport documentation\n", myCustomer);
-                customers[myCustomer].certifiedByPassportClerk = true;
+                /*customers[myCustomer].certifiedByPassportClerk = true;*/
+                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i does not have both their application and picture completed\n", myCustomer);
@@ -55,7 +57,8 @@ void runPassportClerk() {
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
+            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
+            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -63,7 +66,8 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Customer %i's passport documentation\n", myCustomer);
-                customers[myCustomer].certifiedByPassportClerk = true;
+                /*customers[myCustomer].certifiedByPassportClerk = true;*/
+                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i does not have both their application and picture completed\n", myCustomer);
@@ -88,7 +92,8 @@ void runPassportClerk() {
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
+            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
+            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -96,7 +101,8 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Customer %i's passport documentation\n", myCustomer);
-                customers[myCustomer].certifiedByPassportClerk = true;
+                /*customers[myCustomer].certifiedByPassportClerk = true;*/
+                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i does not have both their application and picture completed\n", myCustomer);

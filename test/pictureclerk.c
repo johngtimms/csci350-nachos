@@ -24,7 +24,8 @@ void runPictureClerk() {
             Print("has taken a picture of Senator %i\n", myCustomer);
             Signal(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);    /* Give picture back */
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for Senator to accept picture */
-            if(customers[myCustomer].likedPic) {
+            /*if(customers[myCustomer].likedPic) {*/
+            if(GetMV(customers[myCustomer].likedPic)) {
             	Print("PictureClerk %i ",i);
             	Print("has been told that Senator %i does like their picture\n", myCustomer);
                 wait = Rand() % ((100 - 20) + 1) + 20;
@@ -56,7 +57,8 @@ void runPictureClerk() {
             Print("has taken a picture of Customer %i\n", myCustomer);
             Signal(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);    /* Give picture back */
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for Customer to accept picture */
-            if(customers[myCustomer].likedPic) {
+            /*if(customers[myCustomer].likedPic) {*/
+            if(GetMV(customers[myCustomer].likedPic)) {
                 Print("PictureClerk %i ",i);
             	Print("has been told that Customer %i does like their picture\n", myCustomer);
                 wait = Rand() % ((100 - 20) + 1) + 20;
@@ -88,7 +90,8 @@ void runPictureClerk() {
             Print("has taken a picture of Customer %i\n", myCustomer);
             Signal(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);    /* Give picture back */
             Wait(pictureClerks[i].clerkCV, pictureClerks[i].clerkLock);      /* Wait for Customer to accept picture */
-            if(customers[myCustomer].likedPic) {
+            /*if(customers[myCustomer].likedPic) {*/
+            if(GetMV(customers[myCustomer].likedPic)) {
                 Print("PictureClerk %i ",i);
             	Print("has been told that Customer %i does like their picture\n", myCustomer);
                 wait = Rand() % ((100 - 20) + 1) + 20;

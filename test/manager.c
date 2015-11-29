@@ -86,7 +86,8 @@ void runManager() {
 			/*cashierMoneyTotal = cashierMoneyTotal + cashiers[k].money;*/
 			cashierMoneyTotal = cashierMoneyTotal + GetMV(cashiers[k].money);
 			Release(cashiers[k].moneyLock);
-			if(cashiers[k].state != BREAK)
+			/*if(cashiers[k].state != BREAK)*/
+			if(GetMV(cashiers[k].state) != BREAK)
 				allClerksOnBreak = false; 
 			else {
 				Acquire(cashiers[k].clerkLock);
