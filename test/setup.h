@@ -88,6 +88,7 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].bribeLineLength = 0;
 			applicationClerks[i].senatorLineLength = 0;
 			applicationClerks[i].money = 0;
+			applicationClerks[i].customerID = -1;
 			applicationClerks[i].state = BUSY;
 			applicationClerks[i].lineLock = CreateLock(concatenate("applicationClerkLineLock", i));
 			applicationClerks[i].bribeLineLock = CreateLock(concatenate("applicationClerkBribeLineLock", i));
@@ -105,6 +106,7 @@ void initClerk(ClerkType clerkType, int i) {
 			pictureClerks[i].bribeLineLength = 0;
 			pictureClerks[i].senatorLineLength = 0;
 			pictureClerks[i].money = 0;
+			pictureClerks[i].customerID = -1;
 			pictureClerks[i].state = BUSY;
 			pictureClerks[i].lineLock = CreateLock(concatenate("pictureClerkLineLock", i));
 			pictureClerks[i].bribeLineLock = CreateLock(concatenate("pictureClerkBribeLineLock", i));
@@ -122,6 +124,7 @@ void initClerk(ClerkType clerkType, int i) {
 			passportClerks[i].bribeLineLength = 0;
 			passportClerks[i].senatorLineLength = 0;
 			passportClerks[i].money = 0;
+			passportClerks[i].customerID = -1;
 			passportClerks[i].state = BUSY;
 			passportClerks[i].lineLock = CreateLock(concatenate("passportClerkLineLock", i));
 			passportClerks[i].bribeLineLock = CreateLock(concatenate("passportClerkBribeLineLock", i));
@@ -139,6 +142,7 @@ void initClerk(ClerkType clerkType, int i) {
 			cashiers[i].bribeLineLength = 0;
 			cashiers[i].senatorLineLength = 0;
 			cashiers[i].money = 0;
+			cashiers[i].customerID = -1;
 			cashiers[i].state = BUSY;
 			cashiers[i].lineLock = CreateLock(concatenate("cashierClerkLineLock", i));
 			cashiers[i].bribeLineLock = CreateLock(concatenate("cashierClerkBribeLineLock", i));
@@ -182,14 +186,14 @@ void setup() {
 	customerOutsideLineCV = CreateCondition("customerOutsideLineCV", 21);
 	customersOutside = CreateMV("customersOutside", 16);
 	*/
-	customerIndexLock = CreateLock("customerIndexLock",17);
+	customerIndexLock = CreateLock("customerIndexLock", 17);
 	/*
 	applicationClerkIndexLock = CreateLock("applicationClerkIndexLock", 25);
 	pictureClerkIndexLock = CreateLock("pictureClerkIndexLock", 21);
 	passportClerkIndexLock = CreateLock("passportClerkIndexLock", 22);
 	cashierIndexLock = CreateLock("cashierIndexLock", 16);
 	*/
-	nextAvailableCustomerIndex = CreateMV("customerIndex",13);
+	nextAvailableCustomerIndex = CreateMV("customerIndex", 13);
 	/*
 	nextAvailablePictureClerkIndex = CreateMV("nextAvailablePictureClerkIndex", 30);
 	nextAvailablePassportClerkIndex = CreateMV("nextAvailablePassportClerkIndex", 31);

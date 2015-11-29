@@ -18,27 +18,27 @@ void runCashier() {
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock); 
             myCustomer = cashiers[i].customerID;
             Print("Cashier %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Senator %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", cashiers[i].customerID);
+            Print("from Senator %i\n", cashiers[i].customerID);
             if(customers[myCustomer].certifiedByPassportClerk) {
             	Print("Cashier %i has verified that ", i);
-            	Print("Senator %i has been certified by a PassportClerk\n", customers[myCustomer].SSN);
+            	Print("Senator %i has been certified by a PassportClerk\n", cashiers[i].customerID);
             	if(customers[myCustomer].hasPaidForPassport == false){
 		        	Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Senator %i after ceritification\n", customers[myCustomer].SSN);
+            		Print("Senator %i after ceritification\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
 	                Release(cashiers[i].moneyLock);
             	}
             	Print("Cashier %i has provided ", i);
-            	Print("Senator %i their completed passport\n", customers[myCustomer].SSN);
+            	Print("Senator %i their completed passport\n", cashiers[i].customerID);
             	Print("Cashier %i has recorded that ", i);
-    			Print("Senator %i has been given their completed passport.\n", customers[myCustomer].SSN);
+    			Print("Senator %i has been given their completed passport.\n", cashiers[i].customerID);
             } else {
             	if(customers[myCustomer].hasPaidForPassport == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Senator %i before ceritification\n", customers[myCustomer].SSN);
+            		Print("Senator %i before ceritification\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
@@ -47,7 +47,7 @@ void runCashier() {
             }
             Signal(cashiers[i].clerkCV, cashiers[i].clerkLock);
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);   
-            cashiers[i].customerID -1;
+            cashiers[i].customerID = -1;
             Release(cashiers[i].clerkLock);
             cashiers[i].state = FREE;
     	} else if(cashiers[i].bribeLineLength > 0) {
@@ -59,28 +59,28 @@ void runCashier() {
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);
             myCustomer = cashiers[i].customerID;
             Print("Cashier %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", cashiers[i].customerID);
+            Print("from Customer %i\n", cashiers[i].customerID);
             if(customers[myCustomer].certifiedByPassportClerk) {
             	Print("Cashier %i has verified that ", i);
-            	Print("Customer %i has been certified by a PassportClerk\n", customers[myCustomer].SSN);
+            	Print("Customer %i has been certified by a PassportClerk\n", cashiers[i].customerID);
             	if(customers[myCustomer].hasPaidForPassport == false) {
 		        	Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Customer %i after ceritification\n", customers[myCustomer].SSN);
+            		Print("Customer %i after ceritification\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
 	                Release(cashiers[i].moneyLock);
             	}
             	Print("Cashier %i has provided ", i);
-            	Print("Customer %i their completed passport\n", customers[myCustomer].SSN);
+            	Print("Customer %i their completed passport\n", cashiers[i].customerID);
             	Signal(cashiers[i].clerkCV, cashiers[i].clerkLock);
             	Print("Cashier %i has recorded that ", i);
-    			Print("Customer %i has been given their completed passport.\n", customers[myCustomer].SSN);
+    			Print("Customer %i has been given their completed passport.\n", cashiers[i].customerID);
             } else {
             	if(customers[myCustomer].hasPaidForPassport == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Customer %i before ceritification\n", customers[myCustomer].SSN);
+            		Print("Customer %i before ceritification\n", cashiers[i].customerID;
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
@@ -89,7 +89,7 @@ void runCashier() {
             	Signal(cashiers[i].clerkCV, cashiers[i].clerkLock);
             }
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);  
-            cashiers[i].customerID -1;
+            cashiers[i].customerID = -1;
             Release(cashiers[i].clerkLock);
             cashiers[i].state = FREE;
         } else if(cashiers[i].lineLength > 0) {
@@ -101,27 +101,27 @@ void runCashier() {
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);
             myCustomer = cashiers[i].customerID;
             Print("Cashier %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", cashiers[i].customerID);
+            Print("from Customer %i\n", cashiers[i].customerID);
             if(customers[myCustomer].certifiedByPassportClerk) {
             	Print("Cashier %i has verified that ", i);
-            	Print("Customer %i has been certified by a PassportClerk\n", customers[myCustomer].SSN);
+            	Print("Customer %i has been certified by a PassportClerk\n", cashiers[i].customerID);
             	if(customers[myCustomer].hasPaidForPassport == false) {
 		        	Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Customer %i after ceritification\n", customers[myCustomer].SSN);
+            		Print("Customer %i after ceritification\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
 	                Release(cashiers[i].moneyLock);
             	}
             	Print("Cashier %i has provided ", i);
-            	Print("Customer %i their completed passport\n", customers[myCustomer].SSN);
+            	Print("Customer %i their completed passport\n", cashiers[i].customerID);
             	Print("Cashier %i has recorded that ", i);
-    			Print("Customer %i has been given their completed passport.\n", customers[myCustomer].SSN);
+    			Print("Customer %i has been given their completed passport.\n", cashiers[i].customerID);
             } else {
             	if(customers[myCustomer].hasPaidForPassport == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Customer %i before ceritification.\n", customers[myCustomer].SSN);
+            		Print("Customer %i before ceritification.\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
@@ -130,7 +130,7 @@ void runCashier() {
             }
             Signal(cashiers[i].clerkCV, cashiers[i].clerkLock);
             Wait(cashiers[i].clerkCV, cashiers[i].clerkLock);
-            cashiers[i].customerID -1;
+            cashiers[i].customerID = -1;
             Release(cashiers[i].clerkLock);
             cashiers[i].state = FREE;
         } else {
@@ -148,8 +148,8 @@ void runCashier() {
 
 int main() {
 	Acquire(cashierIndexLock);
-	i = nextAvailableCashierIndex;
-	nextAvailableCashierIndex = nextAvailableCashierIndex + 1;
+	i = GetMV(nextAvailableCashierIndex);
+    SetMV(nextAvailableCashierIndex, i + 1);
 	Release(cashierIndexLock);
 
 	runCashier();
