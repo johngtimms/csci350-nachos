@@ -59,6 +59,7 @@ List *fifo;
     RPCServer *rpcServer;
     int machineName;        // This OS's network name (UNIX socket)
     int destinationName;    // The remote OS's network name
+    int numServers;         // Used in RPCServer::SendQuery to know which servers to talk to
     NetworkLockTable *networkLockTable;
     NetworkConditionTable *networkConditionTable;
     NetworkMVTable *networkMVTable;
@@ -159,8 +160,12 @@ Initialize(int argc, char **argv) {
 	} else if (!strcmp(*argv, "-m")) {
 	    ASSERT(argc > 1);
 	    machineName = atoi(*(argv + 1));
-	    argCount = 2;
-	}
+	    argCount = 3; // not quite sure what argCount does, but if -m is set then we should look for -ns too
+	} else if (!strcmp(*argv, "-ns")) {
+        ASSERT(argc > 1);
+        numServers = atoi(*(argv + 1));
+        argCount = 3;
+    }
 
     if (!strcmp(*argv, "-o")) {
         ASSERT(argc > 1);

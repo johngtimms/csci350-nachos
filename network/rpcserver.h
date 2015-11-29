@@ -51,7 +51,7 @@ class RPCServer {
         // Server-to-Client and Server-to-Server response messages
         // For Server-to-Client responses, mailbox is obtained from a call to ClientMailbox
         // For Server-to-Server messages, mailbox is one of the defined mailbox numbers above
-        // plus 100, because the receiving server will be waiting there for "yes" or "no"
+        // plus 100, because the receiving server will be waiting there for "yes" or "no" (see SendQuery)
         // response is either "yes" or "no" (pass -1 or -2, respectively)
         // if an int greater than or equal to zero is passed as the response, it will be sent unmodified (so that GetMV will work)
         // Clients will interpret "yes" as success and "no" as an error
@@ -61,10 +61,11 @@ class RPCServer {
 
         // Server-to-Server query messages
         // mailboxTo is one of the defined mailbox numbers above
-        // mailboxFrom is the negation of the Server-to-Client mailbox obtained from ClientMailbox
+        // mailboxFrom is the Server-to-Client mailbox obtained from ClientMailbox, which will be negated
         // The negation of mailboxFrom tells the receiving server this is a Server-to-Server call
         // query is the original query from the client
-        static bool SendQuery(int mailboxTo, int mailboxFron, int query);
+        // identifier is a description for debugging
+        static bool SendQuery(int mailboxTo, int mailboxFron, char *query, char *identifier);
 };
 
 class NetworkLock {

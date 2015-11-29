@@ -28,7 +28,7 @@ II. Assumptions:
 
     Part 2:
 
-        
+        Servers are machines 0-4. Clients are machines 5+. 
 
 III. Design:
 

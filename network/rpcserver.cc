@@ -622,10 +622,64 @@ void RPCServer::SendResponse(int mailbox, int response) {
 }
 
 //-----------------------------------------------------------------------------------------------//
-// TODO document
+// SendQuery - Sends a Server-to-Server query
+//
+// Automatically queries all servers 
+//
+// mailboxTo is one of the defined mailbox numbers for RPCs
+// mailboxFrom is the Server-to-Client mailbox, which will be negated
+// The negation of mailboxFrom tells the queried server this is a Server-to-Server call
+// query is the original query from the client
+// identifier is a description for debugging
 //-----------------------------------------------------------------------------------------------//
-static bool SendQuery(int mailboxTo, int mailboxFron, int query) {
+bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, char *query, char *identifier) {
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char send[MaxMailSize];
+    char recv[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "yes");
 
+    // If I am the only server, return false
+    if (numServers == 1) {
+        return 1;
+    }
+
+    // Send the query with no modifications
+    sprintf(send, "%s", query);
+
+    // Send the query to all servers until out of servers or get a "yes"
+    for (int serverToQuery = 0; serverToQuery <= 4; serverToQuery++) {
+        // Don't send a query to ourselves
+        if (machineName == serverToQuery) {
+            continue;
+        }
+
+        // Construct the packet header, mail header for the message
+        outPktHdr.to = serverToQuery;
+        outMailHdr.to = mailboxTo;
+        outMailHdr.from = -mailboxFrom; // MAILBOX IS NEGATED HERE. DO NOT PRE-NEGATE.
+        outMailHdr.length = strlen(send) + 1;
+
+        // Send the query message
+        bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
+
+        // Check that the send worked
+        if ( !success )
+            printf("WARN: %s (SendQuery) failed. Server %d misconfigured.\n", identifier, serverToQuery);
+
+        // Get the response back
+        // Use mailboxTo + 100 to listen for "yes" or "no"
+        int mailbox = mailboxTo + 100;
+        postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+
+        // If we get a "yes", then return 0. Otherwise keep trying.
+        // A "yes" means the other server is handling the request
+        if ( strcmp(test,recv) )
+            return 0;
+    }
+
+    // Query was ultimately unsuccessful 
+    return 1;
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -658,6 +712,13 @@ void RunServer() {
         printf("SERVER RUNNING - MACHINE NAME IS %d\n", machineName);
     } else {
         printf("SERVER HAS NO MACHINE NAME. NACHOS HALTING.\n");
+        interrupt->Halt();
+    }
+
+    if (numServers > 0 && numServers < 6) {
+        printf("SERVER RUNNING - numServers is %d\n", numServers);
+    } else {
+        printf("OTHER SERVERS UNKNOWN. NACHOS HALTING.\n");
         interrupt->Halt();
     }
 
