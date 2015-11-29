@@ -19,7 +19,9 @@ II. Assumptions:
 
     Part 1:
 
-        
+       We want to create a RPC system that supports all variations of client-server communication. These
+       include monolithic user programs, multiple user programs on one Nachos client, and multiple
+       Nachos clients. We describe our design to achieve this assumption below.
 
     Part 2:
 
@@ -29,7 +31,14 @@ III. Design:
 
     Part 1:
 
-        
+        Locks, Conditions, and Monitors have all been changed to support our new assumptions. Previously,
+        threads could interact with resources only if they belonged to the process that owned those resources.
+        Now resources are not owned, they are simply identified by name. Any thread in any process on any
+        machine can interact with a resource. As before, threads make RPCs with a unique mailbox as their
+        return address. 
+
+        The mailbox id was previously the concatination of the process and thread ids, now it is the 
+        concatination of the machine, process, and thread ids, which will prevent collisions.
 
     Part 2:
 
