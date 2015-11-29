@@ -563,10 +563,10 @@ int RPCServer::ClientMailbox(int machineID, int process, int thread) {
     // Have to add 1 because process and thread and machineID can both be 0, which would create overlap
     sprintf(str1, "%d", (process + 1));
     sprintf(str2, "%d", (thread + 1));
-    sprintf(str3, "%d", (machineID + 1));
+    //sprintf(str3, "%d", (machineID + 1)); not working properly
 
     strcat(str1, str2);
-    strcat(str1, str3);
+    //strcat(str1, str3); not working properly
     int mailbox = atoi(str1);
 
     return mailbox;
