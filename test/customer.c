@@ -466,7 +466,7 @@ void waitInLine(ClerkType clerkType) {
 	/*if(customers[ssn].didBribe) {*/
 	if(GetMV(customers[ssn].didBribe)) {
 		/*customers[ssn].money = customers[ssn].money - 500;*/
-		money = GetMVcustomers[ssn].money);
+		money = GetMV(customers[ssn].money);
 		SetMV(customers[ssn].money, money - 500);
 		switch(clerkType) {
 			case APPLICATION_CLERK:
@@ -547,7 +547,7 @@ void doPicture() {
     Wait(pictureClerks[clerkID].clerkCV, pictureClerks[clerkID].clerkLock);   /* Wait for Picture Clerk */
     /*customers[ssn].seenPic = true;*/
     SetMV(customers[ssn].seenPic, true);
-    /*if(Rand() % 4 == 0 && !senatorInside)*/ { /* Customer decides whether they don't like picture */
+    /*if(Rand() % 4 == 0 && !senatorInside) {*/ /* Customer decides whether they don't like picture */
     if(Rand() % 4 == 0 && !GetMV(senatorInside)) {
     	/*customers[ssn].likedPic = false;*/
     	SetMV(customers[ssn].likedPic, false);
