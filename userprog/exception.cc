@@ -361,7 +361,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     
     sprintf(send, "%d,%d,%s", processID, threadID, name);
     
@@ -417,7 +417,7 @@ void Acquire_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
 
     DEBUG('z', "Acquire - mailbox %d key %i\n", mailbox, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
@@ -453,7 +453,7 @@ void Release_Syscall(unsigned int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "Release - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
     
@@ -487,7 +487,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%s", processID, threadID, name);
     
@@ -544,7 +544,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "Wait - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
@@ -602,7 +602,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "Signal - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
@@ -656,7 +656,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "Broadcast - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
@@ -767,7 +767,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "CreateMV process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%s", processID, threadID, name);
 
@@ -822,7 +822,7 @@ int GetMV_Syscall(int key) {
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(processID, threadID);
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     DEBUG('z', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 

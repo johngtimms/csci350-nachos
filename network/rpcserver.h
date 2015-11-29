@@ -44,7 +44,7 @@ class RPCServer {
         void Receive_GetMV();
         void Receive_SetMV();
 
-        static int ClientMailbox(int process, int thread);
+        static int ClientMailbox(int machineID, int process, int thread);
         static void SendResponse(int machineID, int mailbox, int response);
 };
 
