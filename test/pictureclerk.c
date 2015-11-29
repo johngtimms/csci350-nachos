@@ -111,7 +111,7 @@ int main() {
 	i = GetMV(nextAvailablePictureClerkIndex);
     SetMV(nextAvailablePictureClerkIndex, i + 1);
 	Release(pictureClerkIndexLock);
-
+    /*initClerk(PICTURE_CLERK, i);*/
 	runPictureClerk();
 	Exit(0);
 }

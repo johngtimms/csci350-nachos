@@ -78,6 +78,7 @@ int main() {
 	i = GetMV(nextAvailableApplicationClerkIndex);
     SetMV(nextAvailableApplicationClerkIndex, i + 1);
 	Release(applicationClerkIndexLock);
+	/*initClerk(APPLICATION_CLERK, i);*/
 	runApplicationClerk();
 	Exit(0);
 }

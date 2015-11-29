@@ -80,7 +80,7 @@ void runCashier() {
             } else {
             	if(customers[myCustomer].hasPaidForPassport == false) {
             		Print("Cashier %i has receieved the $100 from ", i);
-            		Print("Customer %i before ceritification\n", cashiers[i].customerID;
+            		Print("Customer %i before ceritification\n", cashiers[i].customerID);
 		        	customers[myCustomer].hasPaidForPassport = true;
 	                Acquire(cashiers[i].moneyLock);
 	                cashiers[i].money = cashiers[i].money + 100;
@@ -151,7 +151,7 @@ int main() {
 	i = GetMV(nextAvailableCashierIndex);
     SetMV(nextAvailableCashierIndex, i + 1);
 	Release(cashierIndexLock);
-
+    /*initClerk(CASHIER, i);*/
 	runCashier();
 	
 }
