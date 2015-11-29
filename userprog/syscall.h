@@ -132,7 +132,7 @@ void DestroyCondition(int key);
 void Wait(int conditionKey, int lockKey);
 void Signal(int conditionKey, int lockKey);
 void Broadcast(int conditionKey, int lockKey);
-void Print(int text, int num);
+void Print(int text);
 int Rand();
 int CreateMV();
 void DestroyMV(int key);

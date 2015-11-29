@@ -320,7 +320,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
 
 #endif
 
-void Print_Syscall(int text, int num) {
+void Print_Syscall(int text) {
     DEBUG('t', "In Print_Syscall\n");
     char *buf = new char[100 + 1];
     if(!buf)
@@ -330,7 +330,7 @@ void Print_Syscall(int text, int num) {
         delete[] buf;
     }
     buf[100] = '\0';
-    printf(buf, num);
+    printf(buf);
 }
 
 int Rand_Syscall() {
@@ -925,7 +925,7 @@ void ExceptionHandler(ExceptionType which) {
                 Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_Print:
-                Print_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                Print_Syscall(machine->ReadRegister(4));
                 break;
             case SC_Rand:
                 DEBUG('a', "Random number syscall.\n");
