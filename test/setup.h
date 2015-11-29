@@ -14,12 +14,6 @@ typedef int bool;
 struct Customer;
 struct Clerk;
 
-Customer customers[50];
-Clerk cashiers[10];
-Clerk passportClerks[10];
-Clerk pictureClerks[10];
-Clerk applicationClerks[10];
-
 int nextAvailableCustomerIndex = 0; 
 int nextAvailablePictureClerkIndex = 0; 
 int nextAvailablePassportClerkIndex = 0;
@@ -72,6 +66,12 @@ typedef struct Clerk {
 	int lineLock, bribeLineLock, senatorLineLock, clerkLock, moneyLock;
 	int lineCV, bribeLineCV, senatorLineCV, clerkCV, breakCV;
 } Clerk;
+
+Customer customers[50];
+Clerk cashiers[10];
+Clerk passportClerks[10];
+Clerk pictureClerks[10];
+Clerk applicationClerks[10];
 
 char* concatenate(char* str, int num) {
 	char numstr = (char)(((int) '0') + num);

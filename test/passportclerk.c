@@ -109,6 +109,7 @@ void runPassportClerk() {
 }
 
 int main() {
+	setup();
 	Acquire(passportClerkIndexLock);
 	i = nextAvailablePassportClerkIndex;
 	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/

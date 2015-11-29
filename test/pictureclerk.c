@@ -106,6 +106,7 @@ void runPictureClerk() {
 }
 
 int main() {
+	setup();
 	Acquire(pictureClerkIndexLock);
 	i = nextAvailablePictureClerkIndex;
 	nextAvailablePictureClerkIndex = nextAvailablePictureClerkIndex + 1;

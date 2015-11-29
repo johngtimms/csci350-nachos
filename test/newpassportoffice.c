@@ -53,7 +53,7 @@ int main() {
 		Exec("../test/pictureclerk", 20);
 
 	for(k = 0 ; k < NUM_APPLICATION_CLERKS; k++)
-		Exec("../test/applicationclerk", 23);
+		Exec("../test/applicationclerk", 24);
 	
 	for(k = 0 ; k < NUM_CUSTOMERS; k++)
 		Exec("../test/customer", 16);

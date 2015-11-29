@@ -627,7 +627,7 @@ void runCustomer() {
 }
 
 int main() {
-    init_locks();
+    setup();
     
     Acquire(customerIndexLock);
     ssn = GetMV(nextAvailableCustomerIndex);
