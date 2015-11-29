@@ -18,24 +18,24 @@ void runPassportClerk() {
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Senator to hand over picture and application */
             myCustomer = passportClerks[i].customerID;
             Print("PassportClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Senator %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", passportClerks[i].customerID);
+            Print("from Senator %i\n", passportClerks[i].customerID);
             if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
                 Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i has both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customerID);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
                 for(k = 0; k < wait; k++)            /* Process application and picture */
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
-            	Print("Senator %i's passport documentation\n", customers[myCustomer].SSN);
+            	Print("Senator %i's passport documentation\n", passportClerks[i].customerID);
                 customers[myCustomer].certifiedByPassportClerk = true;
             } else {
             	Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i does not have both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Senator %i does not have both their application and picture completed\n", passportClerks[i].customerID);
             }
             Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Senator a passport */
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Senator to accept passport */
-            passportClerks[i].customerID -1;  
+            passportClerks[i].customerID = -1;  
             Release(passportClerks[i].clerkLock);
             passportClerks[i].state = FREE;
     	} else if(passportClerks[i].bribeLineLength > 0) {
@@ -45,26 +45,26 @@ void runPassportClerk() {
             Acquire(passportClerks[i].clerkLock); 
             Release(passportClerks[i].bribeLineLock);
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);       /* Wait for Customer to hand over picture and application */
-            passportClerks[i].customerID = -1;  
+            myCustomer = passportClerks[i].customerID;  
             Print("PassportClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", passportClerks[i].customerID);
+            Print("from Customer %i\n", passportClerks[i].customerID);
             if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
                 Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i has both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customerID);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
                 for(k = 0; k < wait; k++)            /* Process application and picture */
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
-            	Print("Customer %i's passport documentation\n", customers[myCustomer].SSN);
+            	Print("Customer %i's passport documentation\n", passportClerks[i].customerID);
                 customers[myCustomer].certifiedByPassportClerk = true;
             } else {
             	Print("PassportClerk %i has determined that ", i);
-            	Print("Customer %i does not have both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Customer %i does not have both their application and picture completed\n", passportClerks[i].customerID);
             }
             Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Customer a passport */
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to accept passport */
-            passportClerks[i].customerID -1; 
+            passportClerks[i].customerID = -1; 
             Release(passportClerks[i].clerkLock);
             passportClerks[i].state = FREE;
         } else if(passportClerks[i].lineLength > 0) {
@@ -76,24 +76,24 @@ void runPassportClerk() {
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to hand over picture and application */
             myCustomer = passportClerks[i].customerID;
             Print("PassportClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", passportClerks[i].customerID);
+            Print("from Customer %i\n", passportClerks[i].customerID);
             if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {
                 Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i has both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Senator %i has both their application and picture completed\n", passportClerks[i].customerID);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
                 for(k = 0; k < wait; k++)            /* Process application and picture */
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
-            	Print("Customer %i's passport documentation\n", customers[myCustomer].SSN);
+            	Print("Customer %i's passport documentation\n", passportClerks[i].customerID);
                 customers[myCustomer].certifiedByPassportClerk = true;
             } else {
             	Print("PassportClerk %i has determined that ", i);
-            	Print("Customer %i does not have both their application and picture completed\n", customers[myCustomer].SSN);
+            	Print("Customer %i does not have both their application and picture completed\n", passportClerks[i].customerID);
             }
             Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Customer a passport */
             Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to accept passport */
-            passportClerks[i].customerID -1; 
+            passportClerks[i].customerID = -1; 
             Release(passportClerks[i].clerkLock);
             passportClerks[i].state = FREE;
         } else {
@@ -109,9 +109,10 @@ void runPassportClerk() {
 }
 
 int main() {
+	setup();
 	Acquire(passportClerkIndexLock);
-	i = nextAvailablePassportClerkIndex;
-	nextAvailablePassportClerkIndex = nextAvailablePassportClerkIndex + 1; /*temporary keeping track of index*/
+	i = GetMV(nextAvailablePassportClerkIndex);
+    SetMV(nextAvailablePassportClerkIndex, i + 1);
 	Release(passportClerkIndexLock);
 
 	runPassportClerk();

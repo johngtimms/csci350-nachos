@@ -50,13 +50,13 @@ class RPCServer {
 
 class NetworkLock {
     public:
-        NetworkLock(int _machineID, int process, char *name);
+        char* name;
+        NetworkLock(int _machineID, int process, char *_name);
         ~NetworkLock();
         void Acquire(int _machineID, int process, int thread);
         void Release(int _machineID, int process, int thread);
         bool IsOwner(int _machineID);
         bool HasAcquired(int mailbox);
-        char *name;
 
     private:
         int machineID;
@@ -68,14 +68,14 @@ class NetworkLock {
 
 class NetworkCondition {
     public:
-        NetworkCondition(int _machineID, int process, char *name);
+        char* name;
+        NetworkCondition(int _machineID, int process, char *_name);
         ~NetworkCondition();
         void Wait(int _machineID, int process, int thread, NetworkLock *lock);
         void Signal(int _machineID, int process, int _thread, NetworkLock *lock);
         void Broadcast(int _machineID, int process, int _thread, NetworkLock *lock);
         bool IsOwner(int _machineID);
-        char *name;
-
+        
     private:
         int machineID;
         int processID;
@@ -86,11 +86,12 @@ class NetworkCondition {
 
 class NetworkMV {
     public:
-        NetworkMV(int _machineID, int process, char *name);
+        int value;
+        char* name;
+        NetworkMV(int _machineID, int process, char *_name);
         ~NetworkMV();
         bool IsOwner(int process);
-        int value;
-        char *name;
+       
     private:
         int machineID;
         int processID;

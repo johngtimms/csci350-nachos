@@ -4,7 +4,6 @@
 int i;
 
 void runApplicationClerk() {
-	int myCustomer;
 	Print("Running ApplicationClerk: %i\n",i);
 	while(true) {
     	if(applicationClerks[i].senatorLineLength > 0) {
@@ -14,13 +13,12 @@ void runApplicationClerk() {
             Acquire(applicationClerks[i].clerkLock); 
             Release(applicationClerks[i].senatorLineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to give application */
-            myCustomer = applicationClerks[i].customerID;
             Print("ApplicationClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Senator %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", applicationClerks[i].customerID);
+            Print("from Senator %i\n", applicationClerks[i].customerID);
             Signal(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);    /* Process application */
             Print("ApplicationClerk %i ", i);
-            Print("has recorded a completed application from Senator %i\n", customers[myCustomer].SSN);
+            Print("has recorded a completed application from Senator %i\n", applicationClerks[i].customerID);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for Customer to accept completed application */
             applicationClerks[i].customerID = -1;  
             Release(applicationClerks[i].clerkLock);
@@ -33,11 +31,11 @@ void runApplicationClerk() {
             Release(applicationClerks[i].bribeLineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to give application */
             Print("ApplicationClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", applicationClerks[i].customerID);
+            Print("from Customer %i\n", applicationClerks[i].customerID);
             Signal(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);    /* Process application */
             Print("ApplicationClerk %i ", i);
-            Print("has accepted application from Customer %i\n", customers[myCustomer].SSN);
+            Print("has accepted application from Customer %i\n", applicationClerks[i].customerID);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for Customer to accept completed application */
             applicationClerks[i].customerID = -1;    
             Release(applicationClerks[i].clerkLock);
@@ -50,12 +48,12 @@ void runApplicationClerk() {
             Release(applicationClerks[i].lineLock);
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for customer to gve application */
             Print("ApplicationClerk %i ", i);
-            Print("has recieved SSN %i ", customers[myCustomer].SSN);
-            Print("from Customer %i\n", customers[myCustomer].SSN);
+            Print("has recieved SSN %i ", applicationClerks[i].customerID);
+            Print("from Customer %i\n", applicationClerks[i].customerID);
             Signal(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);    /* Process application */
             Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);		/* Wait for Customer to accept completed application */
             Print("ApplicationClerk %i ", i);
-            Print("has accepted application from Customer %i\n", customers[myCustomer].SSN);
+            Print("has accepted application from Customer %i\n", applicationClerks[i].customerID);
             /*Wait(applicationClerks[i].clerkCV, applicationClerks[i].clerkLock);      /* Wait for Customer to accept completed application */
             applicationClerks[i].customerID = -1;  
             Release(applicationClerks[i].clerkLock);
@@ -74,11 +72,11 @@ void runApplicationClerk() {
 
 int main() {
     Print("applicationclerk.c execed\n",0);
-    init_locks();
+    setup();
     Print("after init_locks in appcelrk.c \n",0);
 	Acquire(applicationClerkIndexLock);
-	i = nextAvailableApplicationClerkIndex;
-	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
+	i = GetMV(nextAvailableApplicationClerkIndex);
+    SetMV(nextAvailableApplicationClerkIndex, i + 1);
 	Release(applicationClerkIndexLock);
 	runApplicationClerk();
 	Exit(0);

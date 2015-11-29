@@ -690,7 +690,7 @@ void RunServer() {
 // Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
-NetworkLock::NetworkLock(int _machineID, int process, char *_name) {
+NetworkLock::NetworkLock(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
     threadID = -1;
@@ -764,7 +764,7 @@ bool NetworkLock::HasAcquired(int mailbox) {
 // Create NetworkCondition
 //-----------------------------------------------------------------------------------------------//
 
-NetworkCondition::NetworkCondition(int _machineID, int process, char *_name) {
+NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
     name = _name;
@@ -804,7 +804,7 @@ void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %i Terminating Nachos.\n",process,thread,lock);
+            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %i Terminating Nachos.\n",process,thread,lock->name);
             interrupt->Halt();
         }
     } else {
@@ -894,11 +894,11 @@ bool NetworkCondition::IsOwner(int _machineID) {
 // Create NetworkMV
 //-----------------------------------------------------------------------------------------------//
 
-NetworkMV::NetworkMV(int _machineID, int process, char *_name) {
+NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
+    value = 0;
     name = _name;
-    value = -1;
 }
 
 NetworkMV::~NetworkMV() {}
