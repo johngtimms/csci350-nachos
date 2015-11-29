@@ -52,7 +52,8 @@ class RPCServer {
         // For Server-to-Client responses, mailbox is obtained from a call to ClientMailbox
         // For Server-to-Server messages, mailbox is one of the defined mailbox numbers above
         // plus 100, because the receiving server will be waiting there for "yes" or "no"
-        // response is either "yes" or "no" (pass 0 or 1)
+        // response is either "yes" or "no" (pass -1 or -2, respectively)
+        // if an int greater than or equal to zero is passed as the response, it will be sent unmodified (so that GetMV will work)
         // Clients will interpret "yes" as success and "no" as an error
         // Sending "yes" to a server tells it the sending server can handle the query
         // Sending "no" to a server tells it the sending server cannot handle the query
@@ -68,60 +69,49 @@ class RPCServer {
 
 class NetworkLock {
     public:
-        char* name;
-        NetworkLock(int _machineID, int process, char *_name);
+        NetworkLock(int _mailbox, char *_name);
         ~NetworkLock();
-        void Acquire(int _machineID, int process, int thread);
-        void Release(int _machineID, int process, int thread);
-        bool IsOwner(int _machineID);
-        bool HasAcquired(int mailbox);
+        void Acquire(int _mailbox);
+        void Release(int _mailbox);
+        bool HasAcquired(int _mailbox);
 
     private:
-        int machineID;
-        int processID;
-        int threadID;
-        int mailboxID;
+        int mailbox; // If this is set, it means the lock is held
+        char *name;
         List *queue;
 };
 
 class NetworkCondition {
     public:
-        char* name;
-        NetworkCondition(int _machineID, int process, char *_name);
+        NetworkCondition(int mailbox, char *_name);
         ~NetworkCondition();
-        void Wait(int _machineID, int process, int thread, NetworkLock *lock);
-        void Signal(int _machineID, int process, int _thread, NetworkLock *lock);
-        void Broadcast(int _machineID, int process, int _thread, NetworkLock *lock);
-        bool IsOwner(int _machineID);
+        void Wait(int mailbox, NetworkLock *lock);
+        void Signal(int mailbox, NetworkLock *lock);
+        void Broadcast(int mailbox, NetworkLock *lock);
         
     private:
-        int machineID;
-        int processID;
-        int mailboxID;
+        char *name;
         NetworkLock *conditionLock;
         List *queue;
 };
 
 class NetworkMV {
     public:
-        int value;
-        char* name;
-        NetworkMV(int _machineID, int process, char *_name);
+        NetworkMV(char *_name);
         ~NetworkMV();
-        bool IsOwner(int process);
+        int getMV();
+        void setMV(int _value);
        
     private:
-        int machineID;
-        int processID;
+        char *name;
+        int value;
 };
 
 struct NetworkLockTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkLock*> locks;
+    std::map<char*, NetworkLock*> locks;
 
     NetworkLockTable() {
-        index = 0;
         tableLock = new Lock();
     }
 
@@ -131,12 +121,10 @@ struct NetworkLockTable {
 };
 
 struct NetworkConditionTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkCondition*> conditions;
+    std::map<char*, NetworkCondition*> conditions;
 
     NetworkConditionTable() {
-        index = 0;
         tableLock = new Lock();
     }
 
@@ -146,12 +134,10 @@ struct NetworkConditionTable {
 };
 
 struct NetworkMVTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkMV*> mvs;
+    std::map<char*, NetworkMV*> mvs;
 
     NetworkMVTable() {
-        index = 0;
         tableLock = new Lock();
     }
 

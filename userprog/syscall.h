@@ -123,21 +123,21 @@ void Fork(void (*func)());
 /* Yield the CPU to another runnable thread, whether in this address space or not. */
 void Yield();
 
-int CreateLock();
-void DestroyLock(int key);
-void Acquire(int key);
-void Release(int key);
-int CreateCondition();
+void CreateLock(int name);
+void DestroyLock(int name);
+void Acquire(int name);
+void Release(int name);
+void CreateCondition(int name);
 void DestroyCondition(int key);
 void Wait(int conditionKey, int lockKey);
 void Signal(int conditionKey, int lockKey);
 void Broadcast(int conditionKey, int lockKey);
 void Print(int text, int num);
+void CreateMV(int name);
+void DestroyMV(int name);
+int GetMV(int name);
+void SetMV(int name, int value);
 int Rand();
-int CreateMV();
-void DestroyMV(int key);
-int GetMV(int key);
-void SetMV(int key, int value);
 
 #endif /* IN_ASM */
 #endif /* SYSCALL_H */

@@ -23,6 +23,9 @@ II. Assumptions:
        include monolithic user programs, multiple user programs on one Nachos client, and multiple
        Nachos clients. We describe our design to achieve this assumption below.
 
+       Resource names are AT MOST 32 characters long. Attempts to reference a resource with a name longer
+       than 32 characters will have indeterminate behavior, since our code will ignore all following chars.
+
     Part 2:
 
         

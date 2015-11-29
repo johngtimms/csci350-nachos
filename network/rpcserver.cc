@@ -556,51 +556,60 @@ void RPCServer::Receive_SetMV() {
 }
 
 //-----------------------------------------------------------------------------------------------//
-// When replying to the client, must reply to the individual process/thread box.
+// When replying to the client, must reply to the individual process/thread mailbox.
 //-----------------------------------------------------------------------------------------------//
-int RPCServer::ClientMailbox(int machineID, int process, int thread) {
+int RPCServer::ClientMailbox(int machine, int process, int thread) {
     char str1[2];
     char str2[2];
     char str3[2];
     
-    // Have to add 1 because process and thread and machineID can both be 0, which would create overlap
+    // Have to add 1 because process, thread, and machine can all be 0, which would create overlap
     sprintf(str1, "%d", (process + 1));
     sprintf(str2, "%d", (thread + 1));
-    //sprintf(str3, "%d", (machineID + 1)); not working properly
+    sprintf(str3, "%d", (machine + 1));
 
     strcat(str1, str2);
-    //strcat(str1, str3); not working properly
+    strcat(str1, str3);
     int mailbox = atoi(str1);
+
+    DEBUG('p', "mailbox calculated %d", mailbox);
 
     return mailbox;
 }
 
 //-----------------------------------------------------------------------------------------------//
-// A lot of calls need to reply "OK" when they're done, this promotes code reuse.
+// A lot of calls need to reply "yes" or "no" when they're done, this promotes code reuse.
 // It also handles numeric responses.
-// For "OK" pass -1 as the response. For a numeric response, pass a number as the response.
+// For "yes" pass -1 as the response. 
+// For "no" pass -2 as the response.
+// For a numeric response, pass a number greater than or equal to zero as the response.
 //-----------------------------------------------------------------------------------------------//
 void RPCServer::SendResponse(int mailbox, int response) {
-    
-}
-
-void RPCServer::SendResponse(int machineID, int mailbox, int response) {
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     char send[MaxMailSize];
 
     // Construct response
-    if (response == -1)
-        strcpy(send, "OK");
-    else
+    if (response == -2)
+        strcpy(send, "no");
+    else if (response == -1)
+        strcpy(send, "yes");
+    else if (response >= 0)
         sprintf(send, "%d", response);
+    else {
+        printf("ERROR: Invalid response. Mailbox %d. Response %d. Terminating Nachos.\n", mailbox, response);
+        interrupt->Halt();
+    }
 
-    DEBUG('r', "Send response machine %d mailbox %d response %d \"%s\"\n", machineID, mailbox, response, send);
+    // Calculate machine ID from the mailbox
+    int machine = (mailbox % 10000) - 1;
+
+    DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", machine, mailbox, response, send);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = machineID;       
+    outPktHdr.to = machine;       
     outMailHdr.to = mailbox;
-    outMailHdr.from = 100; // No syscall ever needs to reply to a response
+    outMailHdr.from = -1; // No syscall ever needs to reply to a response
     outMailHdr.length = strlen(send) + 1;
 
     // Send the response message
@@ -610,6 +619,13 @@ void RPCServer::SendResponse(int machineID, int mailbox, int response) {
         printf("WARN: SendResponse failed. Client misconfigured.\n");
     else
         DEBUG('r', "Send response success\n");
+}
+
+//-----------------------------------------------------------------------------------------------//
+// TODO document
+//-----------------------------------------------------------------------------------------------//
+static bool SendQuery(int mailboxTo, int mailboxFron, int query) {
+
 }
 
 //-----------------------------------------------------------------------------------------------//
