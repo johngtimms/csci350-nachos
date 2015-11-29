@@ -28,6 +28,7 @@ class RPCServer {
         RPCServer();
         ~RPCServer();
 
+        // These functions handle calls from clients
         void Receive_CreateLock();
         void Receive_DestroyLock();
         void Receive_Acquire();
@@ -44,8 +45,25 @@ class RPCServer {
         void Receive_GetMV();
         void Receive_SetMV();
 
-        static int ClientMailbox(int machineID, int process, int thread);
-        static void SendResponse(int machineID, int mailbox, int response);
+        // To prevent overlap, mailbox IDs are calculated
+        static int ClientMailbox(int machine, int process, int thread);
+
+        // Server-to-Client and Server-to-Server response messages
+        // For Server-to-Client responses, mailbox is obtained from a call to ClientMailbox
+        // For Server-to-Server messages, mailbox is one of the defined mailbox numbers above
+        // plus 100, because the receiving server will be waiting there for "yes" or "no"
+        // response is either "yes" or "no" (pass 0 or 1)
+        // Clients will interpret "yes" as success and "no" as an error
+        // Sending "yes" to a server tells it the sending server can handle the query
+        // Sending "no" to a server tells it the sending server cannot handle the query
+        static void SendResponse(int mailbox, int response);
+
+        // Server-to-Server query messages
+        // mailboxTo is one of the defined mailbox numbers above
+        // mailboxFrom is the negation of the Server-to-Client mailbox obtained from ClientMailbox
+        // The negation of mailboxFrom tells the receiving server this is a Server-to-Server call
+        // query is the original query from the client
+        static bool SendQuery(int mailboxTo, int mailboxFron, int query);
 };
 
 class NetworkLock {

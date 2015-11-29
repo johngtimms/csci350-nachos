@@ -30,6 +30,7 @@ void RPCServer::Receive_CreateLock() {
         int machineID = inPktHdr.from;
         char *name = strtok(NULL,",");
         
+        // Check if this lock already exists
         int foundKey = -1;
         std::map<int, NetworkLock*>::iterator iterator;
         for(iterator = networkLockTable->locks.begin(); iterator != networkLockTable->locks.end(); iterator++) {
@@ -38,13 +39,15 @@ void RPCServer::Receive_CreateLock() {
                 break;
             }
         }
+
+        // If it does, send it back to the client
         if(foundKey != -1) {
             DEBUG('r', "CreateLock - found Lock already created with key: %i\n", foundKey);
             SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
             continue;
         }
 
-        // Process the message (identical to original syscall)
+        // Otherwise, create a new lock (just like the original syscall)
         NetworkLock *lock = new NetworkLock(inPktHdr.from, processID, name);
         networkLockTable->tableLock->Acquire();
         int key = networkLockTable->index;
@@ -577,6 +580,10 @@ int RPCServer::ClientMailbox(int machineID, int process, int thread) {
 // It also handles numeric responses.
 // For "OK" pass -1 as the response. For a numeric response, pass a number as the response.
 //-----------------------------------------------------------------------------------------------//
+void RPCServer::SendResponse(int mailbox, int response) {
+    
+}
+
 void RPCServer::SendResponse(int machineID, int mailbox, int response) {
     PacketHeader outPktHdr;
     MailHeader outMailHdr;

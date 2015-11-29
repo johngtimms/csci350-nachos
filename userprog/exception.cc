@@ -341,199 +341,105 @@ int Rand_Syscall() {
     return rand();
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------------------//
+
 #ifdef NETWORK
 
-// Sends a request with the process's ID, gets a lock ID back
-int CreateLock_Syscall(unsigned int vaddr, int len) {
+// In Assignment 4 Part 2, the destination server is chosen randomly
+int getDestination() {
+    return destinationName;
+}
+
+// Used to get names of resources
+char* argumentReader(unsigned int vaddr) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
-        printf("%s","Bad pointer passed to CreateMV\n");
+        printf("ERROR: Bad name in %s.\n", identifier);
         delete name;
         return -1;
     }
     name[len] = '\0';
-    
+
+    return name;
+}
+
+// Most RPCs can be generalized
+void genericFunction(char *name, char *identifier, int action) {
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
     char recv[MaxMailSize];
-    
+    char test[MaxMailSize]; strcpy(test, "OK");
+
+    // Get the name(s)
+    char *name = new char[len+1];
+    if( copyin(vaddr,len,name) == -1 ) {
+        printf("ERROR: Bad name in %s.\n", identifier);
+        delete name;
+        return -1;
+    }
+    name[len] = '\0';
+
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    
-    sprintf(send, "%d,%d,%s", processID, threadID, name);
-    
+
+    // Because the server mailbox defines the action, the name is all that
+    // must be sent
+    sprintf(send, "%s", name);
+
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxCreateLock;
+    outPktHdr.to = getDestination();
+    outMailHdr.to = action;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
-    DEBUG('l', "outMailHr.to: %i, mailbox: %i\n", MailboxCreateLock, mailbox);
+
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: CreateLock failed. Server misconfigured.\n");
-    
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    int key = atoi(recv);
-    DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
-    return key;
-}
 
-void DestroyLock_Syscall(unsigned int key) {
-    PacketHeader outPktHdr;
-    MailHeader outMailHdr;
-    char send[MaxMailSize];
-    
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    DEBUG('z', "DestroyLock process %d thread %d\n", processID, threadID);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxDestroyLock;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
+    // Check that the send worked
     if ( !success )
-        printf("WARN: DestroyLock failed. Server misconfigured.\n");
-}
-
-void Acquire_Syscall(unsigned int key) {
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
-    char recv[MaxMailSize];
-    
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-
-    DEBUG('z', "Acquire - mailbox %d key %i\n", mailbox, key);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxAcquire;
-    outMailHdr.from = mailbox; // need a reply
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: Acquire failed. Server misconfigured.\n");
+        printf("WARN: %s failed. Server misconfigured.\n", identifier);
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
 
-    DEBUG('z', "Acquire SUCCESS - process %d thread %d key %d\n", processID, threadID, key);
-    
-    char test[MaxMailSize];
-    strcpy(test, "OK");
-    if ( strcmp(test,recv) )
-        printf("WARN: Acquire failed. Recieved bad server message.\n");
+    // Check that the response is good
+    if ( !strcmp(test,recv) )
+        printf("WARN: %s failed. Recieved bad server message.\n", identifier);
 }
 
-void Release_Syscall(unsigned int key) {
-    PacketHeader outPktHdr;
-    MailHeader outMailHdr;
-    char send[MaxMailSize];
-    
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    DEBUG('z', "Release - process %d thread %d key %d\n", processID, threadID, key);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxRelease;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: Release failed. Server misconfigured.\n");
+// Sends a request to the server with the name of a new lock to create
+// If the lock already exists, the server will still complete the request successfully 
+void CreateLock_Syscall(unsigned int vaddr, int len) {
+    genericFunction(vaddr, len, "CreateLock", MailboxCreateLock);
+}
+
+// Sends a request to the server with the name of a lock to destroy
+void DestroyLock_Syscall(unsigned int vaddr, int len) {
+    genericFunction(vaddr, len, "DestroyLock", MailboxDestroyLock);
+}
+
+void Acquire_Syscall(unsigned int vaddr, int len) {
+    genericFunction(vaddr, len, "Acquire", MailboxAcquire);
+}
+
+void Release_Syscall(unsigned int vaddr, int len) {
+    genericFunction(vaddr, len, "Release", MailboxRelease);
 }
 
 int CreateCondition_Syscall(unsigned int vaddr, int len) {
-    char *name = new char[len+1];
-    if( copyin(vaddr,len,name) == -1 ) {
-        printf("%s","Bad pointer passed to CreateMV\n");
-        delete name;
-        return -1;
-    }
-    name[len] = '\0';
-    
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
-    char recv[MaxMailSize];
-    
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    DEBUG('z', "CreateCondition - process %d thread %d\n", processID, threadID);
-    sprintf(send, "%d,%d,%s", processID, threadID, name);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxCreateCondition;
-    outMailHdr.from = mailbox; // need a reply
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: CreateCondition failed. Server misconfigured.\n");
-
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    int key = atoi(recv);
-    return key;
+    genericFunction(vaddr, len, "CreateCondition", MailboxCreateCondition);
 }
 
 void DestroyCondition_Syscall(unsigned int key) {
-    PacketHeader outPktHdr;
-    MailHeader outMailHdr;
-    char send[MaxMailSize];
-    
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    DEBUG('z', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxDestroyCondition;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: DestroyCondition failed. Server misconfigured.\n");
+    genericFunction(vaddr, len, "DestroyCondition", MailboxDestroyCondition);
 }
 
 void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
+    genericFunction(vaddr, len)
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
@@ -549,7 +455,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxWait;
     outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
@@ -571,7 +477,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxAcquire;
     outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
@@ -607,7 +513,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxSignal;
     outMailHdr.from = mailbox; // need a reply
     outMailHdr.length = strlen(send) + 1;
@@ -632,7 +538,7 @@ void Signal_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxRelease;
     outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
@@ -661,7 +567,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d,%d", processID, threadID, conditionKey, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxBroadcast;
     outMailHdr.from = mailbox; // Need a reply
     outMailHdr.length = strlen(send) + 1;
@@ -683,7 +589,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxRelease;
     outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
@@ -704,9 +610,9 @@ void NetPrint_Syscall(int text, int num) {
     buf[100] = '\0';
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetPrint;
-    outMailHdr.from = MailboxNetPrint;
+    outMailHdr.from = 0; // No response needed
     outMailHdr.length = strlen(buf) + 1;
     
     // Make sure the message is not too long
@@ -734,9 +640,9 @@ void NetHalt_Syscall() {
     char *buf = "NoOp"; // No need to send a real message
     
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
+    outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetHalt;
-    outMailHdr.from = MailboxNetHalt;
+    outMailHdr.from = 0; // No response needed
     outMailHdr.length = strlen(buf) + 1;
     
     // Send the message
@@ -772,7 +678,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len) {
     sprintf(send, "%d,%d,%s", processID, threadID, name);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
+    outPktHdr.to = getDestination();     
     outMailHdr.to = MailboxCreateMV;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
@@ -801,7 +707,7 @@ void DestroyMV_Syscall(int key) {
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
+    outPktHdr.to = getDestination();     
     outMailHdr.to = MailboxDestroyMV;
     outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
@@ -827,7 +733,7 @@ int GetMV_Syscall(int key) {
     sprintf(send, "%d,%d,%d", processID, threadID, key);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
+    outPktHdr.to = getDestination();     
     outMailHdr.to = MailboxGetMV;
     outMailHdr.from = mailbox; 
     outMailHdr.length = strlen(send) + 1;
@@ -856,7 +762,7 @@ void SetMV_Syscall(int key, int value) {
     sprintf(send, "%d,%d,%d,%d", processID, threadID, key, value);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
+    outPktHdr.to = getDestination();     
     outMailHdr.to = MailboxSetMV;
     outMailHdr.from = 0; // no reply needed
     outMailHdr.length = strlen(send) + 1;
