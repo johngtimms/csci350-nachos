@@ -73,6 +73,9 @@ void runApplicationClerk() {
 }
 
 int main() {
+    Print("applicationclerk.c execed\n",0);
+    init_locks();
+    Print("after init_locks in appcelrk.c \n",0);
 	Acquire(applicationClerkIndexLock);
 	i = nextAvailableApplicationClerkIndex;
 	nextAvailableApplicationClerkIndex = nextAvailableApplicationClerkIndex + 1;
