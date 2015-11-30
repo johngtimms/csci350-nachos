@@ -403,6 +403,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
+    delete name;
     return key;
 }
 
@@ -530,6 +531,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
+    delete name;
     return key;
 }
 
@@ -813,6 +815,8 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     DEBUG('z', "CreateMV successful with key: %i\n", key);
+
+    delete name;
     return key;
 }
 
