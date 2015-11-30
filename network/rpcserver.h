@@ -46,7 +46,7 @@ class RPCServer {
         void Receive_SetMV();
 
         // To prevent overlap, mailbox IDs are calculated
-        static int ClientMailbox(int machine, int process, int thread);
+        static int ClientMailbox(int _machine, int process, int thread);
 
         // Server-to-Client and Server-to-Server response messages
         // For Server-to-Client responses, mailbox is obtained from a call to ClientMailbox
@@ -58,7 +58,7 @@ class RPCServer {
         // Sending "yes" to a server tells it the sending server can handle the query
         // Sending "no" to a server tells it the sending server cannot handle the query
         // machine calculated from mailbox for Server-to-Client calls, for Server-to-Server calls it comes from machine
-        static void SendResponse(int mailbox, int response, int machine = -1);
+        static void SendResponse(int mailbox, int response, int _machine = -1);
 
         // Server-to-Server query messages
         // mailboxTo is one of the defined mailbox numbers above
@@ -86,7 +86,7 @@ class NetworkLock {
 
 class NetworkCondition {
     public:
-        NetworkCondition(int mailbox, char *_name);
+        NetworkCondition(char *_name);
         ~NetworkCondition();
         void Wait(int mailbox, NetworkLock *lock);
         void Signal(int mailbox, NetworkLock *lock);

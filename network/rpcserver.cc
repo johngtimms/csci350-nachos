@@ -29,7 +29,7 @@ void RPCServer::Receive_CreateLock() {
         char *lockName = recv;
 
         // Check if the lock already exists
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -42,7 +42,7 @@ void RPCServer::Receive_CreateLock() {
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -61,9 +61,9 @@ void RPCServer::Receive_CreateLock() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
-        lock = new NetworkLock(mailbox, lockName);
+        lock = new NetworkLock(lockName);
         networkLockTable->tableLock->Acquire();
-        networkLockTable->locks.at(lockName) = lock;
+        networkLockTable->locks[lockName] = lock;
         networkLockTable->tableLock->Release();
 
         // Reply with success
@@ -86,7 +86,7 @@ void RPCServer::Receive_DestroyLock() {
         char *lockName = recv;
 
         // Check if the lock exists
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -106,7 +106,7 @@ void RPCServer::Receive_DestroyLock() {
                 SendResponse(-mailbox, -1);
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -151,7 +151,7 @@ void RPCServer::Receive_Acquire() {
         char *lockName = recv;
 
         // Check if the lock exists
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -164,13 +164,13 @@ void RPCServer::Receive_Acquire() {
 
                 // Handle it
                 networkLockTable->tableLock->Acquire();
-                lock->Acquire(-mailbox)
+                lock->Acquire(-mailbox);
                 networkLockTable->tableLock->Release();
 
                 // Success response to the original client is sent from Acquire()
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -182,7 +182,7 @@ void RPCServer::Receive_Acquire() {
 
             // Handle it
             networkLockTable->tableLock->Acquire();
-            lock->Acquire(mailbox)
+            lock->Acquire(mailbox);
             networkLockTable->tableLock->Release();
 
             // Success response is sent from Acquire()
@@ -215,7 +215,7 @@ void RPCServer::Receive_Release() {
         char *lockName = recv;
 
         // Check if the lock exists
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -234,7 +234,7 @@ void RPCServer::Receive_Release() {
                 // Success response to the original client is sent from Release()
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -279,7 +279,7 @@ void RPCServer::Receive_CreateCondition() {
         char *conditionName = recv;
 
         // Check if the condition already exists
-        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+        NetworkCondition *condition = networkConditionTable->conditions[conditionName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -292,7 +292,7 @@ void RPCServer::Receive_CreateCondition() {
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -311,9 +311,9 @@ void RPCServer::Receive_CreateCondition() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new condition (just like the original syscall)
-        condition = new NetworkCondition(mailbox, conditionName);
+        condition = new NetworkCondition(conditionName);
         networkConditionTable->tableLock->Acquire();
-        networkConditionTable->conditions.at(conditionName) = condition;
+        networkConditionTable->conditions[conditionName] = condition;
         networkConditionTable->tableLock->Release();
 
         // Reply with success
@@ -336,7 +336,7 @@ void RPCServer::Receive_DestroyCondition() {
         char *conditionName = recv;
 
         // Check if the condition exists
-        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+        NetworkCondition *condition = networkConditionTable->conditions[conditionName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -356,7 +356,7 @@ void RPCServer::Receive_DestroyCondition() {
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -402,8 +402,8 @@ void RPCServer::Receive_Wait() {
         char *lockName = strtok(NULL,",");
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
-        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkCondition *condition = networkConditionTable->conditions[conditionName];
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -432,7 +432,7 @@ void RPCServer::Receive_Wait() {
                 // Success response to the original client is sent from Wait()
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -488,8 +488,8 @@ void RPCServer::Receive_Signal() {
         char *lockName = strtok(NULL,",");
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
-        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkCondition *condition = networkConditionTable->conditions[conditionName];
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -518,7 +518,7 @@ void RPCServer::Receive_Signal() {
                 // Success response to the original client is sent from Signal()
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -574,8 +574,8 @@ void RPCServer::Receive_Broadcast() {
         char *lockName = strtok(NULL,",");
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
-        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
-        NetworkLock *lock = networkLockTable->locks.at(lockName);
+        NetworkCondition *condition = networkConditionTable->conditions[conditionName];
+        NetworkLock *lock = networkLockTable->locks[lockName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -604,7 +604,7 @@ void RPCServer::Receive_Broadcast() {
                 // Success response to the original client is sent from Broadcast()
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -688,7 +688,7 @@ void RPCServer::Receive_CreateMV() {
         char *mvName = recv;
 
         // Check if the mv already exists
-        NetworkMV *mv = networkMVTable->mvs.at(mvName);
+        NetworkMV *mv = networkMVTable->mvs[mvName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -701,7 +701,7 @@ void RPCServer::Receive_CreateMV() {
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -720,9 +720,9 @@ void RPCServer::Receive_CreateMV() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new mv (just like the original syscall)
-        mv = new NetworkMV(mailbox, mvName);
+        mv = new NetworkMV(mvName);
         networkMVTable->tableLock->Acquire();
-        networkMVTable->mvs.at(mvName) = mv;
+        networkMVTable->mvs[mvName] = mv;
         networkMVTable->tableLock->Release();
 
         // Reply with success
@@ -745,7 +745,7 @@ void RPCServer::Receive_DestroyMV() {
         char *mvName = recv;
 
         // Check if the mv exists
-        NetworkMV *mv = networkMVTable->mvs.at(mvName);
+        NetworkMV *mv = networkMVTable->mvs[mvName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -765,7 +765,7 @@ void RPCServer::Receive_DestroyMV() {
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -810,7 +810,7 @@ void RPCServer::Receive_GetMV() {
         char *mvName = recv;
 
         // Check if the mv exists
-        NetworkMV *mv = networkMVTable->mvs.at(mvName);
+        NetworkMV *mv = networkMVTable->mvs[mvName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -823,14 +823,14 @@ void RPCServer::Receive_GetMV() {
 
                 // Handle it
                 networkMVTable->tableLock->Acquire();
-                int value = mv->GetMV();
-                networkMVTable->tableMV->Release();
+                int value = mv->getMV();
+                networkMVTable->tableLock->Release();
 
                 // Send success
                 SendResponse(-mailbox, value);
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -842,7 +842,7 @@ void RPCServer::Receive_GetMV() {
 
             // Handle it
             networkMVTable->tableLock->Acquire();
-            int value = mv->GetMV();
+            int value = mv->getMV();
             networkMVTable->tableLock->Release();
 
             // Send success
@@ -877,7 +877,7 @@ void RPCServer::Receive_SetMV() {
         int mvValue = atoi(strtok(NULL,","));
 
         // Check if the mv exists
-        NetworkMV *mv = networkMVTable->mvs.at(mvName);
+        NetworkMV *mv = networkMVTable->mvs[mvName];
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -890,14 +890,14 @@ void RPCServer::Receive_SetMV() {
 
                 // Handle it
                 networkMVTable->tableLock->Acquire();
-                mv->SetMV(mvValue)
-                networkMVTable->tableMV->Release();
+                mv->setMV(mvValue);
+                networkMVTable->tableLock->Release();
 
                 // Send success
                 SendResponse(-mailbox, -1);
                 continue;
             } else {
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                SendResponse(serverMailbox, -2, serverMachine);   // Tell the querying server it's not here
                 continue;
             }
         }
@@ -909,7 +909,7 @@ void RPCServer::Receive_SetMV() {
 
             // Handle it
             networkMVTable->tableLock->Acquire();
-            mv->SetMV(mvValue)
+            mv->setMV(mvValue);
             networkMVTable->tableLock->Release();
 
             // Send success
@@ -932,15 +932,15 @@ void RPCServer::Receive_SetMV() {
 //-----------------------------------------------------------------------------------------------//
 // When replying to the client, must reply to the individual process/thread mailbox.
 //-----------------------------------------------------------------------------------------------//
-int RPCServer::ClientMailbox(int machine, int process, int thread) {
+int RPCServer::ClientMailbox(int _machine, int process, int thread) {
     char str1[2];
     char str2[2];
     char str3[2];
     
-    // Have to add 1 because process, thread, and machine can all be 0, which would create overlap
+    // Have to add 1 because process, thread, and _machine can all be 0, which would create overlap
     sprintf(str1, "%d", (process + 1));
     sprintf(str2, "%d", (thread + 1));
-    sprintf(str3, "%d", (machine + 1));
+    sprintf(str3, "%d", (_machine + 1));
 
     strcat(str1, str2);
     strcat(str1, str3);
@@ -958,7 +958,7 @@ int RPCServer::ClientMailbox(int machine, int process, int thread) {
 // For "no" pass -2 as the response.
 // For a numeric response, pass a number greater than or equal to zero as the response.
 //-----------------------------------------------------------------------------------------------//
-void RPCServer::SendResponse(int mailbox, int response, int machine) {
+void RPCServer::SendResponse(int mailbox, int response, int _machine) {
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     char send[MaxMailSize];
@@ -976,14 +976,14 @@ void RPCServer::SendResponse(int mailbox, int response, int machine) {
     }
 
     // Calculate machine ID from the mailbox if this is a Server-to-Client response
-    if (machine == -1) {
-        machine = (mailbox % 10000) - 1;
+    if (_machine == -1) {
+        _machine = (mailbox % 10000) - 1;
     }
 
-    DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", machine, mailbox, response, send);
+    DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", _machine, mailbox, response, send);
 
     // Construct packet header, mail header for the message
-    outPktHdr.to = machine;       
+    outPktHdr.to = _machine;       
     outMailHdr.to = mailbox;
     outMailHdr.from = -1; // No syscall ever needs to reply to a response
     outMailHdr.length = strlen(send) + 1;
@@ -1295,3 +1295,11 @@ NetworkMV::NetworkMV(char *_name) {
 }
 
 NetworkMV::~NetworkMV() {}
+
+int NetworkMV::getMV() {
+    return value;
+}
+
+void NetworkMV::setMV(int _value) {
+    value = _value;
+}
