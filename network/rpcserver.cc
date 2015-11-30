@@ -805,7 +805,7 @@ void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock
             if (conditionLock == lock) {                    // ok to wait
                 queue->Append((void *) mailbox);             // add mailbox to wait queue
                 conditionLock->Release(_machineID, process, thread);    // release waiting lock
-                DEBUG('r', "Wait waiting process %d thread %d\n", processID, thread);
+                DEBUG('r', "Wait waiting process %d thread %d lock %s mailbox: %i\n", process, thread, conditionLock->name, mailbox);
             } else {
                 printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
@@ -829,7 +829,6 @@ void NetworkCondition::Signal(int _machineID, int process, int _thread, NetworkL
         interrupt->Halt();
     }
     */
-    
     int mailbox = RPCServer::ClientMailbox(_machineID, process, _thread); //get mailbox id of client calling signal
 
     // Do the regular Condition::Signal stuff
@@ -837,10 +836,11 @@ void NetworkCondition::Signal(int _machineID, int process, int _thread, NetworkL
     if (lock != NULL) {
         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
-                int thread = (int) queue->Remove();         // remove one waiting thread from queue
-                DEBUG('r', "Signal thread process %d thread %d thread %d (given)\n", processID, thread, _thread);
+                int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
+                DEBUG('r', "Signal thread process %d thread %d mailbox: %i\n", processID, _thread, mailboxToSignal);
+
                 RPCServer::SendResponse(machineID, mailbox, -1);
-                RPCServer::SendResponse(machineID, mailbox, -1);
+                RPCServer::SendResponse(machineID, mailboxToSignal, -1);
                 // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
                 // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
                 // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
