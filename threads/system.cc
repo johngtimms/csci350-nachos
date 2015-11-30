@@ -239,7 +239,7 @@ Initialize(int argc, char **argv) {
 //----------------------------------------------------------------------
 void
 Cleanup() {
-    printf("\nCleaning up...\n");
+    printf("\nCleaning up...\n"); /*
 #ifdef NETWORK
     delete postOffice;
     delete rpcServer;
@@ -274,6 +274,7 @@ Cleanup() {
     delete timer;
     delete scheduler;
     delete interrupt;
+                                   */
     Exit(0);
 }
 
