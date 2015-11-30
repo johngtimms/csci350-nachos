@@ -169,6 +169,7 @@ int Exec_Syscall(unsigned int vaddr, int len) {
         cout << "Unable to open file: " << buf << endl;
         return -1;
     }
+    delete buf;
     // Create an AddrSpace (Process) for new file
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
@@ -355,6 +356,7 @@ void Print_Syscall(int text, int num) {
     }
     buf[100] = '\0';
     printf(buf, num);
+    delete buf;
 }
 
 int Rand_Syscall() {
