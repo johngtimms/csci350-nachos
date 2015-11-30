@@ -116,6 +116,10 @@ void runPictureClerk() {
             Release(pictureClerks[i].clerkLock);
             /*pictureClerks[i].state = FREE;*/
             SetMV(pictureClerks[i].state, FREE);
+            if(GetMV(timeToLeave)) {
+                Print("PictureClerk %i is leaving the office.\n",i);
+                Exit(0);
+            }
             
         }
     }

@@ -4,12 +4,12 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			5
+#define NUM_CUSTOMERS			1
 #define NUM_APPLICATION_CLERKS	1
 #define NUM_PICTURE_CLERKS		1
 #define NUM_PASSPORT_CLERKS		1
 #define NUM_CASHIERS			1
-#define NUM_SENATORS			0
+#define NUM_SENATORS			1
 
 struct Customer;
 struct Clerk;
@@ -33,6 +33,9 @@ bool senatorInside = false;
 int customerOutsideLineLock;
 int customerOutsideLineCV;
 int customersOutside = 0;
+
+bool timeToLeave;
+
 int dummyMV;
 
 typedef enum {FREE, BUSY, BREAK} ClerkState;
@@ -52,6 +55,7 @@ typedef struct Customer {
 	bool seenApp;
 	bool seenPic;
 	bool likedPic;
+	bool leftOffice;
 } Customer;
 
 typedef struct Clerk {
@@ -74,7 +78,7 @@ Clerk passportClerks[10];
 Clerk pictureClerks[10];
 Clerk applicationClerks[10];
 
-int numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks;
+int numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks, numSenators;
 
 
 void initClerk(ClerkType clerkType, int i) {
@@ -224,7 +228,8 @@ void initCustomer(int ssn, bool _isSenator) {
     customers[ssn].seenPic = CreateMV("custSeenPic", sizeof("custSeenPic"), ssn);
     customers[ssn].likedPic = CreateMV("custLikedPic", sizeof("custLikedPic"), ssn);
     customers[ssn].hasPaidForPassport = CreateMV("custHasPaid", sizeof("custHasPaid"), ssn);
-    
+    customers[ssn].leftOffice = CreateMV("leftOffice", sizeof("leftOffice"), ssn);
+
     SetMV(customers[ssn].isSenator, _isSenator);
     SetMV(customers[ssn].clerkID, -1);
     SetMV(customers[ssn].SSN, ssn);
@@ -241,9 +246,11 @@ void setup() {
 	numPictureClerks = NUM_PICTURE_CLERKS;
 	numPassportClerks = NUM_PASSPORT_CLERKS;
 	numCashiers = NUM_CASHIERS;
+	numSenators = NUM_SENATORS;
 	
 	dummyMV = CreateMV("dummyMV", sizeof("dummyMV"));
 	globalDataLock = CreateLock("globalDataLock", sizeof("globalDataLock"));
+	timeToLeave = CreateMV("timeToLeave", sizeof("timeToLeave"));
 
 	
 	senatorOutsideLineLock = CreateLock("senOutsideLineLock", sizeof("senOutsideLineLock"));
@@ -299,11 +306,9 @@ void setup() {
 	
 	for(k = 0; k < numCustomers; k++)
 		initCustomer(k, false);
-	/*
-	for(k = 0; k < NUM_SENATORS; k++)
+	
+	for(k = numCustomers; k < numCustomers + numSenators; k++)
 		initCustomer(k, true);
-		*/
-
 	
 }
 

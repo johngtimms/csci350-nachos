@@ -3,13 +3,14 @@
 
 
 int main() {
-	int k, numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks;
+	int k, numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks, numSenators;
 
 	numCustomers = NUM_CUSTOMERS;
 	numApplicationClerks = NUM_APPLICATION_CLERKS;
 	numPictureClerks = NUM_PICTURE_CLERKS;
 	numPassportClerks = NUM_PASSPORT_CLERKS;
 	numCashiers = NUM_CASHIERS;
+	numSenators = NUM_SENATORS;
 
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
@@ -52,11 +53,11 @@ int main() {
 	
 	for(k = 0 ; k < numCustomers; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
-/*
-	for(k = 0 ; k < NUM_SENATORS; k++)
+
+	for(k = 0 ; k < numSenators; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
     
-    */
+    
 	Exec("../test/manager", sizeof("../test/manager"));
 	
 	

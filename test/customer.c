@@ -6,9 +6,9 @@ int ssn;
 bool enterApplicationLine(int clerkID) {
 	int length;
 	/* Stand in line */
-	Print("Customer %i about to stand in application clerk line\n", ssn); 
+	/*Print("Customer %i about to stand in application clerk line\n", ssn); */
 	/*if(applicationClerks[clerkID].state != FREE) {*/
-	if(GetMV(applicationClerks[clerkID].state) != FREE) {
+	if(/*GetMV(applicationClerks[clerkID].state) != FREE*/true) {
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {	
 			Acquire(applicationClerks[clerkID].senatorLineLock);
@@ -87,10 +87,10 @@ bool enterApplicationLine(int clerkID) {
 bool enterPictureLine(int clerkID) { 
 	int length;
 	/* Stand in line */
-	Print("Customer %i about to stand in picture clerk line\n", ssn); 
-	Print("Picture clerk state %i\n",GetMV(pictureClerks[clerkID].state));
+	/*Print("Customer %i about to stand in picture clerk line\n", ssn); 
+	Print("Picture clerk state %i\n",GetMV(pictureClerks[clerkID].state));*/
 	/*if(pictureClerks[clerkID].state != FREE) {*/
-	if(GetMV(pictureClerks[clerkID].state) != FREE) {
+	if(/*GetMV(pictureClerks[clerkID].state) != FREE*/true) {
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {
 			Acquire(pictureClerks[clerkID].senatorLineLock);
@@ -169,9 +169,9 @@ bool enterPictureLine(int clerkID) {
 bool enterPassportLine(int clerkID) { 
 	int length;
 	/* Stand in line */
-	Print("Customer %i about to stand in passport clerk line\n", ssn); 
+	/*Print("Customer %i about to stand in passport clerk line\n", ssn);*/ 
 	/*if(passportClerks[clerkID].state != FREE) {*/
-	if(GetMV(passportClerks[clerkID].state) != FREE) {
+	if(/*GetMV(passportClerks[clerkID].state) != FREE*/true) {
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {
 			Acquire(passportClerks[clerkID].senatorLineLock);
@@ -250,9 +250,9 @@ bool enterPassportLine(int clerkID) {
 bool enterCashierLine(int clerkID) { 
 	int length;
 	/* Stand in line */
-	Print("Customer %i about to stand in cashier clerk line\n", ssn); 
+	/*Print("Customer %i about to stand in cashier clerk line\n", ssn); */
 	/*if(cashiers[clerkID].state != FREE) {*/
-	if(GetMV(cashiers[clerkID].state) != FREE) {
+	if(/*GetMV(cashiers[clerkID].state) != FREE*/true) {
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {
 			Acquire(cashiers[clerkID].senatorLineLock);
@@ -640,10 +640,12 @@ void doCashier() {
  		Signal(cashiers[clerkID].clerkCV, cashiers[clerkID].clerkLock);
         Release(cashiers[clerkID].clerkLock);
         /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator))
+        if(GetMV(customers[ssn].isSenator)) {
         	Print("Senator %i is leaving the Passport Office\n", ssn);
-        else
+        }
+        else {
         	Print("Customer %i is leaving the Passport Office\n", ssn);
+        }
     } else {
         Signal(cashiers[clerkID].clerkCV, cashiers[clerkID].clerkLock);
         /*if(customers[ssn].isSenator)*/
@@ -818,13 +820,13 @@ int main() {
     ssn = GetMV(nextAvailableCustomerIndex);
     SetMV(nextAvailableCustomerIndex, ssn + 1);
     Release(customerIndexLock);
-    Print("My ssn: %i\n",ssn);
-
-    Print("is senator: %i\n",GetMV(customers[ssn].isSenator));
-	if(GetMV(customers[ssn].isSenator))
+    
+    if(GetMV(customers[ssn].isSenator))
 		runSenator();
 	else
 		runCustomer();
+
+	SetMV(customers[ssn].leftOffice, true);
     
 
 	Exit(0);

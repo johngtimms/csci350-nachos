@@ -60,7 +60,7 @@ void runPassportClerk() {
             /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
             if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
                 Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i has both their application and picture completed\n", myCustomer);
+            	Print("Customer %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
                 for(k = 0; k < wait; k++)            /* Process application and picture */
                     Yield();
@@ -95,7 +95,7 @@ void runPassportClerk() {
             /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
             if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
                 Print("PassportClerk %i has determined that ", i);
-            	Print("Senator %i has both their application and picture completed\n", myCustomer);
+            	Print("Customer %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
                 for(k = 0; k < wait; k++)            /* Process application and picture */
                     Yield();
@@ -124,6 +124,10 @@ void runPassportClerk() {
             Release(passportClerks[i].clerkLock);
             /*passportClerks[i].state = FREE;*/
             SetMV(passportClerks[i].state, FREE);
+            if(GetMV(timeToLeave)) {
+                Print("PassportClerk %i is leaving the office.\n",i);
+                Exit(0);
+            }
         }
     }
 }

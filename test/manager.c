@@ -4,13 +4,8 @@
 int customerIndexLock, applicationClerkIndexLock, pictureClerkIndexLock, passportClerkIndexLock, cashierIndexLock, senatorIndexLock;
 
 void runManager() {
-	bool allClerksOnBreak;
+	bool allClerksOnBreak, allCustomersLeftOffice;
 	int applicationClerkMoneyTotal, pictureClerkMoneyTotal, passportClerkMoneyTotal, cashierMoneyTotal, k;
-	numCustomers = NUM_CUSTOMERS;
-	numApplicationClerks = NUM_APPLICATION_CLERKS;
-	numPictureClerks = NUM_PICTURE_CLERKS;
-	numPassportClerks = NUM_PASSPORT_CLERKS;
-	numCashiers = NUM_CASHIERS;
 
 	totalMoneyMade = 0;
 	while(true) {
@@ -31,7 +26,7 @@ void runManager() {
 				Acquire(applicationClerks[k].bribeLineLock);
 				Acquire(applicationClerks[k].lineLock);
 				/*if((applicationClerks[k].bribeLineLength + applicationClerks[k].lineLength) >= 3 || applicationClerks[k].senatorLineLength > 0) {*/
-				if((GetMV(applicationClerks[k].bribeLineLength) + GetMV(applicationClerks[k].lineLength)) >= 3 || GetMV(applicationClerks[k].senatorLineLength) > 0) {
+				if((GetMV(applicationClerks[k].bribeLineLength) + GetMV(applicationClerks[k].lineLength)) >= 1 || GetMV(applicationClerks[k].senatorLineLength) > 0) {
 					Signal(applicationClerks[k].breakCV, applicationClerks[k].clerkLock);
 					Print("Manager has woken up an ApplicationClerk\n", 0);
 					allClerksOnBreak = false;
@@ -54,7 +49,7 @@ void runManager() {
 				Acquire(pictureClerks[k].clerkLock);
 				Acquire(pictureClerks[k].bribeLineLock);
 				Acquire(pictureClerks[k].lineLock);
-				if((GetMV(pictureClerks[k].bribeLineLength) + GetMV(pictureClerks[k].lineLength)) >= 3 || GetMV(pictureClerks[k].senatorLineLength) > 0) {
+				if((GetMV(pictureClerks[k].bribeLineLength) + GetMV(pictureClerks[k].lineLength)) >= 1 || GetMV(pictureClerks[k].senatorLineLength) > 0) {
 					Signal(pictureClerks[k].breakCV, pictureClerks[k].clerkLock);
 					Print("Manager has woken up a PictureClerk\n", 0);
 					allClerksOnBreak = false;
@@ -75,7 +70,7 @@ void runManager() {
 				Acquire(passportClerks[k].clerkLock);
 				Acquire(passportClerks[k].bribeLineLock);
 				Acquire(passportClerks[k].lineLock);
-				if((GetMV(passportClerks[k].bribeLineLength) + GetMV(passportClerks[k].lineLength)) >= 3 || GetMV(passportClerks[k].senatorLineLength) > 0) {
+				if((GetMV(passportClerks[k].bribeLineLength) + GetMV(passportClerks[k].lineLength)) >= 1 || GetMV(passportClerks[k].senatorLineLength) > 0) {
 					Signal(passportClerks[k].breakCV, passportClerks[k].clerkLock);
 					Print("Manager has woken up a PassportClerk\n", 0);
 					allClerksOnBreak = false;
@@ -96,7 +91,7 @@ void runManager() {
 				Acquire(cashiers[k].clerkLock);
 				Acquire(cashiers[k].bribeLineLock);
 				Acquire(cashiers[k].lineLock);
-				if((GetMV(cashiers[k].bribeLineLength) + GetMV(cashiers[k].lineLength)) >= 3 || GetMV(cashiers[k].senatorLineLength) > 0) {
+				if((GetMV(cashiers[k].bribeLineLength) + GetMV(cashiers[k].lineLength)) >= 1 || GetMV(cashiers[k].senatorLineLength) > 0) {
 					Signal(cashiers[k].breakCV, cashiers[k].clerkLock);
 					Print("Manager has woken up a Cashier\n", 0);
 					allClerksOnBreak = false;
@@ -107,20 +102,65 @@ void runManager() {
 			}
 		}
 		
-		
+		allCustomersLeftOffice = true;
+
+		for(k = 0; k < numCustomers + numSenators; k++) {
+			if(GetMV(customers[k].leftOffice) == false) {
+				allCustomersLeftOffice = false;
+				Print("Customer %i has not left the office yet\n",k);
+			}
+		}
+
+		if(allCustomersLeftOffice) {
+			Print("All Customers have left the office.\n",0);
+			SetMV(timeToLeave, true);
+			/* tell all clerks to get off breaks and leave */
+			
+			for(k = 0; k < numApplicationClerks ; k++) {
+				Acquire(applicationClerks[k].clerkLock);
+				Signal(applicationClerks[k].breakCV, applicationClerks[k].clerkLock);
+				Release(applicationClerks[k].clerkLock);
+			}
+			for(k = 0; k < numPictureClerks ; k++) {
+				Acquire(pictureClerks[k].clerkLock);
+				Signal(pictureClerks[k].breakCV, pictureClerks[k].clerkLock);
+				Release(pictureClerks[k].clerkLock);
+			}
+			for(k = 0; k < numPassportClerks ; k++) {
+				Acquire(passportClerks[k].clerkLock);
+				Signal(passportClerks[k].breakCV, passportClerks[k].clerkLock);
+				Release(passportClerks[k].clerkLock);
+			}
+			for(k = 0; k < numCashiers ; k++) {
+				Acquire(cashiers[k].clerkLock);
+				Signal(cashiers[k].breakCV, cashiers[k].clerkLock);
+				Release(cashiers[k].clerkLock);
+			}
+			Print("Final totals: \n", 0);
+			Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);
+			Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);
+			Print("Manager has counted a total of $%i for PassportClerks\n", passportClerkMoneyTotal);
+			Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);
+			totalMoneyMade = applicationClerkMoneyTotal + pictureClerkMoneyTotal + passportClerkMoneyTotal + cashierMoneyTotal;
+			Print("Manager has counted a total of $%i for the Passport Office\n", totalMoneyMade);
+			Exit(0);
+		}
+
+
 		if(allClerksOnBreak)
 			continue;
 		for(k = 0; k < 100; k++)
 			Yield();
 
-/*
+
 		Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PassportClerks\n", passportClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);
 		totalMoneyMade = applicationClerkMoneyTotal + pictureClerkMoneyTotal + passportClerkMoneyTotal + cashierMoneyTotal;
 		Print("Manager has counted a total of $%i for the Passport Office\n", totalMoneyMade);
-		*/
+		
+
 		
 	}
 }

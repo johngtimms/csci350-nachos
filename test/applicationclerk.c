@@ -83,15 +83,17 @@ void runApplicationClerk() {
             Release(applicationClerks[i].clerkLock);
             /*applicationClerks[i].state = FREE;*/
             SetMV(applicationClerks[i].state, FREE);
+            if(GetMV(timeToLeave)) {
+                Print("ApplicationClerk %i is leaving the office.\n",i);
+                Exit(0);
+            }
         }
     }	
 }
 
 int main() {
-    Print("applicationclerk.c execed\n",0);
     setup();
-    Print("after setup in applicationclerk.c \n",0);
-	Acquire(applicationClerkIndexLock);
+    Acquire(applicationClerkIndexLock);
 	i = GetMV(nextAvailableApplicationClerkIndex);
     SetMV(nextAvailableApplicationClerkIndex, i + 1);
 	Release(applicationClerkIndexLock);

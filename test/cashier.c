@@ -180,6 +180,10 @@ void runCashier() {
             Release(cashiers[i].clerkLock);
             /*cashiers[i].state = FREE;*/
             SetMV(cashiers[i].state, FREE);
+            if(GetMV(timeToLeave)) {
+                Print("Cashier %i is leaving the office.\n",i);
+                Exit(0);
+            }
         }
     }
 	Exit(0);
