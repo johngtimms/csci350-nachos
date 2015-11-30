@@ -1150,11 +1150,8 @@ void RunServer() {
 // Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
-NetworkLock::NetworkLock(int _machineID, int process, char* _name) {
-    machineID = _machineID;
-    processID = process;
-    threadID = -1;
-    mailboxID = -1;
+NetworkLock::NetworkLock(char *_name) {
+    mailbox = -1;
     name = _name;
     queue = new List;
 }
@@ -1163,70 +1160,48 @@ NetworkLock::~NetworkLock() {
     delete queue;
 }
 
-void NetworkLock::Acquire(int _machineID, int process, int thread) {
-    // no more owners
-    /*if (machineID != _machineID) {
-        printf("ERROR: Acquire failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }*/
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); //get mailbox id of client calling acquire
-    
+void NetworkLock::Acquire(int _mailbox) {
     // Do the regular Lock::Acquire stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
-    if (mailboxID == -1) {                               // lock is available
-        mailboxID = mailbox;
-        DEBUG('r', "Acquire success machine %d process %d thread %d\n", machineID, process, thread);
-        RPCServer::SendResponse(machineID, mailboxID, -1);
-    } else if (threadID != thread) {                    // lock is busy
-        queue->Append((void *) mailbox);                 // add mailbox ID to the wait queue
-        DEBUG('r', "Acquire waiting process %d thread %d\n", process, thread);
+    if (mailbox == -1) {                                // lock is available
+        mailbox = _mailbox;
+        DEBUG('r', "Acquire success (Acquire) - mailbox %d name %s\n", mailbox, name);
+        RPCServer::SendResponse(mailbox, -1);
+    } else if (mailbox != _mailbox) {                    // lock is busy
+        queue->Append((void *) _mailbox);                // add mailbox to the wait queue
+        DEBUG('r', "Acquire waiting - mailbox %d name %s\n", mailbox, name);
     } else {
-        printf("WARN: Acquire duplicate process %d thread %d\n", process, thread);
+        printf("WARN: Acquire duplicate - mailbox %d name %s\n", mailbox, name);
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
 
-void NetworkLock::Release(int _machineID, int process, int thread) {
-    // no more owners
-    /*if (machineID != _machineID) {
-        printf("ERROR: Acquire failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    */
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); //get mailbox id of client calling release
-    
+void NetworkLock::Release(int _mailbox) {    
     // Do the regular Lock::Release stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
-    if (mailboxID == mailbox) {
+    if (mailbox == _mailbox) {
         if (queue->IsEmpty()) {
-            mailboxID = -1; //no mailbox's are waiting
-        }
-        else {
-            mailboxID = (int) queue->Remove();           // wake up a waiting mailbox
-            DEBUG('r', "Acquire success via release process %d thread %d mailbox %d\n", process, threadID, mailboxID);
-            RPCServer::SendResponse(machineID, mailboxID, -1);
+            mailbox = -1;                               // no mailboxes are waiting
+        } else {
+            mailbox = (int) queue->Remove();            // wake up a waiting thread (referenced by mailbox)
+            DEBUG('r', "Acquire success (Release) - mailbox %d name %s\n", mailbox, name);
+            RPCServer::SendResponse(mailbox, -1);
         }
     } else {
-        printf("WARN: Release without acquire process %d thread %d\n", process, thread);
+        printf("WARN: Release without acquire - mailbox %d name %s\n", mailbox, name);
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
 
-// bool NetworkLock::IsOwner(int _machineID) {
-//     return (machineID == _machineID);
-// }
-
-bool NetworkLock::HasAcquired(int mailbox) {
-    return (mailboxID == mailbox);
+bool NetworkLock::HasAcquired(int _mailbox) {
+    return (mailbox == _mailbox);
 }
 
 //-----------------------------------------------------------------------------------------------//
 // Create NetworkCondition
 //-----------------------------------------------------------------------------------------------//
 
-NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
-    machineID = _machineID;
-    processID = process;
+NetworkCondition::NetworkCondition(char* _name) {
     name = _name;
     conditionLock = NULL;
     queue = new List;
@@ -1237,66 +1212,42 @@ NetworkCondition::~NetworkCondition() {
     delete queue;
 }
 
-void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock* lock) {
-    // Only the owner process may access this condition
-    /*
-    if (process != processID) {
-        printf("ERROR: Wait failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    */
-    
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); //get mailbox id of client calling wait
-
+void NetworkCondition::Wait(int mailbox, NetworkLock *lock) {
     // Do the regular Condition::Wait stuff
-    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);       // disable interrupts
     if (lock != NULL) {
-        if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
-            if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
+        if (lock->HasAcquired(mailbox)) {
+            if (conditionLock == NULL) {                    // condition hasn't been assigned to a lock yet
                 conditionLock = lock;
-                DEBUG('r', "Wait assigned lock process %d thread %d\n", processID, thread);
-            if (conditionLock == lock) {                    // ok to wait
-                queue->Append((void *) mailbox);             // add mailbox to wait queue
-                conditionLock->Release(_machineID, process, thread);    // release waiting lock
-                DEBUG('r', "Wait waiting process %d thread %d\n", processID, thread);
+                DEBUG('r', "Wait assigned - mailbox %d name %s lock %s\n", mailbox, name, lock->getName());
+            } else if (conditionLock == lock) {             // ok to wait
+                queue->Append((void *) mailbox);            // add mailbox to wait queue
+                conditionLock->Release(mailbox);            // release mailbox's hold on the lock
+                DEBUG('r', "Wait waiting - mailbox %d name %s\n", mailbox, name);
             } else {
                 printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %i Terminating Nachos.\n",process,thread,lock->name);
+            printf("ERROR: Wait failed. Terminating Nachos. Unacquired lock - mailbox %d name %s\n", mailbox, name);
             interrupt->Halt();
         }
     } else {
         printf("ERROR: Wait failed. Lock null. Terminating Nachos.\n");
         interrupt->Halt();
     }
-    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+    (void) interrupt->SetLevel(oldLevel);                   // re-enable interrupts
 }
 
-void NetworkCondition::Signal(int _machineID, int process, int _thread, NetworkLock* lock) {
-    // Only the owner process may access this condition
-    /*
-    if (process != processID) {
-        printf("ERROR: Signal failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    */
-    
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, _thread); //get mailbox id of client calling signal
-
+void NetworkCondition::Signal(int mailbox, NetworkLock *lock) {
     // Do the regular Condition::Signal stuff
-    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);       // disable interrupts
     if (lock != NULL) {
-        if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
+        if (lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
-                int thread = (int) queue->Remove();         // remove one waiting thread from queue
-                DEBUG('r', "Signal thread process %d thread %d thread %d (given)\n", processID, thread, _thread);
-                RPCServer::SendResponse(machineID, mailbox, -1);
-                RPCServer::SendResponse(machineID, mailbox, -1);
-                // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
-                // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
-                // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
+                mailbox = (int) queue->Remove();        // remove one waiting thread from queue
+                DEBUG('r', "Signal thread - mailbox %d name %s\n", mailbox, name);
+                RPCServer::SendResponse(mailbox, -1);
             } else {
                 printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
@@ -1309,27 +1260,17 @@ void NetworkCondition::Signal(int _machineID, int process, int _thread, NetworkL
         printf("ERROR: Signal failed. Lock null. Terminating Nachos.\n");
         interrupt->Halt();
     }
-    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+    (void) interrupt->SetLevel(oldLevel);                   // re-enable interrupts
 }
 
-void NetworkCondition::Broadcast(int _machineID, int process, int _thread, NetworkLock* lock) {
-    // Only the owner process may access this condition
-    /*
-    if (process != processID) {
-        printf("ERROR: Broadcast failed. Owner error. Terminating Nachos.\n");
-        interrupt->Halt();
-    }
-    */
-    
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, _thread); //get mailbox id of client calling wait
-
+void NetworkCondition::Broadcast(int mailbox, NetworkLock *lock) {
     // Do the regular Condition::Broadcast stuff
     // MUST Release() following this call to Broadcast() in exception.cc, otherwise the thread(s) signaled will be stuck
     if (lock != NULL) {
-        if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
+        if (lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
                 while (!queue->IsEmpty())                   // signal all mailbox's waiting
-                    Signal(_machineID, process, _thread, lock);
+                    Signal(mailbox, lock);
             } else {
                 printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
@@ -1344,26 +1285,13 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
     }
 }
 
-/*
-bool NetworkCondition::IsOwner(int _machineID) {
-    return (machineID == _machineID);
-}
-*/
-
 //-----------------------------------------------------------------------------------------------//
 // Create NetworkMV
 //-----------------------------------------------------------------------------------------------//
 
-NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
-    machineID = _machineID;
-    processID = process;
+NetworkMV::NetworkMV(char *_name) {
     value = 0;
     name = _name;
 }
 
 NetworkMV::~NetworkMV() {}
-
-/*bool NetworkMV::IsOwner(int process) {
-    return (processID == process);
-}
-*/

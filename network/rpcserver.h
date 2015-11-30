@@ -71,11 +71,12 @@ class RPCServer {
 
 class NetworkLock {
     public:
-        NetworkLock(int _mailbox, char *_name);
+        NetworkLock(char *_name);
         ~NetworkLock();
         void Acquire(int _mailbox);
         void Release(int _mailbox);
         bool HasAcquired(int _mailbox);
+        char* getName() { return name; }
 
     private:
         int mailbox; // If this is set, it means the lock is held
