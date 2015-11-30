@@ -157,14 +157,18 @@ Initialize(int argc, char **argv) {
 	    ASSERT(argc > 1);
 	    rely = atof(*(argv + 1));
 	    argCount = 2;
-	} else if (!strcmp(*argv, "-m")) {
+	} 
+
+    if (!strcmp(*argv, "-m")) {
 	    ASSERT(argc > 1);
 	    machineName = atoi(*(argv + 1));
-	    argCount = 3; // not quite sure what argCount does, but if -m is set then we should look for -ns too
-	} else if (!strcmp(*argv, "-ns")) {
+	    argCount = 2; // not quite sure what argCount does, but if -m is set then we should look for -ns too
+	} 
+
+    if (!strcmp(*argv, "-ns")) {
         ASSERT(argc > 1);
         numServers = atoi(*(argv + 1));
-        argCount = 3;
+        argCount = 2;
     }
 
     if (!strcmp(*argv, "-o")) {
