@@ -33,7 +33,7 @@ void RPCServer::Receive_CreateLock() {
         int foundKey = -1;
         std::map<int, NetworkLock*>::iterator iterator;
         for(iterator = networkLockTable->locks.begin(); iterator != networkLockTable->locks.end(); iterator++) {
-            if(iterator->second->name == name) {
+            if(strcmp(iterator->second->name, name) == 0) { //if names are equal
                 foundKey = iterator->first;
                 break;
             }
@@ -179,7 +179,7 @@ void RPCServer::Receive_CreateCondition() {
         int foundKey = -1;
         std::map<int, NetworkCondition*>::iterator iterator;
         for(iterator = networkConditionTable->conditions.begin(); iterator != networkConditionTable->conditions.end(); iterator++) {
-            if(iterator->second->name == name) {
+            if(strcmp(iterator->second->name, name) == 0) { //if names are equal
                 foundKey = iterator->first;
                 break;
             }
@@ -436,7 +436,7 @@ void RPCServer::Receive_CreateMV() {
 
         std::map<int, NetworkMV*>::iterator iterator;
         for(iterator = networkMVTable->mvs.begin(); iterator != networkMVTable->mvs.end(); iterator++) {
-            if(iterator->second->name == name) {
+            if(strcmp(iterator->second->name, name) == 0) { //if names are equal
                 foundKey = iterator->first;
                 break;
             }
@@ -698,8 +698,8 @@ NetworkLock::NetworkLock(int _machineID, int process, char *_name) {
     processID = process;
     threadID = -1;
     mailboxID = -1;
-    name = new char[strlen(_name)+1];
-    strcpy(name, _name);
+    name = new char[strlen(_name)+1]; //deep copy
+    strcpy(name, _name); //deep copy
     queue = new List;
 }
 
@@ -772,6 +772,7 @@ NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
     name = new char[strlen(_name)+1]; //deep copy
+    strcpy(name, _name); //deep copy
     conditionLock = NULL;
     queue = new List;
 }
@@ -903,6 +904,7 @@ NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
     processID = process;
     value = 0;
     name = new char[strlen(_name)+1]; //deep copy
+    strcpy(name, _name); //deep copy
 }
 
 NetworkMV::~NetworkMV() {}
