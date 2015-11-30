@@ -68,7 +68,7 @@ void RPCServer::Receive_CreateLock() {
 
         // Reply with success
         DEBUG('r', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
-        SendResponse(inPktHdr.from, inMailHdr.from, -1);
+        SendResponse(mailbox, -1);
     }
 }
 
@@ -133,6 +133,7 @@ void RPCServer::Receive_DestroyLock() {
 
         // This is Client-to-Server, no other server has it, this is an error
         DEBUG('r', "WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        SendResponse(mailbox, -2);
     }
 }
 
@@ -141,33 +142,63 @@ void RPCServer::Receive_Acquire() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxAcquire, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *lockName = recv;
 
-        // Process the message (identical to original syscall)
-        networkLockTable->tableLock->Acquire();
+        // Check if the lock already exists
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        lock = networkLockTable->locks[key];
-        if (lock != NULL) {
-            lock->Acquire(machineID, processID, threadID);
-            // Response is sent from Acquire()
-        } else {
-            printf("ERROR: Acquire failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxAcquire + 100;
+
+            if ( lock != NULL ) {
+                DEBUG('r', "Acquire (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+
+                // Handle it
+                networkLockTable->tableLock->Acquire();
+                lock->Acquire(mailbox)
+                networkLockTable->tableLock->Release();
+
+                // Send success
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                // Success response to the original client is sent from Acquire()
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        networkLockTable->tableLock->Release();
+        // This is Client-to-Server
+        if ( lock != NULL ) {
+            // We DO have it
+            DEBUG('r', "Acquire (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+
+            // Handle it
+            networkLockTable->tableLock->Acquire();
+            lock->Acquire(mailbox)
+            networkLockTable->tableLock->Release();
+
+            // Success response is sent from Acquire()
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxAcquire, mailbox, lockName, "Acquire");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: Acquire failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
@@ -176,34 +207,64 @@ void RPCServer::Receive_Release() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxRelease, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "Release - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *lockName = recv;
 
-        // Process the message (identical to original syscall)
-        networkLockTable->tableLock->Acquire();
+        // Check if the lock already exists
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        lock = networkLockTable->locks[key];
-        if (lock != NULL)
-            lock->Release(machineID, processID, threadID);
-            // Response (to any threads waiting to Acquire) is sent from lock->Release()
-            // NO RESPONSE is sent to the thread making this actual call
-        else {
-            printf("ERROR: Release failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxRelease + 100;
+
+            if ( lock != NULL ) {
+                DEBUG('r', "Release (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+
+                // Handle it
+                networkLockTable->tableLock->Acquire();
+                lock->Release(mailbox);
+                networkLockTable->tableLock->Release();
+
+
+                // Send success
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                // Success response to the original client is sent from Release()
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        networkLockTable->tableLock->Release();
+        // This is Client-to-Server
+        if ( lock != NULL ) {
+            // We DO have it
+            DEBUG('r', "Release (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+
+            // Handle it
+            networkLockTable->tableLock->Acquire();
+            lock->Release(mailbox);
+            networkLockTable->tableLock->Release();
+
+            // Success response is sent from Release()
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxRelease, mailbox, lockName, "Release");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: Release failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
