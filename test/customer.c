@@ -787,11 +787,11 @@ void runCustomer() {
 	Release(senatorOutsideLineLock);
 
 	/* Customer has 1 in 10 chance of going to Passport Clerk first*/
-	if(Rand() % 10 == 0) 
+	if(Rand() % 10 == 9999) 
         doPassport();
 
     /* Randomly decide whether to go to AppClerk or PicClerk first */
-   if(Rand() % 2 == 0) {
+   if(true) {
         doApplication();
         doPicture();
     } else {
@@ -799,7 +799,7 @@ void runCustomer() {
         doApplication();
     }
 	/* Customer has 1 in 10 chance of going to Cashier before PassportClerk */
-	if(Rand() % 10 == 0) 
+	if(Rand() % 10 == 9999) 
         doCashier();
 
     doPassport();
@@ -809,7 +809,7 @@ void runCustomer() {
 int main() {
 
     setup();
-    /*
+    
     
     Acquire(customerIndexLock);
     ssn = GetMV(nextAvailableCustomerIndex);
@@ -822,8 +822,8 @@ int main() {
 		runSenator();
 	else
 		runCustomer();
-    */
- 
+    
+
 	Exit(0);
 }
 

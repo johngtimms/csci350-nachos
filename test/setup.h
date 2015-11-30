@@ -4,8 +4,8 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			2
-#define NUM_APPLICATION_CLERKS	0
+#define NUM_CUSTOMERS			3
+#define NUM_APPLICATION_CLERKS	1
 #define NUM_PICTURE_CLERKS		0
 #define NUM_PASSPORT_CLERKS		0
 #define NUM_CASHIERS			0
@@ -243,10 +243,12 @@ void setup() {
 	numCashiers = NUM_CASHIERS;
 	
 	globalDataLock = CreateLock("globalDataLock", sizeof("globalDataLock"));
-	/*
+
+	
 	senatorOutsideLineLock = CreateLock("senOutsideLineLock", sizeof("senOutsideLineLock"));
 	
 	senatorOutsideLineCV = CreateCondition("senOutsideLineCV", sizeof("senOutsideLineCV"));
+	
 	senatorInside = CreateMV("senInside", sizeof("senInside"));
 	senatorInsideLock = CreateLock("senInsideLock", sizeof("senInsideLock"));
 	senatorsOutside = CreateMV("sensOutside", sizeof("sensOutside"));
@@ -278,16 +280,16 @@ void setup() {
 	SetMV(nextAvailableApplicationClerkIndex, 0);
 
 
-	for(k = 0; k < NUM_APPLICATION_CLERKS; k++)
+	for(k = 0; k < numApplicationClerks; k++)
 		initClerk(APPLICATION_CLERK, k);
 	
-	for(k = 0; k < NUM_PICTURE_CLERKS; k++)
+	for(k = 0; k < numPictureClerks; k++)
 		initClerk(PICTURE_CLERK, k);
 	
-	for(k = 0; k < NUM_PASSPORT_CLERKS; k++)
+	for(k = 0; k < numPassportClerks; k++)
 		initClerk(PASSPORT_CLERK, k);
 	
-	for(k = 0; k < NUM_CASHIERS; k++)
+	for(k = 0; k < numCashiers; k++)
 		initClerk(CASHIER, k);
 		
 	

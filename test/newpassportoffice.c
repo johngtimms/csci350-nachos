@@ -12,10 +12,10 @@ int main() {
 	numCashiers = NUM_CASHIERS;
 
 	Print("Number of Customers: %i\n", numCustomers);
-	Print("Number of ApplicationClerks: %i\n", NUM_APPLICATION_CLERKS);
-	Print("Number of PictureClerks: %i\n", NUM_PICTURE_CLERKS);
-	Print("Number of PassportClerks: %i\n", NUM_PICTURE_CLERKS);
-	Print("Number of Cashiers: %i\n", NUM_CASHIERS);
+	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
+	Print("Number of PictureClerks: %i\n", numPictureClerks);
+	Print("Number of PassportClerks: %i\n", numPassportClerks);
+	Print("Number of Cashiers: %i\n", numCashiers);
 	Print("Number of Senators: %i\n", NUM_SENATORS);
 
 	/*
@@ -38,16 +38,16 @@ int main() {
 		initCustomer(k, true);
 	*/
 	
-	for(k = 0 ; k < NUM_CASHIERS; k++)
+	for(k = 0 ; k < numCashiers; k++)
 		Exec("../test/cashier", sizeof("../test/cashier"));
 
-	for(k = 0 ; k < NUM_PASSPORT_CLERKS; k++)
+	for(k = 0 ; k < numPassportClerks; k++)
 		Exec("../test/passportclerk", sizeof("../test/passportclerk"));
 
-	for(k = 0 ; k < NUM_PICTURE_CLERKS; k++)
+	for(k = 0 ; k < numPictureClerks; k++)
 		Exec("../test/pictureclerk", sizeof("../test/pictureclerk"));
 
-	for(k = 0 ; k < NUM_APPLICATION_CLERKS; k++)
+	for(k = 0 ; k < numApplicationClerks; k++)
 		Exec("../test/applicationclerk", sizeof("../test/applicationclerk"));
 	
 	for(k = 0 ; k < numCustomers; k++)
@@ -56,9 +56,10 @@ int main() {
 	for(k = 0 ; k < NUM_SENATORS; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
     */
-    /*
+    
 	Exec("../test/manager", sizeof("../test/manager"));
-	*/
+	
+	
      
 
 	Exit(0);
