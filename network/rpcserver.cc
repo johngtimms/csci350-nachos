@@ -21,18 +21,28 @@ void RPCServer::Receive_CreateLock() {
     char recv[MaxMailSize];
 
     for (;;) {
+
+        DEBUG('r', "0");
+
         // Wait for a mailbox message
         postOffice->Receive(MailboxCreateLock, &inPktHdr, &inMailHdr, recv);
+
+        DEBUG('r', "1");
 
         // Read the message
         int mailbox = inMailHdr.from;
         char *lockName = recv;
+DEBUG('r', "{%d}",mailbox);
+DEBUG('r', "2");
 
         // Check if the lock already exists
         NetworkLock *lock = networkLockTable->locks[lockName];
 
+        DEBUG('r', "3");
+
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
+            DEBUG('r', "a");
             int serverMachine = inPktHdr.from;
             int serverMailbox = MailboxCreateLock + 100;
 
@@ -47,24 +57,32 @@ void RPCServer::Receive_CreateLock() {
             }
         }
 
+DEBUG('r', "4");
         // This is Client-to-Server
         if ( lock != NULL ) {
+            DEBUG('r', "a");
             // We DO have it
             DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
             SendResponse(mailbox, -1);
+            DEBUG('r', "b");
             continue;
         } else {
+            DEBUG('r', "z");
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+            bool result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+            DEBUG('r', "[%d]",result);
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
 
+DEBUG('r', "5");
         // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
         lock = new NetworkLock(lockName);
         networkLockTable->tableLock->Acquire();
         networkLockTable->locks[lockName] = lock;
         networkLockTable->tableLock->Release();
+
+        DEBUG('r', "6");
 
         // Reply with success
         DEBUG('r', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
@@ -126,7 +144,7 @@ void RPCServer::Receive_DestroyLock() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxDestroyLock, mailbox, lockName, "DestroyLock");
+            bool result = SendQuery(MailboxDestroyLock, mailbox, lockName, "DestroyLock");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -189,7 +207,7 @@ void RPCServer::Receive_Acquire() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxAcquire, mailbox, lockName, "Acquire");
+            bool result = SendQuery(MailboxAcquire, mailbox, lockName, "Acquire");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -253,7 +271,7 @@ void RPCServer::Receive_Release() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxRelease, mailbox, lockName, "Release");
+            bool result = SendQuery(MailboxRelease, mailbox, lockName, "Release");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -305,7 +323,7 @@ void RPCServer::Receive_CreateCondition() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "CreateCondition");
+            bool result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "CreateCondition");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -376,7 +394,7 @@ void RPCServer::Receive_DestroyCondition() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "DestroyCondition");
+            bool result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "DestroyCondition");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -461,7 +479,7 @@ void RPCServer::Receive_Wait() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxWait, mailbox, conditionName, "Wait");
+            bool result = SendQuery(MailboxWait, mailbox, conditionName, "Wait");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -547,7 +565,7 @@ void RPCServer::Receive_Signal() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxSignal, mailbox, conditionName, "Signal");
+            bool result = SendQuery(MailboxSignal, mailbox, conditionName, "Signal");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -633,7 +651,7 @@ void RPCServer::Receive_Broadcast() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxBroadcast, mailbox, conditionName, "Broadcast");
+            bool result = SendQuery(MailboxBroadcast, mailbox, conditionName, "Broadcast");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -714,7 +732,7 @@ void RPCServer::Receive_CreateMV() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateMV, mailbox, mvName, "CreateMV");
+            bool result = SendQuery(MailboxCreateMV, mailbox, mvName, "CreateMV");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -785,7 +803,7 @@ void RPCServer::Receive_DestroyMV() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateMV, mailbox, mvName, "DestroyMV");
+            bool result = SendQuery(MailboxCreateMV, mailbox, mvName, "DestroyMV");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -850,7 +868,7 @@ void RPCServer::Receive_GetMV() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxGetMV, mailbox, mvName, "GetMV");
+            bool result = SendQuery(MailboxGetMV, mailbox, mvName, "GetMV");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -917,7 +935,7 @@ void RPCServer::Receive_SetMV() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxSetMV, mailbox, mvName, "SetMV");
+            bool result = SendQuery(MailboxSetMV, mailbox, mvName, "SetMV");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -937,10 +955,11 @@ int RPCServer::ClientMailbox(int _machine, int process, int thread) {
     char str2[2];
     char str3[2];
     
-    // Have to add 1 because process, thread, and _machine can all be 0, which would create overlap
-    sprintf(str1, "%d", (process + 1));
-    sprintf(str2, "%d", (thread + 1));
-    sprintf(str3, "%d", (_machine + 1));
+    // Have to add 10 because process, thread, and _machine can all be 0, which would create overlap
+    // Use 10 instead of 1 so that SendResponse can easily extract the machine ID
+    sprintf(str1, "%d", (process + 10));
+    sprintf(str2, "%d", (thread + 10));
+    sprintf(str3, "%d", (_machine + 10));
 
     strcat(str1, str2);
     strcat(str1, str3);
@@ -977,7 +996,7 @@ void RPCServer::SendResponse(int mailbox, int response, int _machine) {
 
     // Calculate machine ID from the mailbox if this is a Server-to-Client response
     if (_machine == -1) {
-        _machine = (mailbox % 10000) - 1;
+        _machine = (mailbox / 10000) - 10;
     }
 
     DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", _machine, mailbox, response, send);
@@ -1017,7 +1036,7 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, char *query, char *ide
 
     // If I am the only server, return false
     if (numServers == 1) {
-        return 1;
+        return false;
     }
 
     // Send the query with no modifications
@@ -1051,11 +1070,11 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, char *query, char *ide
         // If we get a "yes", then return 0. Otherwise keep trying.
         // A "yes" means the other server is handling the request
         if ( strcmp(test,recv) )
-            return 0;
+            return true;
     }
 
     // Query was ultimately unsuccessful 
-    return 1;
+    return false;
 }
 
 //-----------------------------------------------------------------------------------------------//

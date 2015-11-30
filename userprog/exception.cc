@@ -373,13 +373,19 @@ int genericFunction(char *message, char *identifier, int action) {
     char recv[MaxMailSize];
     char test[MaxMailSize]; strcpy(test, "yes");
 
+    DEBUG('l', "Generic Function - message \'%s\' identifier \'%s\' action \'%d\'\n", message, identifier, action);
+
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
 
+    DEBUG('l', "Generic Function - process %d thread %d machine %d mailbox %d\n", processID, threadID, machineName, mailbox);
+
     // Because the server mailbox defines the action, the message is all that must be sent
     sprintf(send, "%s", message);
+
+    DEBUG('l', "0");
 
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
@@ -387,15 +393,23 @@ int genericFunction(char *message, char *identifier, int action) {
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
 
+    DEBUG('l', "1");
+
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
+
+    DEBUG('l', "2");
 
     // Check that the send worked
     if ( !success )
         printf("WARN: %s failed. Server misconfigured.\n", identifier);
 
+    DEBUG('l', "3");
+
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
+
+    DEBUG('l', "4");
 
     // GetMV is a special case- it's the only RPC we support that returns a value other than "yes"
     if ( action == MailboxGetMV ) {
