@@ -41,19 +41,23 @@ void RPCServer::Receive_CreateLock() {
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
-            } else 
-                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
-        } else {
-            // If this is a Client-to-Server query and we DO NOT have it, we have to check with other servers
-            if ( lock == NULL ) {
-                int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
-                if (result)
-                    continue; // One of the other servers had it, we can finish
             } else {
-                // This is Client-to-Server, we DO have it
-                DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
-                SendResponse(inPktHdr.from, inMailHdr.from, -1);
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
             }
+        }
+
+        // This is Client-to-Server
+        if ( lock != NULL ) {
+            // We DO have it
+            DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            SendResponse(inPktHdr.from, inMailHdr.from, -1);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
         // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
