@@ -30,6 +30,8 @@ II. Assumptions:
 
         Servers are machines 0-4. Clients are machines 5+. 
 
+        Conditions will always be on the same server as their associated Lock.
+
 III. Design:
 
     Part 1:

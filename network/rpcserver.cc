@@ -95,6 +95,7 @@ void RPCServer::Receive_DestroyLock() {
 
             if ( lock != NULL ) {
                 DEBUG('r', "DestroyLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 
                 // Process the message (identical to the original syscall)
                 networkLockTable->tableLock->Acquire();
@@ -102,8 +103,7 @@ void RPCServer::Receive_DestroyLock() {
                 networkLockTable->tableLock->Release();
 
                 // Send success
-                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
-                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                SendResponse(-mailbox, -1);
                 continue;
             } else {
                 SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
@@ -160,14 +160,13 @@ void RPCServer::Receive_Acquire() {
 
             if ( lock != NULL ) {
                 DEBUG('r', "Acquire (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
                 networkLockTable->tableLock->Acquire();
-                lock->Acquire(mailbox)
+                lock->Acquire(-mailbox)
                 networkLockTable->tableLock->Release();
 
-                // Send success
-                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 // Success response to the original client is sent from Acquire()
                 continue;
             } else {
@@ -225,15 +224,13 @@ void RPCServer::Receive_Release() {
 
             if ( lock != NULL ) {
                 DEBUG('r', "Release (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
                 networkLockTable->tableLock->Acquire();
-                lock->Release(mailbox);
+                lock->Release(-mailbox);
                 networkLockTable->tableLock->Release();
 
-
-                // Send success
-                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 // Success response to the original client is sent from Release()
                 continue;
             } else {
@@ -395,48 +392,84 @@ void RPCServer::Receive_Wait() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkCondition *condition;
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        
-        unsigned int conditionKey = atoi(strtok(NULL,","));
-        unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Wait - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        int mailbox = inMailHdr.from;
+        char *conditionName = strtok(recv,",");
+        char *lockName = strtok(NULL,",");
 
-        // Process the message (identical to original syscall)
-        networkConditionTable->tableLock->Acquire();
-        networkLockTable->tableLock->Acquire();
+        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        condition = networkConditionTable->conditions[conditionKey];
-        if (condition == NULL) {
-            printf("ERROR: Wait failed. No such condition. Terminating Nachos.\n");
-            interrupt->Halt();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxWait + 100;
+
+            if ( condition != NULL ) {
+                DEBUG('r', "Wait (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+
+                // Handle it
+                networkConditionTable->tableLock->Acquire();
+                networkLockTable->tableLock->Acquire();
+
+                if (lock == NULL) {
+                    DEBUG('r', "ERROR: Wait (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    SendResponse(-mailbox, -2);
+                    interrupt->Halt();
+                }
+
+                condition->Wait(-mailbox, lock);
+
+                networkConditionTable->tableLock->Release();
+                networkLockTable->tableLock->Release();
+
+                // Success response to the original client is sent from Wait()
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        lock = networkLockTable->locks[lockKey];
-        if (lock == NULL) {
-            printf("ERROR: Wait failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
+        // This is Client-to-Server
+        if ( condition != NULL ) {
+            // We DO have it
+            DEBUG('r', "Wait (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+
+            // Handle it
+            networkConditionTable->tableLock->Acquire();
+            networkLockTable->tableLock->Acquire();
+
+            if (lock == NULL) {
+                DEBUG('r', "ERROR: Wait (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                SendResponse(mailbox, -2);
+                interrupt->Halt();
+            }
+
+            condition->Wait(mailbox, lock);
+
+            networkConditionTable->tableLock->Release();
+            networkLockTable->tableLock->Release();
+
+            // Success response to the original client is sent from Wait()
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxWait, mailbox, conditionName, "Wait");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
-       // if (condition->IsOwner(machineID) && lock->IsOwner(machineID)) {
-            condition->Wait(machineID, processID, threadID, lock);
-            // Response sent from Wait()
-       /* } else {
-            printf("ERROR: Wait failed. Condition or lock owner error. Terminating Nachos.\n");
-            interrupt->Halt();
-        }*/
-
-        networkConditionTable->tableLock->Release();
-        networkLockTable->tableLock->Release();
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: Wait failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
@@ -445,49 +478,84 @@ void RPCServer::Receive_Signal() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkCondition *condition;
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
-        postOffice->Receive(MailboxSignal, &inPktHdr, &inMailHdr, recv);
-
-        DEBUG('r', "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+        postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        unsigned int conditionKey = atoi(strtok(NULL,","));
-        unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Signal - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        int mailbox = inMailHdr.from;
+        char *conditionName = strtok(recv,",");
+        char *lockName = strtok(NULL,",");
 
-        // Process the message (identical to original syscall)
-        networkConditionTable->tableLock->Acquire();
-        networkLockTable->tableLock->Acquire();
+        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        condition = networkConditionTable->conditions[conditionKey];
-        if (condition == NULL) {
-            printf("ERROR: Signal failed. No such condition. Terminating Nachos.\n");
-            interrupt->Halt();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxWait + 100;
+
+            if ( condition != NULL ) {
+                DEBUG('r', "Signal (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+
+                // Handle it
+                networkConditionTable->tableLock->Acquire();
+                networkLockTable->tableLock->Acquire();
+
+                if (lock == NULL) {
+                    DEBUG('r', "ERROR: Signal (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    SendResponse(-mailbox, -2);
+                    interrupt->Halt();
+                }
+
+                condition->Signal(-mailbox, lock);
+
+                networkConditionTable->tableLock->Release();
+                networkLockTable->tableLock->Release();
+
+                // Success response to the original client is sent from Signal()
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        lock = networkLockTable->locks[lockKey];
-        if (lock == NULL) {
-            printf("ERROR: Signal failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
+        // This is Client-to-Server
+        if ( condition != NULL ) {
+            // We DO have it
+            DEBUG('r', "Signal (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+
+            // Handle it
+            networkConditionTable->tableLock->Acquire();
+            networkLockTable->tableLock->Acquire();
+
+            if (lock == NULL) {
+                DEBUG('r', "ERROR: Signal (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                SendResponse(mailbox, -2);
+                interrupt->Halt();
+            }
+
+            condition->Signal(mailbox, lock);
+
+            networkConditionTable->tableLock->Release();
+            networkLockTable->tableLock->Release();
+
+            // Success response to the original client is sent from Signal()
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxSignal, mailbox, conditionName, "Signal");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
-        //if (condition->IsOwner(machineID) && lock->IsOwner(machineID)) {
-            condition->Signal(machineID, processID, threadID, lock);
-            // Response(s) sent from Signal()
-       /* } else {
-            printf("ERROR: Signal failed. Condition or lock owner error. Terminating Nachos.\n");
-            interrupt->Halt();
-        }*/
-
-        networkConditionTable->tableLock->Release();
-        networkLockTable->tableLock->Release();
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: Signal failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
@@ -496,47 +564,84 @@ void RPCServer::Receive_Broadcast() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkCondition *condition;
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
-        postOffice->Receive(MailboxBroadcast, &inPktHdr, &inMailHdr, recv);
+        postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        unsigned int conditionKey = atoi(strtok(NULL,","));
-        unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Broadcast - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        int mailbox = inMailHdr.from;
+        char *conditionName = strtok(recv,",");
+        char *lockName = strtok(NULL,",");
 
-        // Process the message (identical to original syscall)
-        networkConditionTable->tableLock->Acquire();
-        networkLockTable->tableLock->Acquire();
+        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        condition = networkConditionTable->conditions[conditionKey];
-        if (condition == NULL) {
-            printf("ERROR: Broadcast failed. No such condition. Terminating Nachos.\n");
-            interrupt->Halt();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxWait + 100;
+
+            if ( condition != NULL ) {
+                DEBUG('r', "Broadcast (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+
+                // Handle it
+                networkConditionTable->tableLock->Acquire();
+                networkLockTable->tableLock->Acquire();
+
+                if (lock == NULL) {
+                    DEBUG('r', "ERROR: Broadcast (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    SendResponse(-mailbox, -2);
+                    interrupt->Halt();
+                }
+
+                condition->Broadcast(-mailbox, lock);
+
+                networkConditionTable->tableLock->Release();
+                networkLockTable->tableLock->Release();
+
+                // Success response to the original client is sent from Broadcast()
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        lock = networkLockTable->locks[lockKey];
-        if (lock == NULL) {
-            printf("ERROR: Broadcast failed. No such lock. Terminating Nachos.\n");
-            interrupt->Halt();
+        // This is Client-to-Server
+        if ( condition != NULL ) {
+            // We DO have it
+            DEBUG('r', "Broadcast (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+
+            // Handle it
+            networkConditionTable->tableLock->Acquire();
+            networkLockTable->tableLock->Acquire();
+
+            if (lock == NULL) {
+                DEBUG('r', "ERROR: Broadcast (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                SendResponse(mailbox, -2);
+                interrupt->Halt();
+            }
+
+            condition->Broadcast(mailbox, lock);
+
+            networkConditionTable->tableLock->Release();
+            networkLockTable->tableLock->Release();
+
+            // Success response to the original client is sent from Broadcast()
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxBroadcast, mailbox, conditionName, "Broadcast");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
-       // if (condition->IsOwner(machineID) && lock->IsOwner(machineID)) {
-            condition->Broadcast(machineID,processID, threadID, lock);
-            // Response(s) sent from Broadcast()
-       /* } else {
-            printf("ERROR: Broadcast failed. Condition or lock owner error. Terminating Nachos.\n");
-            interrupt->Halt();
-        }*/
-
-        networkConditionTable->tableLock->Release();
-        networkLockTable->tableLock->Release();
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: Broadcast failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
