@@ -51,7 +51,7 @@ void RPCServer::Receive_CreateLock() {
         if ( lock != NULL ) {
             // We DO have it
             DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
-            SendResponse(inPktHdr.from, inMailHdr.from, -1);
+            SendResponse(mailbox, -1);
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
@@ -61,7 +61,7 @@ void RPCServer::Receive_CreateLock() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
-        NetworkLock *lock = new NetworkLock(inPktHdr.from, processID, name);
+        NetworkLock *lock = new NetworkLock(mailbox, lockName);
         networkLockTable->tableLock->Acquire();
         networkLockTable->locks.at(lockName) = lock;
         networkLockTable->tableLock->Release();
@@ -122,11 +122,11 @@ void RPCServer::Receive_DestroyLock() {
             networkLockTable->tableLock->Release();
 
             // Send success
-            SendResponse(inPktHdr.from, inMailHdr.from, -1);
+            SendResponse(mailbox, -1);
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+            int result = SendQuery(MailboxDestroyLock, mailbox, lockName, "DestroyLock");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -278,69 +278,115 @@ void RPCServer::Receive_CreateCondition() {
         postOffice->Receive(MailboxCreateCondition, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        char *name = strtok(NULL,",");
-        
-        int foundKey = -1;
-        std::map<int, NetworkCondition*>::iterator iterator;
-        for(iterator = networkConditionTable->conditions.begin(); iterator != networkConditionTable->conditions.end(); iterator++) {
-            if(iterator->second->name == name) {
-                foundKey = iterator->first;
-                break;
+        int mailbox = inMailHdr.from;
+        char *conditionName = recv;
+
+        // Check if the condition already exists
+        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
+
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxCreateCondition + 100;
+
+            if ( condition != NULL ) {
+                DEBUG('r', "CreateCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
             }
         }
-        if(foundKey != -1) {
-            DEBUG('r', "CreateCondition - found Condition already created with key: %i\n", foundKey);
-            SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
+
+        // This is Client-to-Server
+        if ( condition != NULL ) {
+            // We DO have it
+            DEBUG('r', "CreateCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            SendResponse(mailbox, -1);
             continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "CreateCondition");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
-        // Process the message (identical to original syscall)
-        NetworkCondition *condition = new NetworkCondition(inPktHdr.from, processID, name);
+        // This is Client-to-Server, no other server has it, so we create a new condition (just like the original syscall)
+        NetworkCondition *condition = new NetworkCondition(mailbox, conditionName);
         networkConditionTable->tableLock->Acquire();
-        int key = networkConditionTable->index;
-        networkConditionTable->conditions[key] = condition;
-        networkConditionTable->index++;
+        networkConditionTable->conditions.at(conditionName) = condition;
         networkConditionTable->tableLock->Release();
 
-        // Reply with the key
-        DEBUG('r', "CreateCondition - process %d thread %d key %d (new)\n", processID, threadID, key);
-        SendResponse(inPktHdr.from, inMailHdr.from, key);
+        // Reply with success
+        DEBUG('r', "CreateCondition (New) - mailbox %d name %s\n", mailbox, conditionName);
+        SendResponse(mailbox, -1);
     }
 }
 
-void RPCServer::Receive_DestroyCondition() {
+void RPCServer::Receive_DestroyCondition() {    
     PacketHeader inPktHdr;
     MailHeader inMailHdr;
     char recv[MaxMailSize];
-
-    NetworkCondition *condition;
 
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxDestroyCondition, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "DestroyCondition - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *conditionName = recv;
 
-        // Process the message (identical to original syscall)
-        networkConditionTable->tableLock->Acquire();
+        // Check if the condition exists
+        NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
 
-        condition = networkConditionTable->conditions[key];
-        if (condition != NULL) {
-            //if (condition->IsOwner(processID))
-                networkConditionTable->conditions.erase(key);
-            //else
-            //   printf("WARN: DestroyCondition failed. Client does not own condition.\n"); 
-        } else {
-           printf("WARN: DestroyCondition failed. No such condition.\n"); 
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxDestroyCondition + 100;
+
+            if ( condition != NULL ) {
+                DEBUG('r', "DestroyCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                
+                // Process the message (identical to the original syscall)
+                networkConditionTable->tableLock->Acquire();
+                networkConditionTable->conditions.erase(conditionName);
+                networkConditionTable->tableLock->Release();
+
+                // Send success
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
         }
 
-        networkConditionTable->tableLock->Release();
+        // This is Client-to-Server
+        if ( condition != NULL ) {
+            // We DO have it
+            DEBUG('r', "DestroyCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+
+            // Process the message (identical to the original syscall)
+            networkConditionTable->tableLock->Acquire();
+            networkConditionTable->conditions.erase(conditionName);
+            networkConditionTable->tableCondition->Release();
+
+            // Send success
+            SendResponse(mailbox, -1);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateCondition, mailbox, conditionName, "DestroyCondition");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "WARN: DestroyCondition failed. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        SendResponse(mailbox, -2);
     }
 }
 
