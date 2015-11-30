@@ -517,6 +517,7 @@ void RPCServer::Receive_GetMV() {
 
         mv = networkMVTable->mvs[key];
         if (mv != NULL) {
+            DEBUG('r', "GetMV - successfull, name: %s, key: %i, value: %i", mv->name, key, mv->value);
             SendResponse(inPktHdr.from, inMailHdr.from, mv->value);
         } else
             printf("WARN: GetMV failed. No such MV.\n");
@@ -548,6 +549,7 @@ void RPCServer::Receive_SetMV() {
         mv = networkMVTable->mvs[key];
         if (mv != NULL) {
             mv->value = value;
+            DEBUG('r', "SetMV - successfull, name: %s, key: %i, value: %i", mv->name, key, mv->value);
         } else
             printf("WARN: GetMV failed. No such MV.\n");
 
