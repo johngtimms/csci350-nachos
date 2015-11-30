@@ -61,7 +61,7 @@ void RPCServer::Receive_CreateLock() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
-        NetworkLock *lock = new NetworkLock(mailbox, lockName);
+        lock = new NetworkLock(mailbox, lockName);
         networkLockTable->tableLock->Acquire();
         networkLockTable->locks.at(lockName) = lock;
         networkLockTable->tableLock->Release();
@@ -150,7 +150,7 @@ void RPCServer::Receive_Acquire() {
         int mailbox = inMailHdr.from;
         char *lockName = recv;
 
-        // Check if the lock already exists
+        // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks.at(lockName);
 
         // Check if this is a Server-to-Server query
@@ -214,7 +214,7 @@ void RPCServer::Receive_Release() {
         int mailbox = inMailHdr.from;
         char *lockName = recv;
 
-        // Check if the lock already exists
+        // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks.at(lockName);
 
         // Check if this is a Server-to-Server query
@@ -311,7 +311,7 @@ void RPCServer::Receive_CreateCondition() {
         }
 
         // This is Client-to-Server, no other server has it, so we create a new condition (just like the original syscall)
-        NetworkCondition *condition = new NetworkCondition(mailbox, conditionName);
+        condition = new NetworkCondition(mailbox, conditionName);
         networkConditionTable->tableLock->Acquire();
         networkConditionTable->conditions.at(conditionName) = condition;
         networkConditionTable->tableLock->Release();
@@ -369,7 +369,7 @@ void RPCServer::Receive_DestroyCondition() {
             // Process the message (identical to the original syscall)
             networkConditionTable->tableLock->Acquire();
             networkConditionTable->conditions.erase(conditionName);
-            networkConditionTable->tableCondition->Release();
+            networkConditionTable->tableLock->Release();
 
             // Send success
             SendResponse(mailbox, -1);
@@ -401,7 +401,7 @@ void RPCServer::Receive_Wait() {
         char *conditionName = strtok(recv,",");
         char *lockName = strtok(NULL,",");
 
-        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
         NetworkLock *lock = networkLockTable->locks.at(lockName);
 
@@ -487,7 +487,7 @@ void RPCServer::Receive_Signal() {
         char *conditionName = strtok(recv,",");
         char *lockName = strtok(NULL,",");
 
-        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
         NetworkLock *lock = networkLockTable->locks.at(lockName);
 
@@ -573,7 +573,7 @@ void RPCServer::Receive_Broadcast() {
         char *conditionName = strtok(recv,",");
         char *lockName = strtok(NULL,",");
 
-        // Check if the condition already exists (and get the lock, because we assume they are on the same server)
+        // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions.at(conditionName);
         NetworkLock *lock = networkLockTable->locks.at(lockName);
 
@@ -684,36 +684,50 @@ void RPCServer::Receive_CreateMV() {
         postOffice->Receive(MailboxCreateMV, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        char *name = strtok(NULL,",");
-        
-        int foundKey = -1;
-        std::map<int, NetworkMV*>::iterator iterator;
-        for(iterator = networkMVTable->mvs.begin(); iterator != networkMVTable->mvs.end(); iterator++) {
-            if(iterator->second->name == name) {
-                foundKey = iterator->first;
-                break;
+        int mailbox = inMailHdr.from;
+        char *mvName = recv;
+
+        // Check if the mv already exists
+        NetworkMV *mv = networkMVTable->mvs.at(mvName);
+
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxCreateMV + 100;
+
+            if ( mv != NULL ) {
+                DEBUG('r', "CreateMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
             }
         }
-        if(foundKey != -1) {
-            DEBUG('r', "CreateMV - found MV already created with key: %i\n", foundKey);
-            SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
+
+        // This is Client-to-Server
+        if ( mv != NULL ) {
+            // We DO have it
+            DEBUG('r', "CreateMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+            SendResponse(mailbox, -1);
             continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateMV, mailbox, mvName, "CreateMV");
+            if (result)
+                continue; // One of the other servers had it, we can finish
         }
 
-        // Process the message (identical to original syscall)
-        NetworkMV *mv = new NetworkMV(inPktHdr.from, processID, name);
+        // This is Client-to-Server, no other server has it, so we create a new mv (just like the original syscall)
+        mv = new NetworkMV(mailbox, mvName);
         networkMVTable->tableLock->Acquire();
-        int key = networkMVTable->index;
-        //networkMVTable->mvs[key] = mv->Get(processID);
-        networkMVTable->mvs[key] = mv;
-        networkMVTable->index++;
+        networkMVTable->mvs.at(mvName) = mv;
         networkMVTable->tableLock->Release();
 
-        // Reply with the key
-        DEBUG('r', "CreateMV - process %d thread %d key %d (new)\n", processID, threadID, key);
-        SendResponse(inPktHdr.from, inMailHdr.from, key);
+        // Reply with success
+        DEBUG('r', "CreateMV (New) - mailbox %d name %s\n", mailbox, mvName);
+        SendResponse(mailbox, -1);
     }
 }
 
@@ -722,30 +736,63 @@ void RPCServer::Receive_DestroyMV() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkMV *mv;
-
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxDestroyMV, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "DestroyMV - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *mvName = recv;
 
-        // Process the message (identical to original syscall)
-        networkMVTable->tableLock->Acquire();
+        // Check if the mv exists
+        NetworkMV *mv = networkMVTable->mvs.at(mvName);
 
-        mv = networkMVTable->mvs[key];
-        if (mv != NULL) {
-            //if (mv->IsOwner(processID))
-                networkMVTable->mvs.erase(key);
-           // else
-           //   printf("WARN: DestroyMV failed. Client does not own MV.\n");  
-        } else
-            printf("WARN: DestroyMV failed. No such MV.\n");
-        networkMVTable->tableLock->Release();
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxDestroyMV + 100;
+
+            if ( mv != NULL ) {
+                DEBUG('r', "DestroyMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                
+                // Process the message (identical to the original syscall)
+                networkMVTable->tableLock->Acquire();
+                networkMVTable->mvs.erase(mvName);
+                networkMVTable->tableLock->Release();
+
+                // Send success
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
+        }
+
+        // This is Client-to-Server
+        if ( mv != NULL ) {
+            // We DO have it
+            DEBUG('r', "DestroyMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+
+            // Process the message (identical to the original syscall)
+            networkMVTable->tableLock->Acquire();
+            networkMVTable->mvs.erase(mvName);
+            networkMVTable->tableLock->Release();
+
+            // Send success
+            SendResponse(mailbox, -1);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateMV, mailbox, mvName, "DestroyMV");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "WARN: DestroyMV failed. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        SendResponse(mailbox, -2);
     }
 }
 
@@ -754,28 +801,64 @@ void RPCServer::Receive_GetMV() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkMV *mv;
-    int value;
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxGetMV, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *mvName = recv;
 
-        // Process the message (identical to original syscall)
-        networkMVTable->tableLock->Acquire();
+        // Check if the mv exists
+        NetworkMV *mv = networkMVTable->mvs.at(mvName);
 
-        mv = networkMVTable->mvs[key];
-        if (mv != NULL) {
-            SendResponse(inPktHdr.from, inMailHdr.from, mv->value);
-        } else
-            printf("WARN: GetMV failed. No such MV.\n");
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxGetMV + 100;
 
-        networkMVTable->tableLock->Release();
+            if ( mv != NULL ) {
+                DEBUG('r', "GetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+
+                // Handle it
+                networkMVTable->tableLock->Acquire();
+                int value = mv->GetMV();
+                networkMVTable->tableMV->Release();
+
+                // Send success
+                SendResponse(-mailbox, value);
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
+        }
+
+        // This is Client-to-Server
+        if ( mv != NULL ) {
+            // We DO have it
+            DEBUG('r', "GetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+
+            // Handle it
+            networkMVTable->tableLock->Acquire();
+            int value = mv->GetMV();
+            networkMVTable->tableLock->Release();
+
+            // Send success
+            SendResponse(mailbox, value);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxGetMV, mailbox, mvName, "GetMV");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: GetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
@@ -784,28 +867,65 @@ void RPCServer::Receive_SetMV() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkMV *mv;
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxSetMV, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        unsigned int key = atoi(strtok(NULL,","));
-        unsigned int value = atoi(strtok(NULL,","));
-        DEBUG('r', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *mvName = strtok(recv,",");
+        int mvValue = atoi(strtok(NULL,","));
 
-        // Process the message (identical to original syscall)
-        networkMVTable->tableLock->Acquire();
+        // Check if the mv exists
+        NetworkMV *mv = networkMVTable->mvs.at(mvName);
 
-        mv = networkMVTable->mvs[key];
-        if (mv != NULL) {
-            mv->value = value;
-        } else
-            printf("WARN: GetMV failed. No such MV.\n");
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxSetMV + 100;
 
-        networkMVTable->tableLock->Release();
+            if ( mv != NULL ) {
+                DEBUG('r', "SetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+
+                // Handle it
+                networkMVTable->tableLock->Acquire();
+                mv->SetMV(mvValue)
+                networkMVTable->tableMV->Release();
+
+                // Send success
+                SendResponse(-mailbox, -1);
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
+        }
+
+        // This is Client-to-Server
+        if ( mv != NULL ) {
+            // We DO have it
+            DEBUG('r', "SetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+
+            // Handle it
+            networkMVTable->tableLock->Acquire();
+            mv->SetMV(mvValue)
+            networkMVTable->tableLock->Release();
+
+            // Send success
+            SendResponse(mailbox, -1);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxSetMV, mailbox, mvName, "SetMV");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "ERROR: SetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        SendResponse(mailbox, -2);
+        interrupt->Halt();
     }
 }
 
