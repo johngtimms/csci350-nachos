@@ -186,6 +186,7 @@ void runCashier() {
 }
 
 int main() {
+    setup();
 	Acquire(cashierIndexLock);
 	i = GetMV(nextAvailableCashierIndex);
     SetMV(nextAvailableCashierIndex, i + 1);

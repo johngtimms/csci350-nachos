@@ -29,7 +29,7 @@ int main() {
 	for(k = 0; k < NUM_SENATORS; k++)
 		initCustomer(k, true);
 	*/
-
+/*
 	for(k = 0 ; k < NUM_CASHIERS; k++)
 		Exec("../test/cashier", sizeof("../test/cashier"));
 
@@ -41,10 +41,10 @@ int main() {
 
 	for(k = 0 ; k < NUM_APPLICATION_CLERKS; k++)
 		Exec("../test/applicationclerk", sizeof("../test/applicationclerk"));
-	
-	for(k = 0 ; k < NUM_CUSTOMERS; k++)
+	*/
+	for(k = 0 ; k < 3; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
-
+/*
 	for(k = 0 ; k < NUM_SENATORS; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
     /*
