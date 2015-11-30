@@ -48,7 +48,7 @@ void Close_Syscall(int fd);
 char* concatenate(char str[], int len, int num) {
     len = len - 1; /*sizeof() returns 1 more then actual size*/
     /*char numstr = (char)(((int) '0') + num);*/
-    //printf("String passed in with length %i is %s\n",len,str);
+    printf("String passed in with length %i is %s\n",len,str);
     /*int len = sizeof(str); this is calculating length wrong, so instead we're passing in the length as paramter*/ 
     /*str[len] = numstr;
     /*str[len + 1] = '\0';*/
@@ -61,7 +61,7 @@ char* concatenate(char str[], int len, int num) {
     str[len + 2] = '0' + num % 10;
     /* null terminator */
     str[len + 3] = '\0';
-   // printf("Converted string is %s\n",str);
+    printf("Converted string is %s\n",str);
     return str;
 }
 
@@ -372,7 +372,8 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
         return -1;
     }
     name[len] = '\0';
-    concatenate(name,len,index);
+    //concatenate(name,len,index);
+    sprintf(name, "%s%i", name, index);
     
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -499,7 +500,8 @@ int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
         return -1;
     }
     name[len] = '\0';
-    concatenate(name,len,index);
+    //concatenate(name,len,index);
+    sprintf(name, "%s%i", name, index);
     
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -780,8 +782,8 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
         return -1;
     }
     name[len] = '\0';
-    concatenate(name,len,index);
-
+    //concatenate(name,len,index);
+    sprintf(name, "%s%i", name, index);
     
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
