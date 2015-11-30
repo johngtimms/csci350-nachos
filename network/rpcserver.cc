@@ -39,7 +39,7 @@ void RPCServer::Receive_CreateLock() {
             }
         }
         if(foundKey != -1) {
-            DEBUG('r', "CreateLock - found Lock already created with key: %i\n", foundKey);
+            DEBUG('r', "CreateLock - found Lock with name %s already created with key: %i\n", name, foundKey);
             SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
             continue;
         }
@@ -430,8 +430,10 @@ void RPCServer::Receive_CreateMV() {
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
         char *name = strtok(NULL,",");
-        
+        DEBUG('r', "CreateMV - trying to create MV with name %s\n",name);
         int foundKey = -1;
+        
+
         std::map<int, NetworkMV*>::iterator iterator;
         for(iterator = networkMVTable->mvs.begin(); iterator != networkMVTable->mvs.end(); iterator++) {
             if(iterator->second->name == name) {
@@ -439,8 +441,9 @@ void RPCServer::Receive_CreateMV() {
                 break;
             }
         }
+        
         if(foundKey != -1) {
-            DEBUG('r', "CreateMV - found MV already created with key: %i\n", foundKey);
+            DEBUG('r', "CreateMV - found MV with name: %s already created with key: %i\n", name, foundKey);
             SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
             continue;
         }
@@ -455,7 +458,7 @@ void RPCServer::Receive_CreateMV() {
         networkMVTable->tableLock->Release();
 
         // Reply with the key
-        DEBUG('r', "CreateMV - process %d thread %d key %d (new)\n", processID, threadID, key);
+        DEBUG('r', "CreateMV - process %d thread %d key %d (new) with name %s\n", processID, threadID, key, mv->name);
         SendResponse(inPktHdr.from, inMailHdr.from, key);
     }
 }
@@ -690,12 +693,13 @@ void RunServer() {
 // Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
-NetworkLock::NetworkLock(int _machineID, int process, char* _name) {
+NetworkLock::NetworkLock(int _machineID, int process, char *_name) {
     machineID = _machineID;
     processID = process;
     threadID = -1;
     mailboxID = -1;
-    name = _name;
+    name = new char[strlen(_name)+1];
+    strcpy(name, _name);
     queue = new List;
 }
 
@@ -767,7 +771,7 @@ bool NetworkLock::HasAcquired(int mailbox) {
 NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
-    name = _name;
+    name = new char[strlen(_name)+1]; //deep copy
     conditionLock = NULL;
     queue = new List;
 }
@@ -898,7 +902,7 @@ NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
     machineID = _machineID;
     processID = process;
     value = 0;
-    name = _name;
+    name = new char[strlen(_name)+1]; //deep copy
 }
 
 NetworkMV::~NetworkMV() {}
