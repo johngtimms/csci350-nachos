@@ -57,7 +57,8 @@ class RPCServer {
         // Clients will interpret "yes" as success and "no" as an error
         // Sending "yes" to a server tells it the sending server can handle the query
         // Sending "no" to a server tells it the sending server cannot handle the query
-        static void SendResponse(int mailbox, int response);
+        // machine calculated from mailbox for Server-to-Client calls, for Server-to-Server calls it comes from machine
+        static void SendResponse(int mailbox, int response, int machine = -1);
 
         // Server-to-Server query messages
         // mailboxTo is one of the defined mailbox numbers above
@@ -65,7 +66,7 @@ class RPCServer {
         // The negation of mailboxFrom tells the receiving server this is a Server-to-Server call
         // query is the original query from the client
         // identifier is a description for debugging
-        static bool SendQuery(int mailboxTo, int mailboxFron, char *query, char *identifier);
+        static bool SendQuery(int mailboxTo, int mailboxFrom, char *query, char *identifier);
 };
 
 class NetworkLock {

@@ -25,39 +25,46 @@ void RPCServer::Receive_CreateLock() {
         postOffice->Receive(MailboxCreateLock, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        int machineID = inPktHdr.from;
-        char *name = strtok(NULL,",");
-        
-        // Check if this lock already exists
-        int foundKey = -1;
-        std::map<int, NetworkLock*>::iterator iterator;
-        for(iterator = networkLockTable->locks.begin(); iterator != networkLockTable->locks.end(); iterator++) {
-            if(iterator->second->name == name) {
-                foundKey = iterator->first;
-                break;
+        int mailbox = inMailHdr.from;
+        char *lockName = recv;
+
+        // Check if the lock already exists
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
+
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxCreateLock + 100;
+
+            if ( lock != NULL ) {
+                DEBUG('r', "CreateLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else 
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+        } else {
+            // If this is a Client-to-Server query and we DO NOT have it, we have to check with other servers
+            if ( lock == NULL ) {
+                int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+                if (result)
+                    continue; // One of the other servers had it, we can finish
+            } else {
+                // This is Client-to-Server, we DO have it
+                DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+                SendResponse(inPktHdr.from, inMailHdr.from, -1);
             }
         }
 
-        // If it does, send it back to the client
-        if(foundKey != -1) {
-            DEBUG('r', "CreateLock - found Lock already created with key: %i\n", foundKey);
-            SendResponse(inPktHdr.from, inMailHdr.from, foundKey);
-            continue;
-        }
-
-        // Otherwise, create a new lock (just like the original syscall)
+        // This is Client-to-Server, no other server has it, so we create a new lock (just like the original syscall)
         NetworkLock *lock = new NetworkLock(inPktHdr.from, processID, name);
         networkLockTable->tableLock->Acquire();
-        int key = networkLockTable->index;
-        networkLockTable->locks[key] = lock;
-        networkLockTable->index++;
+        networkLockTable->locks.at(lockName) = lock;
         networkLockTable->tableLock->Release();
 
-        // Reply with the key
-        DEBUG('r', "CreateLock - machineID %i name %s key %d (new)\n", machineID, name, key);
-        SendResponse(inPktHdr.from, inMailHdr.from, key);
+        // Reply with success
+        DEBUG('r', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
+        SendResponse(inPktHdr.from, inMailHdr.from, -1);
     }
 }
 
@@ -584,7 +591,7 @@ int RPCServer::ClientMailbox(int machine, int process, int thread) {
 // For "no" pass -2 as the response.
 // For a numeric response, pass a number greater than or equal to zero as the response.
 //-----------------------------------------------------------------------------------------------//
-void RPCServer::SendResponse(int mailbox, int response) {
+void RPCServer::SendResponse(int mailbox, int response, int machine) {
     PacketHeader outPktHdr;
     MailHeader outMailHdr;
     char send[MaxMailSize];
@@ -601,8 +608,10 @@ void RPCServer::SendResponse(int mailbox, int response) {
         interrupt->Halt();
     }
 
-    // Calculate machine ID from the mailbox
-    int machine = (mailbox % 10000) - 1;
+    // Calculate machine ID from the mailbox if this is a Server-to-Client response
+    if (machine == -1) {
+        machine = (mailbox % 10000) - 1;
+    }
 
     DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", machine, mailbox, response, send);
 
