@@ -782,6 +782,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     }
     name[len] = '\0';
     concatenate(name,len,index);
+    printf("create mv called for index %i\n",index);
 
     
 	PacketHeader outPktHdr, inPktHdr;

@@ -4,11 +4,11 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			10
-#define NUM_APPLICATION_CLERKS	1
-#define NUM_PICTURE_CLERKS		1
-#define NUM_PASSPORT_CLERKS		1
-#define NUM_CASHIERS			1
+#define NUM_CUSTOMERS			3
+#define NUM_APPLICATION_CLERKS	0
+#define NUM_PICTURE_CLERKS		0
+#define NUM_PASSPORT_CLERKS		0
+#define NUM_CASHIERS			0
 #define NUM_SENATORS			0
 
 struct Customer;
@@ -92,7 +92,7 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].state = BUSY;
 			*/
 			applicationClerks[i].lineLock = CreateLock("appClerkLineLock", sizeof("appClerkLineLock"), i);
-			applicationClerks[i].bribeLineLock = CreateLock("appClerkBribeLineLock", sizeof("appClerkBribeLineLock"), i);
+			applicationClerks[i].bribeLineLock = CreateLock("appClerkBribeLine", sizeof("appClerkBribeLine"), i);
 			applicationClerks[i].senatorLineLock = CreateLock("appClerkSenatorLineLock", sizeof("appClerkSenatorLineLock"), i);
 			applicationClerks[i].clerkLock = CreateLock("appClerkClerkLock", sizeof("appClerkClerkLock"), i);
 			applicationClerks[i].moneyLock = CreateLock("appClerkMoneyLock", sizeof("appClerkMoneyLock"), i);
@@ -120,7 +120,7 @@ void initClerk(ClerkType clerkType, int i) {
 			pictureClerks[i].state = BUSY;
 			*/
 			pictureClerks[i].lineLock = CreateLock("picClerkLineLock", sizeof("picClerkLineLock"), i);
-			pictureClerks[i].bribeLineLock = CreateLock("picClerkBribeLineLock", sizeof("picClerkBribeLineLock"), i);
+			pictureClerks[i].bribeLineLock = CreateLock("picClerkBribeLine", sizeof("picClerkBribeLine"), i);
 			pictureClerks[i].senatorLineLock = CreateLock("picClerkSenatorLineLock", sizeof("picClerkSenatorLineLock"), i);
 			pictureClerks[i].clerkLock = CreateLock("picClerkClerkLock", sizeof("picClerkClerkLock"), i);
 			pictureClerks[i].moneyLock = CreateLock("picClerkMoneyLock", sizeof("picClerkMoneyLock"), i);
@@ -148,7 +148,7 @@ void initClerk(ClerkType clerkType, int i) {
 			passportClerks[i].state = BUSY;
 			*/
 			passportClerks[i].lineLock = CreateLock("passClerkLineLock", sizeof("passClerkLineLock"), i);
-			passportClerks[i].bribeLineLock = CreateLock("passClerkBribeLineLock", sizeof("passClerkBribeLineLock"), i);
+			passportClerks[i].bribeLineLock = CreateLock("passClerkBribeLine", sizeof("passClerkBribeLine"), i);
 			passportClerks[i].senatorLineLock = CreateLock("passClerkSenatorLineLock", sizeof("passClerkSenatorLineLock"), i);
 			passportClerks[i].clerkLock = CreateLock("passClerkClerkLock", sizeof("passClerkClerkLock"), i);
 			passportClerks[i].moneyLock = CreateLock("passClerkMoneyLock", sizeof("passClerkMoneyLock"), i);
@@ -234,7 +234,6 @@ void initCustomer(int ssn, bool _isSenator) {
 void setup() {
 	int k;
 	
-	
 	globalDataLock = CreateLock("globalDataLock", sizeof("globalDataLock"));
 	senatorOutsideLineLock = CreateLock("senOutsideLineLock", sizeof("senOutsideLineLock"));
 	
@@ -248,7 +247,7 @@ void setup() {
 	
 	
 	customerIndexLock = CreateLock("custIndexLock", sizeof("custIndexLock"));
-	
+
 	
 	applicationClerkIndexLock = CreateLock("appClerkIndexLock", sizeof("appClerkIndexLock"));
 	pictureClerkIndexLock = CreateLock("picClerkIndexLock", sizeof("picClerkIndexLock"));
@@ -271,6 +270,8 @@ void setup() {
 	
 
 	Print("All locks initialized\n", 0);
+	Print("Number of customers set: %i\n",NUM_CUSTOMERS);
+/*
 
 	for(k = 0; k < NUM_APPLICATION_CLERKS; k++)
 		initClerk(APPLICATION_CLERK, k);
@@ -283,13 +284,15 @@ void setup() {
 	
 	for(k = 0; k < NUM_CASHIERS; k++)
 		initClerk(CASHIER, k);
-	
+		
+	*/
 	for(k = 0; k < NUM_CUSTOMERS; k++)
 		initCustomer(k, false);
 	/*
 	for(k = 0; k < NUM_SENATORS; k++)
 		initCustomer(k, true);
-	*/
+		*/
+	
 }
 
 
