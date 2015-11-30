@@ -112,7 +112,7 @@ void Lock::Acquire() {
         currentThread->Sleep();                     // put currentThread to sleep
         //printf(">Thread %s is waiting to acquire %s (going to sleep)\n", currentThread->getName(), name);
     } else
-        printf("Warning: %s has already acquired %s\n", currentThread->getName(), name);
+        DEBUG('s', "Warning: %s has already acquired %s\n", currentThread->getName(), name);
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -129,7 +129,7 @@ void Lock::Release() {
             //printf(">Thread %s has acquired %s\n", lockOwner->getName(), name);
         }
     } else
-        printf("Warning: %s hasn't acquired %s\n", currentThread->getName(), name);
+        DEBUG('s', "Warning: %s hasn't acquired %s\n", currentThread->getName(), name);
     (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
 }
 
@@ -168,11 +168,11 @@ void Condition::Wait(Lock* conditionLock) {
                 currentThread->Sleep();                             // put currentThread to sleep (wait for condition variable to signal)
                 lock->Acquire();                                    // reacquire waitingLock
             } else
-                printf("WARN: incorrect lock\n");
+                DEBUG('s', "WARN: incorrect lock\n");
         } else
-            printf("WARN: lock not held by thread\n");
+            DEBUG('s', "WARN: lock not held by thread\n");
     } else
-        printf("WARN: lock is NULL\n");
+        DEBUG('s', "WARN: lock is NULL\n");
     (void) interrupt->SetLevel(oldLevel);                           // re-enable interrupts
 }
 
@@ -187,17 +187,17 @@ void Condition::Signal(Lock* conditionLock) {
                         if(thread != NULL) {
                             scheduler->ReadyToRun(thread);          // wake up waiting thread
                         } else
-                            printf("WARN: thread is NULL\n");       // should never happen
+                            DEBUG('s', "WARN: thread is NULL\n");       // should never happen
                     } else
-                        printf("WARN: no threads waiting\n");
+                        DEBUG('s', "WARN: no threads waiting\n");
                 } else
-                    printf("WARN: incorrect lock\n");
+                    DEBUG('s', "WARN: incorrect lock\n");
             } else
-                printf("WARN: condition not assigned\n");
+                DEBUG('s', "WARN: condition not assigned\n");
         } else
-            printf("WARN: lock not held by thread\n");
+            DEBUG('s', "WARN: lock not held by thread\n");
     } else
-        printf("WARN: lock is NULL\n");
+        DEBUG('s', "WARN: lock is NULL\n");
     (void) interrupt->SetLevel(oldLevel);                           // re-enable interrupts
 }
 
@@ -210,13 +210,13 @@ void Condition::Broadcast(Lock* conditionLock) {
                         while(!queue->IsEmpty())                    // signal all threads waiting
                             Signal(conditionLock);
                     } else
-                        printf("WARN: no threads waiting\n");
+                        DEBUG('s', "WARN: no threads waiting\n");
                 } else
-                    printf("WARN: incorrect lock\n");
+                    DEBUG('s', "WARN: incorrect lock\n");
             } else
-                printf("WARN: condition not assigned\n");
+                DEBUG('s', "WARN: condition not assigned\n");
         } else
-            printf("WARN: lock not held by thread\n");
+            DEBUG('s', "WARN: lock not held by thread\n");
     } else
-        printf("WARN: lock is NULL\n");
+        DEBUG('s', "WARN: lock is NULL\n");
 }
