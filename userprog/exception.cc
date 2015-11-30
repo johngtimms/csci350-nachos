@@ -45,6 +45,26 @@ void Write_Syscall(unsigned int vaddr, int len, int id);
 int Read_Syscall(unsigned int vaddr, int len, int id);
 void Close_Syscall(int fd);
 
+char* concatenate(char str[], int len, int num) {
+    len = len - 1; /*sizeof() returns 1 more then actual size*/
+    /*char numstr = (char)(((int) '0') + num);*/
+    //printf("String passed in with length %i is %s\n",len,str);
+    /*int len = sizeof(str); this is calculating length wrong, so instead we're passing in the length as paramter*/ 
+    /*str[len] = numstr;
+    /*str[len + 1] = '\0';*/
+
+    /* hundreds place */
+    str[len] = '0' + num / 100;
+    /* tens place */
+    str[len + 1] = '0' + (num % 100) / 10;
+    /* one's place */
+    str[len + 2] = '0' + num % 10;
+    /* null terminator */
+    str[len + 3] = '\0';
+   // printf("Converted string is %s\n",str);
+    return str;
+}
+
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
     forkLock->Acquire();
@@ -344,7 +364,7 @@ int Rand_Syscall() {
 #ifdef NETWORK
 
 // Sends a request with the process's ID, gets a lock ID back
-int CreateLock_Syscall(unsigned int vaddr, int len) {
+int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
@@ -352,6 +372,8 @@ int CreateLock_Syscall(unsigned int vaddr, int len) {
         return -1;
     }
     name[len] = '\0';
+    concatenate(name,len,index);
+    printf("name passed to createlock syscall %s\n",name);
     
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -470,7 +492,7 @@ void Release_Syscall(unsigned int key) {
         printf("WARN: Release failed. Server misconfigured.\n");
 }
 
-int CreateCondition_Syscall(unsigned int vaddr, int len) {
+int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
@@ -478,6 +500,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len) {
         return -1;
     }
     name[len] = '\0';
+    concatenate(name,len,index);
     
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -750,7 +773,7 @@ void NetHalt_Syscall() {
     delete[] buf;
 }
 
-int CreateMV_Syscall(unsigned int vaddr, int len) {
+int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
@@ -758,6 +781,8 @@ int CreateMV_Syscall(unsigned int vaddr, int len) {
         return -1;
     }
     name[len] = '\0';
+    concatenate(name,len,index);
+
     
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
@@ -786,6 +811,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len) {
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
+    DEBUG('z', "CreateMV successful with key: %i\n", key);
     return key;
 }
 
@@ -923,7 +949,7 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateLock:
                 DEBUG('a', "CreateLock syscall.\n");
-                rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
                 break;
             case SC_DestroyLock:
                 DEBUG('a', "DestroyLock syscall.\n");
@@ -939,7 +965,7 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateCondition:
                 DEBUG('a', "CreateCondition syscall.\n");
-                rv = CreateCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                rv = CreateCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
                 break;
             case SC_DestroyCondition:
                 DEBUG('a', "DestroyCondition syscall.\n");
@@ -972,7 +998,7 @@ void ExceptionHandler(ExceptionType which) {
                     NetHalt_Syscall();
                     break;
                 case SC_CreateMV:
-                	rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                	rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
                 	break;
                 case SC_DestroyMV:
                 	DestroyMV_Syscall(machine->ReadRegister(4));
