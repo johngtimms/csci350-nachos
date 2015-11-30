@@ -77,31 +77,62 @@ void RPCServer::Receive_DestroyLock() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
 
-    NetworkLock *lock;
-
     for (;;) {
         // Wait for a mailbox message
         postOffice->Receive(MailboxDestroyLock, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
-        int processID = atoi(strtok(recv,","));
-        int threadID = atoi(strtok(NULL,","));
-        unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "DestroyLock - process %d thread %d key %d\n", processID, threadID, key);
+        int mailbox = inMailHdr.from;
+        char *lockName = recv;
 
-        // Process the message (identical to original syscall)
-        networkLockTable->tableLock->Acquire();
+        // Check if the lock exists
+        NetworkLock *lock = networkLockTable->locks.at(lockName);
 
-        lock = networkLockTable->locks[key];
-        if (lock != NULL) {
-            //if (lock->IsOwner(processID))
-                networkLockTable->locks.erase(key);
-            /*else
-              printf("WARN: DestroyLock failed. Client does not own lock.\n");  */
-        } else
-            printf("WARN: DestroyLock failed. No such lock.\n");
+        // Check if this is a Server-to-Server query
+        if (mailbox < 0) {
+            int serverMachine = inPktHdr.from;
+            int serverMailbox = MailboxDestroyLock + 100;
 
-        networkLockTable->tableLock->Release();
+            if ( lock != NULL ) {
+                DEBUG('r', "DestroyLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                
+                // Process the message (identical to the original syscall)
+                networkLockTable->tableLock->Acquire();
+                networkLockTable->locks.erase(lockName);
+                networkLockTable->tableLock->Release();
+
+                // Send success
+                SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
+                SendResponse(-mailbox, -1);                         // Send a response to the original client
+                continue;
+            } else {
+                SendResponse(replyToMachine, replyToMailbox, -2);   // Tell the querying server it's not here
+                continue;
+            }
+        }
+
+        // This is Client-to-Server
+        if ( lock != NULL ) {
+            // We DO have it
+            DEBUG('r', "DestroyLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+
+            // Process the message (identical to the original syscall)
+            networkLockTable->tableLock->Acquire();
+            networkLockTable->locks.erase(lockName);
+            networkLockTable->tableLock->Release();
+
+            // Send success
+            SendResponse(inPktHdr.from, inMailHdr.from, -1);
+            continue;
+        } else {
+            // We DO NOT have it, we have to check with other servers
+            int result = SendQuery(MailboxCreateLock, mailbox, lockName, "CreateLock");
+            if (result)
+                continue; // One of the other servers had it, we can finish
+        }
+
+        // This is Client-to-Server, no other server has it, this is an error
+        DEBUG('r', "WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName);
     }
 }
 
