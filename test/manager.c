@@ -121,6 +121,7 @@ void runManager() {
 }
 
 int main() {
+    setup();
 	runManager();
 	Exit(0);
 }
