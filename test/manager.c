@@ -42,7 +42,7 @@ void runManager() {
 				
 			}
 		}
-/*
+
 
 		for(k = 0; k < numPictureClerks; k++) { 
 			Acquire(pictureClerks[k].moneyLock);
@@ -64,6 +64,7 @@ void runManager() {
 				Release(pictureClerks[k].clerkLock);
 			}
 		}
+		
 		for(k = 0; k < numPassportClerks; k++) { 
 			Acquire(passportClerks[k].moneyLock);
 			passportClerkMoneyTotal = passportClerkMoneyTotal + GetMV(passportClerks[k].money);
@@ -84,6 +85,7 @@ void runManager() {
 				Release(passportClerks[k].clerkLock);
 			}
 		}
+		
 		for(k = 0; k < numCashiers; k++) { 
 			Acquire(cashiers[k].moneyLock);
 			cashierMoneyTotal = cashierMoneyTotal + GetMV(cashiers[k].money);
@@ -104,7 +106,7 @@ void runManager() {
 				Release(cashiers[k].clerkLock);
 			}
 		}
-		*/
+		
 		
 		if(allClerksOnBreak)
 			continue;

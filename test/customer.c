@@ -10,7 +10,7 @@ bool enterApplicationLine(int clerkID) {
 	/*if(applicationClerks[clerkID].state != FREE) {*/
 	if(GetMV(applicationClerks[clerkID].state) != FREE) {
 		/*if(customers[ssn].isSenator) {*/
-		if(GetMV(customers[ssn].isSenator)) {											
+		if(GetMV(customers[ssn].isSenator)) {	
 			Acquire(applicationClerks[clerkID].senatorLineLock);
 			/*applicationClerks[clerkID].senatorLineLength++;*/
 			length = GetMV(applicationClerks[clerkID].senatorLineLength);
@@ -88,6 +88,7 @@ bool enterPictureLine(int clerkID) {
 	int length;
 	/* Stand in line */
 	Print("Customer %i about to stand in picture clerk line\n", ssn); 
+	Print("Picture clerk state %i\n",GetMV(pictureClerks[clerkID].state));
 	/*if(pictureClerks[clerkID].state != FREE) {*/
 	if(GetMV(pictureClerks[clerkID].state) != FREE) {
 		/*if(customers[ssn].isSenator) {*/
@@ -529,7 +530,7 @@ void doApplication() {
 }
 
 void doPicture() {
-	int clerkID;
+	int clerkID, randNumber;
 	waitInLine(PICTURE_CLERK);
 	/*clerkID = customers[ssn].clerkID;*/
 	clerkID = GetMV(customers[ssn].clerkID);
@@ -551,7 +552,9 @@ void doPicture() {
     /*customers[ssn].seenPic = true;*/
     SetMV(customers[ssn].seenPic, true);
     /*if(Rand() % 4 == 0 && !senatorInside) {*/ /* Customer decides whether they don't like picture */
-    if(Rand() % 4 == 0 && !GetMV(senatorInside)) {
+    randNumber = Rand() % 4;
+    if(randNumber == 0 && !GetMV(senatorInside)) {
+    	Print("randNumber was %i\n",randNumber);
     	/*customers[ssn].likedPic = false;*/
     	SetMV(customers[ssn].likedPic, false);
     	/*if(customers[ssn].isSenator)*/

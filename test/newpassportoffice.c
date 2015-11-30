@@ -55,8 +55,8 @@ int main() {
 /*
 	for(k = 0 ; k < NUM_SENATORS; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
-    */
     
+    */
 	Exec("../test/manager", sizeof("../test/manager"));
 	
 	

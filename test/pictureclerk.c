@@ -116,6 +116,7 @@ void runPictureClerk() {
             Release(pictureClerks[i].clerkLock);
             /*pictureClerks[i].state = FREE;*/
             SetMV(pictureClerks[i].state, FREE);
+            
         }
     }
 }

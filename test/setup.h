@@ -4,11 +4,11 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			3
+#define NUM_CUSTOMERS			5
 #define NUM_APPLICATION_CLERKS	1
-#define NUM_PICTURE_CLERKS		0
-#define NUM_PASSPORT_CLERKS		0
-#define NUM_CASHIERS			0
+#define NUM_PICTURE_CLERKS		1
+#define NUM_PASSPORT_CLERKS		1
+#define NUM_CASHIERS			1
 #define NUM_SENATORS			0
 
 struct Customer;
@@ -33,6 +33,7 @@ bool senatorInside = false;
 int customerOutsideLineLock;
 int customerOutsideLineCV;
 int customersOutside = 0;
+int dummyMV;
 
 typedef enum {FREE, BUSY, BREAK} ClerkState;
 typedef enum {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER} ClerkType;
@@ -211,20 +212,19 @@ void initCustomer(int ssn, bool _isSenator) {
 	
 	*/
 	customers[ssn].isSenator = CreateMV("custIsSenator", sizeof("custIsSenator"), ssn);
-	
 	customers[ssn].clerkID = CreateMV("custClerkID", sizeof("custClerkID"), ssn);
-	
-    
     customers[ssn].SSN = CreateMV("custSSN", sizeof("custSSN"), ssn);
     customers[ssn].money = CreateMV("custMoney", sizeof("custMoney"), ssn);
     customers[ssn].hasApp = CreateMV("custHasApp", sizeof("custHasApp"), ssn);
     customers[ssn].hasPic = CreateMV("custHasPic", sizeof("custHasPic"), ssn);
+    customers[ssn].didBribe = CreateMV("custDidBribe", sizeof("custDidBribe"), ssn);
     customers[ssn].certifiedByPassportClerk = CreateMV("custCertified", sizeof("custCertified"), ssn);
     customers[ssn].hasPassport = CreateMV("custHasPassport", sizeof("custHasPassport"), ssn);
     customers[ssn].seenApp = CreateMV("custSeenApp", sizeof("custSeenApp"), ssn);
     customers[ssn].seenPic = CreateMV("custSeenPic", sizeof("custSeenPic"), ssn);
     customers[ssn].likedPic = CreateMV("custLikedPic", sizeof("custLikedPic"), ssn);
     customers[ssn].hasPaidForPassport = CreateMV("custHasPaid", sizeof("custHasPaid"), ssn);
+    
     SetMV(customers[ssn].isSenator, _isSenator);
     SetMV(customers[ssn].clerkID, -1);
     SetMV(customers[ssn].SSN, ssn);
@@ -242,6 +242,7 @@ void setup() {
 	numPassportClerks = NUM_PASSPORT_CLERKS;
 	numCashiers = NUM_CASHIERS;
 	
+	dummyMV = CreateMV("dummyMV", sizeof("dummyMV"));
 	globalDataLock = CreateLock("globalDataLock", sizeof("globalDataLock"));
 
 	
@@ -272,8 +273,10 @@ void setup() {
 	nextAvailableCashierIndex = CreateMV("nextCashIndex", sizeof("nextCashIndex"));
 	nextAvailableApplicationClerkIndex = CreateMV("nextAppClerkIndex", sizeof("nextppClerkIndex"));
 	
+	SetMV(senatorInside, 0);
+	SetMV(senatorsOutside, 0);
+	SetMV(customersOutside, 0);
 	SetMV(nextAvailableCustomerIndex, 0);
-	
 	SetMV(nextAvailablePictureClerkIndex, 0);
 	SetMV(nextAvailablePassportClerkIndex, 0);
 	SetMV(nextAvailableCashierIndex, 0);
