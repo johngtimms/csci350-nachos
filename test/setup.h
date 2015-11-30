@@ -4,7 +4,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			3
+#define NUM_CUSTOMERS			2
 #define NUM_APPLICATION_CLERKS	0
 #define NUM_PICTURE_CLERKS		0
 #define NUM_PASSPORT_CLERKS		0
@@ -72,6 +72,8 @@ Clerk cashiers[10];
 Clerk passportClerks[10];
 Clerk pictureClerks[10];
 Clerk applicationClerks[10];
+
+int numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks;
 
 
 void initClerk(ClerkType clerkType, int i) {
@@ -233,8 +235,15 @@ void initCustomer(int ssn, bool _isSenator) {
 
 void setup() {
 	int k;
+
+	numCustomers = NUM_CUSTOMERS;
+	numApplicationClerks = NUM_APPLICATION_CLERKS;
+	numPictureClerks = NUM_PICTURE_CLERKS;
+	numPassportClerks = NUM_PASSPORT_CLERKS;
+	numCashiers = NUM_CASHIERS;
 	
 	globalDataLock = CreateLock("globalDataLock", sizeof("globalDataLock"));
+	/*
 	senatorOutsideLineLock = CreateLock("senOutsideLineLock", sizeof("senOutsideLineLock"));
 	
 	senatorOutsideLineCV = CreateCondition("senOutsideLineCV", sizeof("senOutsideLineCV"));
@@ -267,11 +276,7 @@ void setup() {
 	SetMV(nextAvailablePassportClerkIndex, 0);
 	SetMV(nextAvailableCashierIndex, 0);
 	SetMV(nextAvailableApplicationClerkIndex, 0);
-	
 
-	Print("All locks initialized\n", 0);
-	Print("Number of customers set: %i\n",NUM_CUSTOMERS);
-/*
 
 	for(k = 0; k < NUM_APPLICATION_CLERKS; k++)
 		initClerk(APPLICATION_CLERK, k);
@@ -285,13 +290,15 @@ void setup() {
 	for(k = 0; k < NUM_CASHIERS; k++)
 		initClerk(CASHIER, k);
 		
-	*/
-	for(k = 0; k < NUM_CUSTOMERS; k++)
+	
+	
+	for(k = 0; k < numCustomers; k++)
 		initCustomer(k, false);
 	/*
 	for(k = 0; k < NUM_SENATORS; k++)
 		initCustomer(k, true);
 		*/
+
 	
 }
 

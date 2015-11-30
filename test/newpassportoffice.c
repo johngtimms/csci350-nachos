@@ -1,16 +1,17 @@
 #include "syscall.h"
 #include "setup.h"
 
-#define NUM_CUSTOMERS			2
-#define NUM_APPLICATION_CLERKS	0
-#define NUM_PICTURE_CLERKS		0
-#define NUM_PASSPORT_CLERKS		0
-#define NUM_CASHIERS			0
-#define NUM_SENATORS			0
 
 int main() {
-	int k;
-	Print("Number of Customers: %i\n", NUM_CUSTOMERS);
+	int k, numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictureClerks;
+
+	numCustomers = NUM_CUSTOMERS;
+	numApplicationClerks = NUM_APPLICATION_CLERKS;
+	numPictureClerks = NUM_PICTURE_CLERKS;
+	numPassportClerks = NUM_PASSPORT_CLERKS;
+	numCashiers = NUM_CASHIERS;
+
+	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", NUM_APPLICATION_CLERKS);
 	Print("Number of PictureClerks: %i\n", NUM_PICTURE_CLERKS);
 	Print("Number of PassportClerks: %i\n", NUM_PICTURE_CLERKS);
@@ -36,7 +37,7 @@ int main() {
 	for(k = 0; k < NUM_SENATORS; k++)
 		initCustomer(k, true);
 	*/
-	/*
+	
 	for(k = 0 ; k < NUM_CASHIERS; k++)
 		Exec("../test/cashier", sizeof("../test/cashier"));
 
@@ -48,15 +49,17 @@ int main() {
 
 	for(k = 0 ; k < NUM_APPLICATION_CLERKS; k++)
 		Exec("../test/applicationclerk", sizeof("../test/applicationclerk"));
-	*/
-	for(k = 0 ; k < NUM_CUSTOMERS; k++)
+	
+	for(k = 0 ; k < numCustomers; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
 /*
 	for(k = 0 ; k < NUM_SENATORS; k++)
 		Exec("../test/customer", sizeof("../test/customer"));
-    
+    */
+    /*
 	Exec("../test/manager", sizeof("../test/manager"));
-     */
+	*/
+     
 
 	Exit(0);
 }

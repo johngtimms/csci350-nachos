@@ -704,6 +704,7 @@ NetworkLock::NetworkLock(int _machineID, int process, char *_name) {
 }
 
 NetworkLock::~NetworkLock() {
+    delete name;
     delete queue;
 }
 
@@ -747,7 +748,7 @@ void NetworkLock::Release(int _machineID, int process, int thread) {
         }
         else {
             mailboxID = (int) queue->Remove();           // wake up a waiting mailbox
-            DEBUG('r', "Acquire success via release process %d thread %d mailbox %d\n", process, threadID, mailboxID);
+            DEBUG('r', "Acquire success via release process %d thread %d mailbox %d\n", process, thread, mailboxID);
             RPCServer::SendResponse(machineID, mailboxID, -1);
         }
     } else {
@@ -780,6 +781,7 @@ NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
 NetworkCondition::~NetworkCondition() {
     delete conditionLock;
     delete queue;
+    delete name;
 }
 
 void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock* lock) {
@@ -904,10 +906,12 @@ NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
     processID = process;
     value = 0;
     name = new char[strlen(_name)+1]; //deep copy
-    strcpy(name, _name); //deep copy
+    strcpy(name, _name); //deep copy*/
 }
 
-NetworkMV::~NetworkMV() {}
+NetworkMV::~NetworkMV() {
+    delete name;
+}
 
 /*bool NetworkMV::IsOwner(int process) {
     return (processID == process);
