@@ -356,7 +356,7 @@ void Print_Syscall(int text, int num) {
     }
     buf[100] = '\0';
     printf(buf, num);
-    delete buf;
+    delete[] buf;
 }
 
 int Rand_Syscall() {
@@ -370,7 +370,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
-        delete name;
+        delete[] name;
         return -1;
     }
     name[len] = '\0';
@@ -405,7 +405,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
-    delete name;
+    delete[] name;
     return key;
 }
 
@@ -499,7 +499,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
-        delete name;
+        delete[] name;
         return -1;
     }
     name[len] = '\0';
@@ -533,7 +533,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
-    delete name;
+    delete[] name;
     return key;
 }
 
@@ -782,7 +782,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     char *name = new char[len+1];
     if( copyin(vaddr,len,name) == -1 ) {
         printf("%s","Bad pointer passed to CreateMV\n");
-        delete name;
+        delete[] name;
         return -1;
     }
     name[len] = '\0';
@@ -818,7 +818,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     int key = atoi(recv);
     DEBUG('z', "CreateMV successful with key: %i\n", key);
 
-    delete name;
+    delete[] name;
     return key;
 }
 
