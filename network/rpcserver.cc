@@ -724,7 +724,7 @@ void NetworkLock::Acquire(int _machineID, int process, int thread) {
         mailboxID = mailbox;
         DEBUG('r', "Acquire success machine %d process %d thread %d\n", machineID, process, thread);
         RPCServer::SendResponse(machineID, mailboxID, -1);
-    } else if (threadID != thread) {                    // lock is busy
+    } else if (mailboxID != mailbox) {                    // lock is busy
         queue->Append((void *) mailbox);                 // add mailbox ID to the wait queue
         DEBUG('r', "Acquire waiting process %d thread %d\n", process, thread);
     } else {
