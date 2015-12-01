@@ -4,12 +4,12 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			1
+#define NUM_CUSTOMERS			5
 #define NUM_APPLICATION_CLERKS	1
 #define NUM_PICTURE_CLERKS		1
 #define NUM_PASSPORT_CLERKS		1
 #define NUM_CASHIERS			1
-#define NUM_SENATORS			1
+#define NUM_SENATORS			2
 
 struct Customer;
 struct Clerk;
@@ -84,11 +84,11 @@ int numCustomers, numApplicationClerks, numPassportClerks, numCashiers, numPictu
 void initClerk(ClerkType clerkType, int i) {
 	switch(clerkType) {
 		case APPLICATION_CLERK:
-			applicationClerks[i].lineLength = CreateMV("appClerkLineLength", sizeof("appClerkLineLength"), i);
-			applicationClerks[i].bribeLineLength = CreateMV("appClerkBribeLineLength", sizeof("appClerkBribeLineLength"), i);
-			applicationClerks[i].senatorLineLength = CreateMV("appClerkSenatorLineLength", sizeof("appClerkSenatorLineLength"), i);
-			applicationClerks[i].money = CreateMV("appClerkMoney", sizeof("appClerkMoney"), i);
-			applicationClerks[i].customerID = CreateMV("appClerkCustomerID", sizeof("appClerkCustomerID"), i);
+			applicationClerks[i].lineLength = CreateMV("appLineLength", sizeof("appLineLength"), i);
+			applicationClerks[i].bribeLineLength = CreateMV("appBribeLength", sizeof("appBribeLength"), i);
+			applicationClerks[i].senatorLineLength = CreateMV("appSenatorLength", sizeof("appSenatorLength"), i);
+			applicationClerks[i].money = CreateMV("appMoneyMV", sizeof("appMoneyMV"), i);
+			applicationClerks[i].customerID = CreateMV("appCustomerID", sizeof("appCustomerID"), i);
 			applicationClerks[i].state = CreateMV("appClerkState", sizeof("appClerkState"), i);
 			/*
 			applicationClerks[i].lineLength = 0;
@@ -98,16 +98,16 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].customerID = -1;
 			applicationClerks[i].state = BUSY;
 			*/
-			applicationClerks[i].lineLock = CreateLock("appClerkLineLock", sizeof("appClerkLineLock"), i);
-			applicationClerks[i].bribeLineLock = CreateLock("appClerkBribeLine", sizeof("appClerkBribeLine"), i);
-			applicationClerks[i].senatorLineLock = CreateLock("appClerkSenatorLineLock", sizeof("appClerkSenatorLineLock"), i);
-			applicationClerks[i].clerkLock = CreateLock("appClerkClerkLock", sizeof("appClerkClerkLock"), i);
-			applicationClerks[i].moneyLock = CreateLock("appClerkMoneyLock", sizeof("appClerkMoneyLock"), i);
-			applicationClerks[i].lineCV = CreateCondition("appClerkLineCV", sizeof("appClerkLineCV"), i);
-			applicationClerks[i].bribeLineCV = CreateCondition("appClerkBribeLineCV", sizeof("appClerkBribeLineCV"), i);
-			applicationClerks[i].senatorLineCV = CreateCondition("appClerkSenatorLineCV", sizeof("appClerkSenatorLineCV"), i);
-			applicationClerks[i].clerkCV = CreateCondition("appClerkClerkCV", sizeof("appClerkClerkCV"), i);
-			applicationClerks[i].breakCV = CreateCondition("appClerkBreakCV", sizeof("appClerkBreakCV"), i);
+			applicationClerks[i].lineLock = CreateLock("appLine", sizeof("appLine"), i);
+			applicationClerks[i].bribeLineLock = CreateLock("appBribe", sizeof("appBribe"), i);
+			applicationClerks[i].senatorLineLock = CreateLock("appSenator", sizeof("appSenator"), i);
+			applicationClerks[i].clerkLock = CreateLock("appkClerk", sizeof("appkClerk"), i);
+			applicationClerks[i].moneyLock = CreateLock("appMoney", sizeof("appMoney"), i);
+			applicationClerks[i].lineCV = CreateCondition("appLineCV", sizeof("appLineCV"), i);
+			applicationClerks[i].bribeLineCV = CreateCondition("appBribeCV", sizeof("appBribeCV"), i);
+			applicationClerks[i].senatorLineCV = CreateCondition("appSenatorCV", sizeof("appSenatorCV"), i);
+			applicationClerks[i].clerkCV = CreateCondition("appCV", sizeof("appCV"), i);
+			applicationClerks[i].breakCV = CreateCondition("appCV", sizeof("appCV"), i);
 			SetMV(applicationClerks[i].customerID, -1);
 			SetMV(applicationClerks[i].state, BUSY);
 			break;
@@ -126,16 +126,16 @@ void initClerk(ClerkType clerkType, int i) {
 			pictureClerks[i].customerID = -1;
 			pictureClerks[i].state = BUSY;
 			*/
-			pictureClerks[i].lineLock = CreateLock("picClerkLineLock", sizeof("picClerkLineLock"), i);
-			pictureClerks[i].bribeLineLock = CreateLock("picClerkBribeLine", sizeof("picClerkBribeLine"), i);
-			pictureClerks[i].senatorLineLock = CreateLock("picClerkSenatorLineLock", sizeof("picClerkSenatorLineLock"), i);
-			pictureClerks[i].clerkLock = CreateLock("picClerkClerkLock", sizeof("picClerkClerkLock"), i);
-			pictureClerks[i].moneyLock = CreateLock("picClerkMoneyLock", sizeof("picClerkMoneyLock"), i);
-			pictureClerks[i].lineCV = CreateCondition("picClerkLineCV", sizeof("picClerkLineCV"), i);
-			pictureClerks[i].bribeLineCV = CreateCondition("picClerkBribeLineCV", sizeof("picClerkBribeLineCV"), i);
-			pictureClerks[i].senatorLineCV = CreateCondition("picClerkSenatorLineCV", sizeof("picClerkSenatorLineCV"), i);
-			pictureClerks[i].clerkCV = CreateCondition("picClerkClerkCV", sizeof("picClerkClerkCV"), i);
-			pictureClerks[i].breakCV = CreateCondition("picClerkBreakCV", sizeof("picClerkBreakCV"), i);
+			pictureClerks[i].lineLock = CreateLock("pickLine", sizeof("picLine"), i);
+			pictureClerks[i].bribeLineLock = CreateLock("picBribe", sizeof("picBribe"), i);
+			pictureClerks[i].senatorLineLock = CreateLock("picSenator", sizeof("picenatork"), i);
+			pictureClerks[i].clerkLock = CreateLock("picClerk", sizeof("picClerk"), i);
+			pictureClerks[i].moneyLock = CreateLock("picMoney", sizeof("picMoney"), i);
+			pictureClerks[i].lineCV = CreateCondition("picLineCV", sizeof("picLineCV"), i);
+			pictureClerks[i].bribeLineCV = CreateCondition("picBribeCV", sizeof("picBribeCV"), i);
+			pictureClerks[i].senatorLineCV = CreateCondition("picenatorCV", sizeof("picSenatorCV"), i);
+			pictureClerks[i].clerkCV = CreateCondition("picClerkCV", sizeof("picClerkCV"), i);
+			pictureClerks[i].breakCV = CreateCondition("picBreakCV", sizeof("picBreakCV"), i);
 			SetMV(pictureClerks[i].customerID, -1);
 			SetMV(pictureClerks[i].state, BUSY);
 			break;
@@ -154,23 +154,23 @@ void initClerk(ClerkType clerkType, int i) {
 			passportClerks[i].customerID = -1;
 			passportClerks[i].state = BUSY;
 			*/
-			passportClerks[i].lineLock = CreateLock("passClerkLineLock", sizeof("passClerkLineLock"), i);
-			passportClerks[i].bribeLineLock = CreateLock("passClerkBribeLine", sizeof("passClerkBribeLine"), i);
-			passportClerks[i].senatorLineLock = CreateLock("passClerkSenatorLineLock", sizeof("passClerkSenatorLineLock"), i);
-			passportClerks[i].clerkLock = CreateLock("passClerkClerkLock", sizeof("passClerkClerkLock"), i);
-			passportClerks[i].moneyLock = CreateLock("passClerkMoneyLock", sizeof("passClerkMoneyLock"), i);
-			passportClerks[i].lineCV = CreateCondition("passClerkLineCV", sizeof("passClerkLineCV"), i);
-			passportClerks[i].bribeLineCV = CreateCondition("passClerkBribeLineCV", sizeof("passClerkBribeLineCV"), i);
-			passportClerks[i].senatorLineCV = CreateCondition("passClerkSenatorLineCV", sizeof("passClerkSenatorLineCV"), i);
-			passportClerks[i].clerkCV = CreateCondition("passClerkClerkCV", sizeof("passClerkClerkCV"), i);
-			passportClerks[i].breakCV = CreateCondition("passClerkBreakCV", sizeof("passClerkBreakCV"), i);
+			passportClerks[i].lineLock = CreateLock("passLine", sizeof("passLine"), i);
+			passportClerks[i].bribeLineLock = CreateLock("passBribe", sizeof("passBribe"), i);
+			passportClerks[i].senatorLineLock = CreateLock("passSenator", sizeof("passSenator"), i);
+			passportClerks[i].clerkLock = CreateLock("passClerk", sizeof("passClerk"), i);
+			passportClerks[i].moneyLock = CreateLock("passMoney", sizeof("passMoney"), i);
+			passportClerks[i].lineCV = CreateCondition("passLineCV", sizeof("passLineCV"), i);
+			passportClerks[i].bribeLineCV = CreateCondition("passBribeCV", sizeof("passBribeCV"), i);
+			passportClerks[i].senatorLineCV = CreateCondition("passSenatorCV", sizeof("passSenatorCV"), i);
+			passportClerks[i].clerkCV = CreateCondition("passClerkCV", sizeof("passClerkCV"), i);
+			passportClerks[i].breakCV = CreateCondition("passBreakCV", sizeof("passBreakCV"), i);
 			SetMV(passportClerks[i].customerID, -1);
 			SetMV(passportClerks[i].state, BUSY);
 			break;
 		case CASHIER:
 			cashiers[i].lineLength = CreateMV("cashLineLength", sizeof("cashLineLength"), i);
-			cashiers[i].bribeLineLength = CreateMV("cashBribeLineLength", sizeof("cashBribeLineLength"), i);
-			cashiers[i].senatorLineLength = CreateMV("cashSenatorLineLength", sizeof("cashSenatorLineLength"), i);
+			cashiers[i].bribeLineLength = CreateMV("cashBribeLength", sizeof("cashBribeLength"), i);
+			cashiers[i].senatorLineLength = CreateMV("cashSenatorLength", sizeof("cashSenatorLength"), i);
 			cashiers[i].money = CreateMV("cashMoney", sizeof("cashMoney"), i);
 			cashiers[i].customerID = CreateMV("cashCustomerID", sizeof("cashCustomerID"), i);
 			cashiers[i].state = CreateMV("cashState", sizeof("cashState"), i);
@@ -183,13 +183,13 @@ void initClerk(ClerkType clerkType, int i) {
 			cashiers[i].state = BUSY;
 			*/
 			cashiers[i].lineLock = CreateLock("cashLineLock", sizeof("cashLineLock"), i);
-			cashiers[i].bribeLineLock = CreateLock("cashBribeLineLock", sizeof("cashBribeLineLock"), i);
-			cashiers[i].senatorLineLock = CreateLock("cashSenatorLineLock", sizeof("cashSenatorLineLock"), i);
+			cashiers[i].bribeLineLock = CreateLock("cashBribeLine", sizeof("cashBribeLine"), i);
+			cashiers[i].senatorLineLock = CreateLock("cashSenatorLine", sizeof("cashSenatorLine"), i);
 			cashiers[i].clerkLock = CreateLock("cashClerkLock", sizeof("cashClerkLock"), i);
 			cashiers[i].moneyLock = CreateLock("cashMoneyLock", sizeof("cashMoneyLock"), i);
 			cashiers[i].lineCV = CreateCondition("cashLineCV", sizeof("cashLineCV"), i);
-			cashiers[i].bribeLineCV = CreateCondition("cashBribeLineCV", sizeof("cashBribeLineCV"), i);
-			cashiers[i].senatorLineCV = CreateCondition("cashSenatorLineCV", sizeof("cashSenatorLineCV"), i);
+			cashiers[i].bribeLineCV = CreateCondition("cashBribeCV", sizeof("cashBribeCV"), i);
+			cashiers[i].senatorLineCV = CreateCondition("cashSenatorCV", sizeof("cashSenatorCV"), i);
 			cashiers[i].clerkCV = CreateCondition("cashClerkCV", sizeof("cashClerkCV"), i);
 			cashiers[i].breakCV = CreateCondition("cashBreakCV", sizeof("cashBreakCV"), i);
 			SetMV(cashiers[i].customerID, -1);
