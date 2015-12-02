@@ -41,7 +41,7 @@ void runPictureClerk() {
             /*pictureClerks[i].state = FREE;*/
             SetMV(pictureClerks[i].state, FREE);
     	/*} else if(pictureClerks[i].bribeLineLength > 0) {*/
-        } else if(GetMV(pictureClerks[i].bribeLineLength) > 0) {
+        } else if(GetMV(pictureClerks[i].bribeLineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(pictureClerks[i].bribeLineLock);
             Signal(pictureClerks[i].bribeLineCV, pictureClerks[i].bribeLineLock);     /* Signal Customer to exit line */
             Print("PictureClerk %i has signalled a Customer to come to their counter\n", i);
@@ -74,7 +74,7 @@ void runPictureClerk() {
             /*pictureClerks[i].state = FREE;*/
             SetMV(pictureClerks[i].state, FREE);
         /*} else if(pictureClerks[i].lineLength > 0) {*/
-        } else if(GetMV(pictureClerks[i].lineLength) > 0) {
+        } else if(GetMV(pictureClerks[i].lineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(pictureClerks[i].lineLock);
             Signal(pictureClerks[i].lineCV, pictureClerks[i].lineLock);     /* Signal Customer to exit line */
             Print("PictureClerk %i has signalled a Customer to come to their counter\n", i);

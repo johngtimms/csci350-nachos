@@ -2,13 +2,14 @@
 #include "setup.h"
 
 int ssn;
+bool didntGoInLineBecauseOfSenator = false;
 
 bool enterApplicationLine(int clerkID) {
 	int length;
 	/* Stand in line */
 	/*Print("Customer %i about to stand in application clerk line\n", ssn); */
 	/*if(applicationClerks[clerkID].state != FREE) {*/
-	if(true) { /*don't go in line if there is a senator present, unless you are a senator /*
+	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {	
 			Acquire(applicationClerks[clerkID].senatorLineLock);
@@ -47,7 +48,7 @@ bool enterApplicationLine(int clerkID) {
 			SetMV(applicationClerks[clerkID].lineLength, length - 1);
 		}
 	} else {
-		Print("Customer %i didn't go in application line because there was a senator present.\n",ssn);
+		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	
 	/* Called out of line, make sure it wasn't because of a senator */
@@ -56,17 +57,21 @@ bool enterApplicationLine(int clerkID) {
 	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
 		Release(senatorInsideLock);
 		/*if(customers[ssn].didBribe)*/
-		if(GetMV(customers[ssn].didBribe))
-			Release(applicationClerks[clerkID].bribeLineLock);
-		else
-			Release(applicationClerks[clerkID].lineLock);
+		if(!didntGoInLineBecauseOfSenator) {
+			if(GetMV(customers[ssn].didBribe))
+				Release(applicationClerks[clerkID].bribeLineLock);
+			else
+				Release(applicationClerks[clerkID].lineLock);
+		} else {
+			didntGoInLineBecauseOfSenator = false; /*reset bool*/
+		}
 		Acquire(customerOutsideLineLock);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
 		length = GetMV(customersOutside);
 		SetMV(customersOutside, length + 1);
 		Wait(customerOutsideLineCV, customerOutsideLineLock);
-		Print("Customer %i is notified that there are no more senators, and can come in now. enterApplicationLine()\n", ssn);
+		Print("Customer %i is notified that there are no more senators, and can come in now.\n", ssn);
 		/*customersOutside -= 1;*/
 		length = GetMV(customersOutside);
 		SetMV(customersOutside, length - 1);
@@ -132,6 +137,8 @@ bool enterPictureLine(int clerkID) {
 			length = GetMV(pictureClerks[clerkID].lineLength);
 			SetMV(pictureClerks[clerkID].lineLength, length - 1);
 		}
+	} else {
+		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
 	Acquire(senatorInsideLock);
@@ -139,10 +146,14 @@ bool enterPictureLine(int clerkID) {
 	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
 		Release(senatorInsideLock);
 		/*if(customers[ssn].didBribe)*/
-		if(GetMV(customers[ssn].didBribe))
-			Release(pictureClerks[clerkID].bribeLineLock);
-		else
-			Release(pictureClerks[clerkID].lineLock);
+		if(!didntGoInLineBecauseOfSenator) {
+			if(GetMV(customers[ssn].didBribe))
+				Release(pictureClerks[clerkID].bribeLineLock);
+			else
+				Release(pictureClerks[clerkID].lineLock);
+		} else {
+			didntGoInLineBecauseOfSenator = false; /*reset bool*/
+		}
 		Acquire(customerOutsideLineLock);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
@@ -213,6 +224,8 @@ bool enterPassportLine(int clerkID) {
 			length = GetMV(passportClerks[clerkID].lineLength);
 			SetMV(passportClerks[clerkID].lineLength, length - 1);
 		}
+	} else {
+		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
 	Acquire(senatorInsideLock);
@@ -220,10 +233,14 @@ bool enterPassportLine(int clerkID) {
 	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
 		Release(senatorInsideLock);
 		/*if(customers[ssn].didBribe)*/
-		if(GetMV(customers[ssn].didBribe))
-			Release(passportClerks[clerkID].bribeLineLock);
-		else
-			Release(passportClerks[clerkID].lineLock);
+		if(!didntGoInLineBecauseOfSenator) {
+			if(GetMV(customers[ssn].didBribe))
+				Release(passportClerks[clerkID].bribeLineLock);
+			else
+				Release(passportClerks[clerkID].lineLock);
+		} else {
+			didntGoInLineBecauseOfSenator = false; /*reset bool*/
+		}
 		Acquire(customerOutsideLineLock);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
@@ -294,6 +311,8 @@ bool enterCashierLine(int clerkID) {
 			length = GetMV(cashiers[clerkID].lineLength);
 			SetMV(cashiers[clerkID].lineLength, length - 1);
 		}
+	} else {
+		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
 	Acquire(senatorInsideLock);
@@ -301,10 +320,14 @@ bool enterCashierLine(int clerkID) {
 	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
 		Release(senatorInsideLock);
 		/*if(customers[ssn].didBribe)*/
-		if(GetMV(customers[ssn].didBribe))
-			Release(cashiers[clerkID].bribeLineLock);
-		else
-			Release(cashiers[clerkID].lineLock);
+		if(!didntGoInLineBecauseOfSenator) {
+			if(GetMV(customers[ssn].didBribe))
+				Release(cashiers[clerkID].bribeLineLock);
+			else
+				Release(cashiers[clerkID].lineLock);
+		} else {
+			didntGoInLineBecauseOfSenator = false; /*reset bool*/
+		}
 		Acquire(customerOutsideLineLock);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
@@ -699,17 +722,12 @@ void runSenator() {
 	for(k = 0; k < numApplicationClerks; k++) {
 		Acquire(applicationClerks[k].lineLock);
 		/*if(applicationClerks[k].lineLength > 0)*/
-		Print("senator %i", ssn);
-		Print(" is checking app line length: %i\n", GetMV(applicationClerks[k].lineLength));
 		if(GetMV(applicationClerks[k].lineLength) > 0) {
-			Print("line length is greater than 0: %i\n",GetMV(applicationClerks[k].lineLength));
 			Broadcast(applicationClerks[k].lineCV, applicationClerks[k].lineLock);
 		}
 		Release(applicationClerks[k].lineLock);
 		Acquire(applicationClerks[k].bribeLineLock);
 		/*if(applicationClerks[k].bribeLineLength > 0) */
-		Print("senator %i", ssn);
-		Print(" is checking app bribe line length: %i\n", GetMV(applicationClerks[k].bribeLineLength));
 		if(GetMV(applicationClerks[k].bribeLineLength) > 0)
 			Broadcast(applicationClerks[k].bribeLineCV, applicationClerks[k].bribeLineLock);
 		Release(applicationClerks[k].bribeLineLock);
@@ -795,7 +813,7 @@ void runCustomer() {
 		i = GetMV(customersOutside);
 		SetMV(customersOutside, i + 1);
 		Wait(customerOutsideLineCV,customerOutsideLineLock);
-		Print("Customer %i is notified that there are no more senators, and can come in now. runCustomer()\n", ssn);
+		Print("Customer %i is notified that there are no more senators, and can come in now.\n", ssn);
 		i = GetMV(customersOutside);
 		SetMV(customersOutside, i - 1);
 		Release(customerOutsideLineLock);
@@ -828,12 +846,10 @@ int main() {
 
     setup();
     
-    Print("before acquiring index \n",0);
     Acquire(customerIndexLock);
     ssn = GetMV(nextAvailableCustomerIndex);
     SetMV(nextAvailableCustomerIndex, ssn + 1);
     Release(customerIndexLock);
-    Print("After release, ssn: %i \n",ssn);
     
     if(GetMV(customers[ssn].isSenator))
 		runSenator();
@@ -842,7 +858,6 @@ int main() {
 
 	SetMV(customers[ssn].leftOffice, true);
     
-
 	Exit(0);
 }
 

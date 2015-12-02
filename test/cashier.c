@@ -62,7 +62,7 @@ void runCashier() {
             /*cashiers[i].state = FREE;*/
             SetMV(cashiers[i].state, FREE);
     	/*} else if(cashiers[i].bribeLineLength > 0) {*/
-        } else if(GetMV(cashiers[i].bribeLineLength) > 0) {
+        } else if(GetMV(cashiers[i].bribeLineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(cashiers[i].bribeLineLock);
             Signal(cashiers[i].bribeLineCV, cashiers[i].bribeLineLock); 
             Print("Cashier %i has signalled a Customer to come to their counter\n", i);
@@ -117,7 +117,7 @@ void runCashier() {
             /*cashiers[i].state = FREE;*/
             SetMV(cashiers[i].state, FREE);
         /*} else if(cashiers[i].lineLength > 0) {*/
-        } else if(GetMV(cashiers[i].lineLength) > 0) {
+        } else if(GetMV(cashiers[i].lineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(cashiers[i].lineLock);
             Signal(cashiers[i].lineCV, cashiers[i].lineLock);
             Print("Cashier %i has signalled a Customer to come to their counter\n", i);

@@ -107,7 +107,7 @@ void runManager() {
 		for(k = 0; k < numCustomers + numSenators; k++) {
 			if(GetMV(customers[k].leftOffice) == false) {
 				allCustomersLeftOffice = false;
-				Print("Customer %i has not left the office yet\n",k);
+				break;
 			}
 		}
 
@@ -149,9 +149,9 @@ void runManager() {
 
 		if(allClerksOnBreak)
 			continue;
-		for(k = 0; k < 100; k++)
-			Yield();
+		
 
+		if(Rand() % 4 == 0) { /* randomly output these totals */
 
 		Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);
@@ -159,6 +159,7 @@ void runManager() {
 		Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);
 		totalMoneyMade = applicationClerkMoneyTotal + pictureClerkMoneyTotal + passportClerkMoneyTotal + cashierMoneyTotal;
 		Print("Manager has counted a total of $%i for the Passport Office\n", totalMoneyMade);
+	}
 		
 
 		

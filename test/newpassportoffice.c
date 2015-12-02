@@ -12,32 +12,15 @@ int main() {
 	numCashiers = NUM_CASHIERS;
 	numSenators = NUM_SENATORS;
 
+	Print("=================================================\n",0);
+	Print("=============SIMULATING PASSPORT OFFICE==========\n",0);
+	Print("=================================================\n",0);
 	Print("Number of Customers: %i\n", numCustomers);
 	Print("Number of ApplicationClerks: %i\n", numApplicationClerks);
 	Print("Number of PictureClerks: %i\n", numPictureClerks);
 	Print("Number of PassportClerks: %i\n", numPassportClerks);
 	Print("Number of Cashiers: %i\n", numCashiers);
-	Print("Number of Senators: %i\n", NUM_SENATORS);
-
-	/*
-	for(k = 0; k < NUM_APPLICATION_CLERKS; k++)
-		initClerk(APPLICATION_CLERK,k);
-	
-	for(k = 0; k < NUM_PICTURE_CLERKS; k++)
-		initClerk(PICTURE_CLERK, k);
-	
-	for(k = 0; k < NUM_PASSPORT_CLERKS; k++)
-		initClerk(PASSPORT_CLERK, k);
-	
-	for(k = 0; k < NUM_CASHIERS; k++)
-		initClerk(CASHIER, k);
-	
-	for(k = 0; k < NUM_CUSTOMERS; k++)
-		initCustomer(k, false);
-
-	for(k = 0; k < NUM_SENATORS; k++)
-		initCustomer(k, true);
-	*/
+	Print("Number of Senators: %i\n", numSenators);
 	
 	for(k = 0 ; k < numCashiers; k++)
 		Exec("../test/cashier", sizeof("../test/cashier"));
@@ -60,7 +43,7 @@ int main() {
     
 	Exec("../test/manager", sizeof("../test/manager"));
 	
-	
+	Print("Setting up locks/cvs/mvs...\n",0);
      
 
 	Exit(0);

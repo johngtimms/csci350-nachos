@@ -5,10 +5,10 @@ typedef int bool;
 #define false 0
 
 #define NUM_CUSTOMERS			5
-#define NUM_APPLICATION_CLERKS	1
-#define NUM_PICTURE_CLERKS		1
-#define NUM_PASSPORT_CLERKS		1
-#define NUM_CASHIERS			1
+#define NUM_APPLICATION_CLERKS	3
+#define NUM_PICTURE_CLERKS		3
+#define NUM_PASSPORT_CLERKS		3
+#define NUM_CASHIERS			3
 #define NUM_SENATORS			2
 
 struct Customer;
@@ -280,7 +280,9 @@ void setup() {
 	nextAvailableCashierIndex = CreateMV("nextCashIndex", sizeof("nextCashIndex"));
 	nextAvailableApplicationClerkIndex = CreateMV("nextAppClerkIndex", sizeof("nextppClerkIndex"));
 	
+	
 	SetMV(senatorInside, 0);
+	/*
 	SetMV(senatorsOutside, 0);
 	SetMV(customersOutside, 0);
 	SetMV(nextAvailableCustomerIndex, 0);
@@ -288,6 +290,7 @@ void setup() {
 	SetMV(nextAvailablePassportClerkIndex, 0);
 	SetMV(nextAvailableCashierIndex, 0);
 	SetMV(nextAvailableApplicationClerkIndex, 0);
+	*/
 
 
 	for(k = 0; k < numApplicationClerks; k++)

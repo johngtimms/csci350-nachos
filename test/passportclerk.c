@@ -45,7 +45,7 @@ void runPassportClerk() {
             /*passportClerks[i].state = FREE;*/
             SetMV(passportClerks[i].state, FREE);
         /*} else if(passportClerks[i].bribeLineLength > 0) {*/
-    	} else if(GetMV(passportClerks[i].bribeLineLength) > 0) {
+    	} else if(GetMV(passportClerks[i].bribeLineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(passportClerks[i].bribeLineLock);
             Signal(passportClerks[i].bribeLineCV, passportClerks[i].bribeLineLock);     /* Signal Customer to exit line */
             Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);
@@ -80,7 +80,7 @@ void runPassportClerk() {
             /*passportClerks[i].state = FREE;*/
             SetMV(passportClerks[i].state, FREE);
         /*} else if(passportClerks[i].lineLength > 0) {*/
-        } else if(GetMV(passportClerks[i].lineLength) > 0) {
+        } else if(GetMV(passportClerks[i].lineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
             Acquire(passportClerks[i].lineLock);
             Signal(passportClerks[i].lineCV, passportClerks[i].lineLock);     /* Signal Customer to exit line */
             Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);

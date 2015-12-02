@@ -51,7 +51,7 @@ char* concatenate(char str[], int len, int num) {
     printf("String passed in with length %i is %s\n",len,str);
     /*int len = sizeof(str); this is calculating length wrong, so instead we're passing in the length as paramter*/ 
     /*str[len] = numstr;
-    /*str[len + 1] = '\0';*/
+    str[len + 1] = '\0';*/
 
     /* hundreds place */
     str[len] = '0' + num / 100;
@@ -115,6 +115,9 @@ void Exit_Syscall(int status) {
         // delete kernelLockTable & kernelCVTable
         DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
         //printf("machine->ReadRegister(4) =  %d\n", machine->ReadRegister(4));
+        printf("=================================================\n");
+        printf("========FINISHED SIMULATING PASSPORT OFFICE======\n");
+        printf("=================================================\n");
         printf("Terminating Nachos\n");
         interrupt->Halt();
     }
@@ -169,11 +172,11 @@ int Exec_Syscall(unsigned int vaddr, int len) {
         cout << "Unable to open file: " << buf << endl;
         return -1;
     }
-    delete buf;
+    
     // Create an AddrSpace (Process) for new file
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
-    Thread *thread = new Thread("0"); // Name the first thread in the new process 0 (needed for networking)
+    Thread *thread = new Thread(buf); // Name the first thread in the new process 0 (needed for networking)
     
     threadIndexLock->Acquire();
     thread->setID(++threadIndex);
@@ -802,7 +805,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    DEBUG('z', "CreateMV process %d thread %d\n", processID, threadID);
+    DEBUG('z', "CreateMV process %d thread %d machine %d\n", processID, threadID, machineName);
     sprintf(send, "%d,%d,%s", processID, threadID, name);
 
     // Construct packet header, mail header for the message
