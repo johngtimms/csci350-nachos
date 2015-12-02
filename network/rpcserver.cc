@@ -675,6 +675,21 @@ void RPCServer::Receive_NetPrint() {
         // Print the message
         printf(buffer);
         fflush(stdout);
+
+
+        // Test sending
+        PacketHeader outPktHdr;
+        MailHeader outMailHdr;
+        char send[MaxMailSize];
+
+        sprintf(send, "101510");
+
+        outPktHdr.to = 0;
+        outMailHdr.to = 20;
+        outMailHdr.from = 21;
+        outMailHdr.length = strlen(send) + 1;
+
+        postOffice->Send(outPktHdr, outMailHdr, send);
     }
 }
 

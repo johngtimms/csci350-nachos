@@ -534,11 +534,15 @@ void NetPrint_Syscall(int text, int num) {
     char *buf = new char[100 + 1];
     copyin(text, 100, buf);
     buf[100] = '\0';
+
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
     
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetPrint;
-    outMailHdr.from = 0; // No response needed
+    outMailHdr.from = mailbox; 
     outMailHdr.length = strlen(buf) + 1;
     
     // Make sure the message is not too long
@@ -555,6 +559,16 @@ void NetPrint_Syscall(int text, int num) {
         printf("ERROR: NetPrint failed. Server misconfigured. Terminating Nachos.\n");
         interrupt->Halt();
     }
+
+    // Try receiving
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+
+    // Get the response back
+    postOffice->Receive(20, &inPktHdr, &inMailHdr, recv);
+    int value = atoi(recv);
+    printf("TEST VALUE: %d\n", value);
     
     delete[] buf;
 }
@@ -565,10 +579,14 @@ void NetHalt_Syscall() {
     
     char *buf = "NoOp"; // No need to send a real message
     
+    int processID = currentThread->space->spaceID;
+    int threadID = currentThread->getID();
+    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
+
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetHalt;
-    outMailHdr.from = 0; // No response needed
+    outMailHdr.from = mailbox; 
     outMailHdr.length = strlen(buf) + 1;
     
     // Send the message
