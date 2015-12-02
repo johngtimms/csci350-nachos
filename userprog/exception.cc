@@ -407,7 +407,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
-    DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
+    DEBUG('z', "CreateLock process %d thread %d key: %i name: %s\n", processID, threadID, key, name);
     delete[] name;
     name = 0;
     return key;
@@ -616,6 +616,8 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
         printf("WARN: Acquire (after Wait) failed. Server misconfigured.\n");
 
     // Get the response back
+    if(lockKey == 12 && machineName == 1)
+        DEBUG('z', "APP CLERK WAITING FOR response to get appclerk LOCK!!!!!!!!\n");
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
 
 	DEBUG('z', "Acquire (after Wait) SUCCESS - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
