@@ -751,7 +751,14 @@ void NetworkLock::Release(int _machineID, int process, int thread) {
         else {
             mailboxID = (int) queue->Remove();           // wake up a waiting mailbox
             DEBUG('r', "Acquire success via release process %d thread %d mailbox %d\n", process, thread, mailboxID);
-            RPCServer::SendResponse(_machineID, mailboxID, -1);
+            //temporary way to get machineID from mailbox
+            int machineToWakeUp = mailboxID;
+
+            while (machineToWakeUp >= 10)
+                machineToWakeUp /= 10;
+
+            machineToWakeUp--;
+            RPCServer::SendResponse(machineToWakeUp, mailboxID, -1);
         }
     } else {
         printf("WARN: Release without acquire process %d thread %d\n", process, thread);
@@ -801,7 +808,7 @@ void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock
         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
             if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
                 conditionLock = lock;
-                DEBUG('r', "Wait assigned lock process %d thread %d\n", process, thread);
+                DEBUG('r', "Wait assigned lock %s process %d thread %d machineID %d\n", lock->name, process, thread, _machineID);
             if (conditionLock == lock) {                    // ok to wait
                 queue->Append((void *) mailbox);             // add mailbox to wait queue
                 conditionLock->Release(_machineID, process, thread);    // release waiting lock
@@ -892,7 +899,15 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
                                 int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
                                 DEBUG('r', "Signal mailbox: %i\n", mailboxToSignal);
 
-                                RPCServer::SendResponse(_machineID, mailboxToSignal, -1);
+                                //Temporary way to get machine ID from mailbox
+                                int machineIDToSignal = mailboxToSignal;
+
+                                while (machineIDToSignal >= 10)
+                                    machineIDToSignal /= 10;
+
+                                machineIDToSignal--;
+
+                                RPCServer::SendResponse(machineIDToSignal, mailboxToSignal, -1);
 
                                 
 
