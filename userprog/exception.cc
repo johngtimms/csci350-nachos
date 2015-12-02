@@ -406,6 +406,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
     int key = atoi(recv);
     DEBUG('z', "CreateLock process %d thread %d key: %i\n", processID, threadID, key);
     delete[] name;
+    name = 0;
     return key;
 }
 
@@ -534,6 +535,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     int key = atoi(recv);
     delete[] name;
+    name = 0;
     return key;
 }
 
@@ -592,7 +594,7 @@ void Wait_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
     
     if ( strcmp(test,recv) )
-        printf("WARN: Wait failed. Recieved bad server message.\n");
+        printf("WARN: Wait failed for lock with key: %i and condition with key: %i. Recieved bad server message.\n",lockKey, conditionKey);
     
     // After getting the CV, we need to acquire the lock
     DEBUG('z', "Acquire (after Wait) - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
@@ -706,6 +708,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     if ( strcmp(test,recv) )
         printf("WARN: Broadcast failed. Recieved bad server message.\n");
     
+    /*
     // After broadcasting, need to release the lock so the waiting thread can acquire
     DEBUG('z', "Release (after Broadcast) process %d thread %d\n", processID, threadID);
     sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
@@ -721,6 +724,7 @@ void Broadcast_Syscall(unsigned int conditionKey, unsigned int lockKey) {
     
     if ( !success )
     	printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
+        */
 }
 
 void NetPrint_Syscall(int text, int num) {
@@ -819,6 +823,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
     DEBUG('z', "CreateMV successful with key: %i\n", key);
 
     delete[] name;
+    name = 0;
     return key;
 }
 
