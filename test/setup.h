@@ -5,10 +5,10 @@ typedef int bool;
 #define false 0
 
 #define NUM_CUSTOMERS			5
-#define NUM_APPLICATION_CLERKS	3
-#define NUM_PICTURE_CLERKS		3
-#define NUM_PASSPORT_CLERKS		3
-#define NUM_CASHIERS			3
+#define NUM_APPLICATION_CLERKS	2
+#define NUM_PICTURE_CLERKS		2
+#define NUM_PASSPORT_CLERKS		2
+#define NUM_CASHIERS			2
 #define NUM_SENATORS			2
 
 struct Customer;
