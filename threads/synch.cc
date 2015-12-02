@@ -187,17 +187,17 @@ void Condition::Signal(Lock* conditionLock) {
                         if(thread != NULL) {
                             scheduler->ReadyToRun(thread);          // wake up waiting thread
                         } else
-                            printf("WARN: thread is NULL\n");       // should never happen
+                            printf("WARN: thread is NULL (signal)\n");       // should never happen
                     } else
-                        printf("WARN: no threads waiting\n");
+                        printf("WARN: no threads waiting (signal)\n");
                 } else
-                    printf("WARN: incorrect lock\n");
-            } else
-                printf("WARN: condition not assigned\n");
+                    printf("WARN: incorrect lock (signal)\n");
+            } else 
+                printf("WARN: condition not assigned (signal) (%s)\n", (*conditionLock).getName());
         } else
-            printf("WARN: lock not held by thread\n");
+            printf("WARN: lock not held by thread (signal)\n");
     } else
-        printf("WARN: lock is NULL\n");
+        printf("WARN: lock is NULL (signal)\n");
     (void) interrupt->SetLevel(oldLevel);                           // re-enable interrupts
 }
 
@@ -210,13 +210,13 @@ void Condition::Broadcast(Lock* conditionLock) {
                         while(!queue->IsEmpty())                    // signal all threads waiting
                             Signal(conditionLock);
                     } else
-                        printf("WARN: no threads waiting\n");
+                        printf("WARN: no threads waiting (broadcast)\n");
                 } else
-                    printf("WARN: incorrect lock\n");
+                    printf("WARN: incorrect lock (broadcast)\n");
             } else
-                printf("WARN: condition not assigned\n");
+                printf("WARN: condition not assigned (broadcast)\n");
         } else
-            printf("WARN: lock not held by thread\n");
+            printf("WARN: lock not held by thread (broadcast)\n");
     } else
-        printf("WARN: lock is NULL\n");
+        printf("WARN: lock is NULL (broadcast)\n");
 }

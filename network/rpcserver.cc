@@ -47,7 +47,7 @@ DEBUG('r', "2");
             int serverMailbox = MailboxCreateLock + 100;
 
             if ( lock != NULL ) {
-                DEBUG('r', "CreateLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                DEBUG('n', "CreateLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
@@ -62,7 +62,7 @@ DEBUG('r', "4");
         if ( lock != NULL ) {
             DEBUG('r', "a");
             // We DO have it
-            DEBUG('r', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            DEBUG('n', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
             SendResponse(mailbox, -1);
             DEBUG('r', "b");
             continue;
@@ -85,7 +85,7 @@ DEBUG('r', "5");
         DEBUG('r', "6");
 
         // Reply with success
-        DEBUG('r', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
+        DEBUG('n', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
         SendResponse(mailbox, -1);
     }
 }
@@ -150,7 +150,7 @@ void RPCServer::Receive_DestroyLock() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName);
         SendResponse(mailbox, -2);
     }
 }
@@ -213,7 +213,7 @@ void RPCServer::Receive_Acquire() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: Acquire failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("ERROR: Acquire failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -234,6 +234,32 @@ void RPCServer::Receive_Release() {
 
         // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks[lockName];
+
+        // DEBUG('r', "RELEASE - there are %d locks\n", networkLockTable->locks.size());
+        // for (int i = 0; i < networkLockTable->locks.size(), i++) {
+        //     DEBUG('r', "RELEASE - %s", (*networkLockTable->locks[i]).getName());
+        // }
+
+        DEBUG('r', "RELEASE - there are %d locks\n", networkLockTable->locks.size());
+        for (std::map<char*, NetworkLock*>::iterator it = networkLockTable->locks.begin(); it != networkLockTable->locks.end(); ++it) {
+            DEBUG('r', "RELEASE - %s / %s\n", it->first, it->first);
+
+            if (it->first == lockName) {
+                printf("HERE!!\n");
+                lock = it->second;
+            }
+        }
+
+        NetworkLock *lockNull = networkLockTable->locks["locknull"];
+        NetworkLock *lockOne = networkLockTable->locks["lockOne"];
+        NetworkLock *lockTwo = networkLockTable->locks["lockTwo"];
+
+        printf("\t null %d \n", lockNull == NULL);
+        printf("\t one %d \n", lockOne == NULL);
+        printf("\t two %d \n", lockTwo == NULL);
+
+        // for (std::map<char,int>::iterator it=mymap.begin(); it!=mymap.end(); ++it)
+        //     std::cout << it->first << " => " << it->second << '\n';
 
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
@@ -277,7 +303,7 @@ void RPCServer::Receive_Release() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: Release failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("ERROR: Release failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -400,7 +426,7 @@ void RPCServer::Receive_DestroyCondition() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "WARN: DestroyCondition failed. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("WARN: DestroyCondition failed. No such condition - mailbox %d name %s\n", mailbox, conditionName);
         SendResponse(mailbox, -2);
     }
 }
@@ -437,7 +463,7 @@ void RPCServer::Receive_Wait() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    DEBUG('r', "ERROR: Wait (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Wait (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -465,7 +491,7 @@ void RPCServer::Receive_Wait() {
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                DEBUG('r', "ERROR: Wait (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Wait (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -485,7 +511,7 @@ void RPCServer::Receive_Wait() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: Wait failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Wait failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -523,7 +549,7 @@ void RPCServer::Receive_Signal() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    DEBUG('r', "ERROR: Signal (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Signal (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -551,7 +577,7 @@ void RPCServer::Receive_Signal() {
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                DEBUG('r', "ERROR: Signal (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Signal (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -571,7 +597,7 @@ void RPCServer::Receive_Signal() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: Signal failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Signal failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -609,7 +635,7 @@ void RPCServer::Receive_Broadcast() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    DEBUG('r', "ERROR: Broadcast (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Broadcast (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -637,7 +663,7 @@ void RPCServer::Receive_Broadcast() {
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                DEBUG('r', "ERROR: Broadcast (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Broadcast (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -657,7 +683,7 @@ void RPCServer::Receive_Broadcast() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: Broadcast failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Broadcast failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -677,19 +703,19 @@ void RPCServer::Receive_NetPrint() {
         fflush(stdout);
 
 
-        // Test sending
-        PacketHeader outPktHdr;
-        MailHeader outMailHdr;
-        char send[MaxMailSize];
+        // // Test sending
+        // PacketHeader outPktHdr;
+        // MailHeader outMailHdr;
+        // char send[MaxMailSize];
 
-        sprintf(send, "101510");
+        // sprintf(send, "101510");
 
-        outPktHdr.to = 0;
-        outMailHdr.to = 20;
-        outMailHdr.from = 21;
-        outMailHdr.length = strlen(send) + 1;
+        // outPktHdr.to = 0;
+        // outMailHdr.to = 20;
+        // outMailHdr.from = 21;
+        // outMailHdr.length = strlen(send) + 1;
 
-        postOffice->Send(outPktHdr, outMailHdr, send);
+        // postOffice->Send(outPktHdr, outMailHdr, send);
     }
 }
 
@@ -824,7 +850,7 @@ void RPCServer::Receive_DestroyMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "WARN: DestroyMV failed. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("WARN: DestroyMV failed. No such mv - mailbox %d name %s\n", mailbox, mvName);
         SendResponse(mailbox, -2);
     }
 }
@@ -889,7 +915,7 @@ void RPCServer::Receive_GetMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: GetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("ERROR: GetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -956,7 +982,7 @@ void RPCServer::Receive_SetMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        DEBUG('r', "ERROR: SetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("ERROR: SetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -972,9 +998,9 @@ int RPCServer::ClientMailbox(int _machine, int process, int thread) {
     
     // Have to add 10 because process, thread, and _machine can all be 0, which would create overlap
     // Use 10 instead of 1 so that SendResponse can easily extract the machine ID
-    sprintf(str1, "%d", (process + 10));
-    sprintf(str2, "%d", (thread + 10));
-    sprintf(str3, "%d", (_machine + 10));
+    sprintf(str1, "%d", (_machine + 10));
+    sprintf(str2, "%d", (process + 10));
+    sprintf(str3, "%d", (thread + 10));
 
     strcat(str1, str2);
     strcat(str1, str3);
@@ -1014,9 +1040,10 @@ void RPCServer::SendResponse(int mailbox, int response, int _machine) {
         _machine = (mailbox / 10000) - 10;
     }
 
-    DEBUG('r', "Send response machine %d mailbox %d response %d send \"%s\"\n", _machine, mailbox, response, send);
+    DEBUG('n', "Send response machine %d mailbox %d response %d send \"%s\"\n", _machine, mailbox, response, send);
 
     // Construct packet header, mail header for the message
+    outPktHdr.from = 0; // TEST
     outPktHdr.to = _machine;       
     outMailHdr.to = mailbox;
     outMailHdr.from = -1; // No syscall ever needs to reply to a response
@@ -1028,7 +1055,7 @@ void RPCServer::SendResponse(int mailbox, int response, int _machine) {
     if ( !success )
         printf("WARN: SendResponse failed. Client misconfigured.\n");
     else
-        DEBUG('r', "Send response success\n");
+        DEBUG('n', "Send response success\n");
 }
 
 //-----------------------------------------------------------------------------------------------//

@@ -373,14 +373,14 @@ int genericFunction(char *message, char *identifier, int action) {
     char recv[MaxMailSize];
     char test[MaxMailSize]; strcpy(test, "yes");
 
-    DEBUG('l', "Generic Function - message \'%s\' identifier \'%s\' action \'%d\'\n", message, identifier, action);
+    DEBUG('n', "Generic Function - message \'%s\' identifier \'%s\' action \'%d\'\n", message, identifier, action);
 
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
 
-    DEBUG('l', "Generic Function - process %d thread %d machine %d mailbox %d\n", processID, threadID, machineName, mailbox);
+    DEBUG('n', "Generic Function - process %d thread %d machine %d mailbox %d\n", processID, threadID, machineName, mailbox);
 
     // Because the server mailbox defines the action, the message is all that must be sent
     sprintf(send, "%s", message);
@@ -538,6 +538,8 @@ void NetPrint_Syscall(int text, int num) {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
+
+    DEBUG('n', "NETPRINT mailbox %d machineName %d\n", mailbox, machineName);
     
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
@@ -560,15 +562,15 @@ void NetPrint_Syscall(int text, int num) {
         interrupt->Halt();
     }
 
-    // Try receiving
-    PacketHeader inPktHdr;
-    MailHeader inMailHdr;
-    char recv[MaxMailSize];
+    // // Try receiving
+    // PacketHeader inPktHdr;
+    // MailHeader inMailHdr;
+    // char recv[MaxMailSize];
 
-    // Get the response back
-    postOffice->Receive(20, &inPktHdr, &inMailHdr, recv);
-    int value = atoi(recv);
-    printf("TEST VALUE: %d\n", value);
+    // // Get the response back
+    // postOffice->Receive(20, &inPktHdr, &inMailHdr, recv);
+    // int value = atoi(recv);
+    // printf("TEST VALUE: %d\n", value);
     
     delete[] buf;
 }
