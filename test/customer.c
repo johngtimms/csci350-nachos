@@ -8,7 +8,7 @@ bool enterApplicationLine(int clerkID) {
 	/* Stand in line */
 	/*Print("Customer %i about to stand in application clerk line\n", ssn); */
 	/*if(applicationClerks[clerkID].state != FREE) {*/
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
+	if(true) { /*don't go in line if there is a senator present, unless you are a senator /*
 		/*if(customers[ssn].isSenator) {*/
 		if(GetMV(customers[ssn].isSenator)) {	
 			Acquire(applicationClerks[clerkID].senatorLineLock);
@@ -40,7 +40,6 @@ bool enterApplicationLine(int clerkID) {
 			SetMV(applicationClerks[clerkID].lineLength, length + 1);
 			Print("Customer %i has gotten in regular line for ", ssn);
 			Print("ApplicationClerk %i\n", clerkID);
-			Print("regular line length is now: %i\n",GetMV(applicationClerks[clerkID].lineLength));
 			Wait(applicationClerks[clerkID].lineCV, applicationClerks[clerkID].lineLock);
 			Print("Customer %i woken up from line\n",ssn);
 			/*applicationClerks[clerkID].lineLength--;*/
@@ -67,6 +66,7 @@ bool enterApplicationLine(int clerkID) {
 		length = GetMV(customersOutside);
 		SetMV(customersOutside, length + 1);
 		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		Print("Customer %i is notified that there are no more senators, and can come in now. enterApplicationLine()\n", ssn);
 		/*customersOutside -= 1;*/
 		length = GetMV(customersOutside);
 		SetMV(customersOutside, length - 1);
@@ -681,6 +681,7 @@ void runSenator() {
 		i = GetMV(senatorsOutside);
 		SetMV(senatorsOutside, i + 1);
 		Release(senatorInsideLock);
+		Print("Senator: %i is going to wait outside because there is a senator inside.\n", ssn);
 		Wait(senatorOutsideLineCV, senatorOutsideLineLock);
 		Acquire(senatorInsideLock);
 		/*senatorsOutside = senatorsOutside - 1;*/
@@ -698,7 +699,8 @@ void runSenator() {
 	for(k = 0; k < numApplicationClerks; k++) {
 		Acquire(applicationClerks[k].lineLock);
 		/*if(applicationClerks[k].lineLength > 0)*/
-		Print("senator is checking line length: %i\n", GetMV(applicationClerks[k].lineLength));
+		Print("senator %i", ssn);
+		Print(" is checking app line length: %i\n", GetMV(applicationClerks[k].lineLength));
 		if(GetMV(applicationClerks[k].lineLength) > 0) {
 			Print("line length is greater than 0: %i\n",GetMV(applicationClerks[k].lineLength));
 			Broadcast(applicationClerks[k].lineCV, applicationClerks[k].lineLock);
@@ -706,6 +708,8 @@ void runSenator() {
 		Release(applicationClerks[k].lineLock);
 		Acquire(applicationClerks[k].bribeLineLock);
 		/*if(applicationClerks[k].bribeLineLength > 0) */
+		Print("senator %i", ssn);
+		Print(" is checking app bribe line length: %i\n", GetMV(applicationClerks[k].bribeLineLength));
 		if(GetMV(applicationClerks[k].bribeLineLength) > 0)
 			Broadcast(applicationClerks[k].bribeLineCV, applicationClerks[k].bribeLineLock);
 		Release(applicationClerks[k].bribeLineLock);
@@ -791,6 +795,7 @@ void runCustomer() {
 		i = GetMV(customersOutside);
 		SetMV(customersOutside, i + 1);
 		Wait(customerOutsideLineCV,customerOutsideLineLock);
+		Print("Customer %i is notified that there are no more senators, and can come in now. runCustomer()\n", ssn);
 		i = GetMV(customersOutside);
 		SetMV(customersOutside, i - 1);
 		Release(customerOutsideLineLock);
