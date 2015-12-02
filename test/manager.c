@@ -152,13 +152,14 @@ void runManager() {
 		
 
 		if(Rand() % 4 == 0) { /* randomly output these totals */
-
+		/*
 		Print("Manager has counted a total of $%i for ApplicationClerks\n", applicationClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PictureClerks\n", pictureClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for PassportClerks\n", passportClerkMoneyTotal);
 		Print("Manager has counted a total of $%i for Cashiers\n", cashierMoneyTotal);
 		totalMoneyMade = applicationClerkMoneyTotal + pictureClerkMoneyTotal + passportClerkMoneyTotal + cashierMoneyTotal;
 		Print("Manager has counted a total of $%i for the Passport Office\n", totalMoneyMade);
+		*/
 	}
 		
 

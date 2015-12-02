@@ -4,12 +4,12 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			1
-#define NUM_APPLICATION_CLERKS	1
-#define NUM_PICTURE_CLERKS		0
-#define NUM_PASSPORT_CLERKS		0
-#define NUM_CASHIERS			0
-#define NUM_SENATORS			0
+#define NUM_CUSTOMERS			5
+#define NUM_APPLICATION_CLERKS	2
+#define NUM_PICTURE_CLERKS		2
+#define NUM_PASSPORT_CLERKS		2
+#define NUM_CASHIERS			2
+#define NUM_SENATORS			2
 
 struct Customer;
 struct Clerk;
@@ -136,8 +136,10 @@ void initClerk(ClerkType clerkType, int i) {
 			pictureClerks[i].senatorLineCV = CreateCondition("picenatorCV", sizeof("picSenatorCV"), i);
 			pictureClerks[i].clerkCV = CreateCondition("picClerkCV", sizeof("picClerkCV"), i);
 			pictureClerks[i].breakCV = CreateCondition("picBreakCV", sizeof("picBreakCV"), i);
+			/*
 			SetMV(pictureClerks[i].customerID, -1);
 			SetMV(pictureClerks[i].state, BUSY);
+			*/
 			break;
 		case PASSPORT_CLERK:
 			passportClerks[i].lineLength = CreateMV("passClerkLineLength", sizeof("passClerkLineLength"), i);
@@ -164,8 +166,10 @@ void initClerk(ClerkType clerkType, int i) {
 			passportClerks[i].senatorLineCV = CreateCondition("passSenatorCV", sizeof("passSenatorCV"), i);
 			passportClerks[i].clerkCV = CreateCondition("passClerkCV", sizeof("passClerkCV"), i);
 			passportClerks[i].breakCV = CreateCondition("passBreakCV", sizeof("passBreakCV"), i);
+			/*
 			SetMV(passportClerks[i].customerID, -1);
 			SetMV(passportClerks[i].state, BUSY);
+			*/
 			break;
 		case CASHIER:
 			cashiers[i].lineLength = CreateMV("cashLineLength", sizeof("cashLineLength"), i);
@@ -192,8 +196,10 @@ void initClerk(ClerkType clerkType, int i) {
 			cashiers[i].senatorLineCV = CreateCondition("cashSenatorCV", sizeof("cashSenatorCV"), i);
 			cashiers[i].clerkCV = CreateCondition("cashClerkCV", sizeof("cashClerkCV"), i);
 			cashiers[i].breakCV = CreateCondition("cashBreakCV", sizeof("cashBreakCV"), i);
+			/*
 			SetMV(cashiers[i].customerID, -1);
 			SetMV(cashiers[i].state, BUSY);
+			*/
 			break;
 	}
 }
