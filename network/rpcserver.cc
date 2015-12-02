@@ -45,7 +45,7 @@ void RPCServer::Receive_CreateLock() {
         }
 
         // Process the message (identical to original syscall)
-        NetworkLock *lock = new NetworkLock(inPktHdr.from, processID, name);
+        NetworkLock *lock = new NetworkLock(name);
         networkLockTable->tableLock->Acquire();
         int key = networkLockTable->index;
         networkLockTable->locks[key] = lock;
@@ -108,7 +108,7 @@ void RPCServer::Receive_Acquire() {
         int machineID = inPktHdr.from;
         
         unsigned int key = atoi(strtok(NULL,","));
-        DEBUG('r', "Acquire - process %d thread %d key %d\n", processID, threadID, key);
+        DEBUG('r', "Acquire - machineID %d process %d thread %d key %d\n", machineID, processID, threadID, key);
 
         // Process the message (identical to original syscall)
         networkLockTable->tableLock->Acquire();
@@ -191,7 +191,7 @@ void RPCServer::Receive_CreateCondition() {
         }
 
         // Process the message (identical to original syscall)
-        NetworkCondition *condition = new NetworkCondition(inPktHdr.from, processID, name);
+        NetworkCondition *condition = new NetworkCondition(name);
         networkConditionTable->tableLock->Acquire();
         int key = networkConditionTable->index;
         networkConditionTable->conditions[key] = condition;
@@ -451,7 +451,7 @@ void RPCServer::Receive_CreateMV() {
         }
 
         // Process the message (identical to original syscall)
-        NetworkMV *mv = new NetworkMV(inPktHdr.from, processID, name);
+        NetworkMV *mv = new NetworkMV(name);
         networkMVTable->tableLock->Acquire();
         int key = networkMVTable->index;
         //networkMVTable->mvs[key] = mv->Get(processID);
@@ -568,12 +568,12 @@ int RPCServer::ClientMailbox(int machineID, int process, int thread) {
     char str3[2];
     
     // Have to add 1 because process and thread and machineID can both be 0, which would create overlap
-    sprintf(str1, "%d", (process + 1));
-    sprintf(str2, "%d", (thread + 1));
-    //sprintf(str3, "%d", (machineID + 1)); not working properly
+    sprintf(str1, "%d", (machineID + 1));
+    sprintf(str2, "%d", (process + 1));
+    sprintf(str3, "%d", (thread + 1)); //not working properly
 
     strcat(str1, str2);
-    //strcat(str1, str3); not working properly
+    strcat(str1, str3); //not working properly
     int mailbox = atoi(str1);
 
     return mailbox;
@@ -697,10 +697,7 @@ void RunServer() {
 // Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
-NetworkLock::NetworkLock(int _machineID, int process, char *_name) {
-    machineID = _machineID;
-    processID = process;
-    threadID = -1;
+NetworkLock::NetworkLock(char *_name) {
     mailboxID = -1;
     name = new char[strlen(_name)+1]; //deep copy
     strcpy(name, _name); //deep copy
@@ -720,15 +717,16 @@ void NetworkLock::Acquire(int _machineID, int process, int thread) {
     }*/
     int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); //get mailbox id of client calling acquire
     
+    
     // Do the regular Lock::Acquire stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     if (mailboxID == -1) {                               // lock is available
         mailboxID = mailbox;
-        DEBUG('r', "Acquire success machine %d process %d thread %d\n", machineID, process, thread);
-        RPCServer::SendResponse(machineID, mailboxID, -1);
+        DEBUG('r', "Acquire success machine %d process %d thread %d mailbox %d name %s\n", _machineID, process, thread, mailbox, name);
+        RPCServer::SendResponse(_machineID, mailboxID, -1);
     } else if (mailboxID != mailbox) {                    // lock is busy
         queue->Append((void *) mailbox);                 // add mailbox ID to the wait queue
-        DEBUG('r', "Acquire waiting process %d thread %d\n", process, thread);
+        DEBUG('r', "Acquire waiting process %d thread %d mailbox %d name %s\n", process, thread, mailbox, name);
     } else {
         printf("WARN: Acquire duplicate process %d thread %d\n", process, thread);
     }
@@ -753,7 +751,7 @@ void NetworkLock::Release(int _machineID, int process, int thread) {
         else {
             mailboxID = (int) queue->Remove();           // wake up a waiting mailbox
             DEBUG('r', "Acquire success via release process %d thread %d mailbox %d\n", process, thread, mailboxID);
-            RPCServer::SendResponse(machineID, mailboxID, -1);
+            RPCServer::SendResponse(_machineID, mailboxID, -1);
         }
     } else {
         printf("WARN: Release without acquire process %d thread %d\n", process, thread);
@@ -773,9 +771,7 @@ bool NetworkLock::HasAcquired(int mailbox) {
 // Create NetworkCondition
 //-----------------------------------------------------------------------------------------------//
 
-NetworkCondition::NetworkCondition(int _machineID, int process, char* _name) {
-    machineID = _machineID;
-    processID = process;
+NetworkCondition::NetworkCondition(char* _name) {
     name = new char[strlen(_name)+1]; //deep copy
     strcpy(name, _name); //deep copy
     conditionLock = NULL;
@@ -805,7 +801,7 @@ void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock
         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
             if (conditionLock == NULL)                      // condition hasn't been assigned to a lock yet
                 conditionLock = lock;
-                DEBUG('r', "Wait assigned lock process %d thread %d\n", processID, thread);
+                DEBUG('r', "Wait assigned lock process %d thread %d\n", process, thread);
             if (conditionLock == lock) {                    // ok to wait
                 queue->Append((void *) mailbox);             // add mailbox to wait queue
                 conditionLock->Release(_machineID, process, thread);    // release waiting lock
@@ -841,10 +837,16 @@ void NetworkCondition::Signal(int _machineID, int process, int _thread, NetworkL
         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
                 int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
-                DEBUG('r', "Signal thread process %d thread %d mailbox: %i\n", processID, _thread, mailboxToSignal);
+                DEBUG('r', "Signal thread process %d thread %d mailbox: %i\n", process, _thread, mailboxToSignal);
+                RPCServer::SendResponse(_machineID, mailbox, -1);
+                // TEMPORARY WAY TO GET MACHINE ID FROM MAILBOX
+                int machineIDToSignal = mailboxToSignal;
 
-                RPCServer::SendResponse(machineID, mailbox, -1);
-                RPCServer::SendResponse(machineID, mailboxToSignal, -1);
+                while (machineIDToSignal >= 10)
+                    machineIDToSignal /= 10;
+
+                machineIDToSignal--;
+                RPCServer::SendResponse(machineIDToSignal, mailboxToSignal, -1);
                 // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
                 // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
                 // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
@@ -888,9 +890,9 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
                         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
                             if (conditionLock == lock) {
                                 int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
-                                DEBUG('r', "Signal thread process %d thread %d mailbox: %i\n", processID, _thread, mailboxToSignal);
+                                DEBUG('r', "Signal mailbox: %i\n", mailboxToSignal);
 
-                                RPCServer::SendResponse(machineID, mailboxToSignal, -1);
+                                RPCServer::SendResponse(_machineID, mailboxToSignal, -1);
 
                                 
 
@@ -924,7 +926,7 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
         printf("ERROR: Broadcast failed. Lock null. Terminating Nachos.\n");
         interrupt->Halt();
     }
-    RPCServer::SendResponse(machineID, mailbox, -1); //signal back to thread waiting in exception.cc
+    RPCServer::SendResponse(_machineID, mailbox, -1); //signal back to thread waiting in exception.cc
 }
 
 /*
@@ -937,9 +939,7 @@ bool NetworkCondition::IsOwner(int _machineID) {
 // Create NetworkMV
 //-----------------------------------------------------------------------------------------------//
 
-NetworkMV::NetworkMV(int _machineID, int process, char* _name) {
-    machineID = _machineID;
-    processID = process;
+NetworkMV::NetworkMV(char* _name) {
     value = 0;
     name = new char[strlen(_name)+1]; //deep copy
     strcpy(name, _name); //deep copy*/
