@@ -30,7 +30,7 @@ void runApplicationClerk() {
             /*applicationClerks[i].state = FREE;*/
             SetMV(applicationClerks[i].state, FREE);
     	/*} else if(applicationClerks[i].bribeLineLength > 0) {*/
-    	} else if(GetMV(applicationClerks[i].bribeLineLength) > 0) {
+    	} else if(GetMV(applicationClerks[i].bribeLineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) { /*never signal customers if a senator is inside*/
             Acquire(applicationClerks[i].bribeLineLock);
             Signal(applicationClerks[i].bribeLineCV, applicationClerks[i].bribeLineLock);     /* Signal Customer to exit line */
             Print("ApplicationClerk %i has signalled a Customer to come to their counter\n", i);
@@ -52,7 +52,7 @@ void runApplicationClerk() {
             /*applicationClerks[i].state = FREE;*/
             SetMV(applicationClerks[i].state, FREE);
         /*} else if(applicationClerks[i].lineLength > 0) {*/
-        } else if(GetMV(applicationClerks[i].lineLength) > 0) {
+        } else if(GetMV(applicationClerks[i].lineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) { /*never signal customers if a senator is inside*/
             Acquire(applicationClerks[i].lineLock);
             Signal(applicationClerks[i].lineCV, applicationClerks[i].lineLock);     /* Signal Customer to exit line */
             Print("ApplicationClerk %i has signalled a Customer to come to their counter\n", i);
