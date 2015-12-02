@@ -66,53 +66,53 @@ class RPCServer {
         // The negation of mailboxFrom tells the receiving server this is a Server-to-Server call
         // query is the original query from the client
         // identifier is a description for debugging
-        static bool SendQuery(int mailboxTo, int mailboxFrom, char *query, char *identifier);
+        static bool SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier);
 };
 
 class NetworkLock {
     public:
-        NetworkLock(char *_name);
+        NetworkLock(std::string _name);
         ~NetworkLock();
         void Acquire(int _mailbox);
         void Release(int _mailbox);
         bool HasAcquired(int _mailbox);
-        char* getName() { return name; }
+        std::string getName() { return name; }
 
     private:
         int mailbox; // If this is set, it means the lock is held
-        char *name;
+        std::string name;
         List *queue;
 };
 
 class NetworkCondition {
     public:
-        NetworkCondition(char *_name);
+        NetworkCondition(std::string _name);
         ~NetworkCondition();
         void Wait(int mailbox, NetworkLock *lock);
         void Signal(int mailbox, NetworkLock *lock);
         void Broadcast(int mailbox, NetworkLock *lock);
         
     private:
-        char *name;
+        std::string name;
         NetworkLock *conditionLock;
         List *queue;
 };
 
 class NetworkMV {
     public:
-        NetworkMV(char *_name);
+        NetworkMV(std::string _name);
         ~NetworkMV();
         int getMV();
         void setMV(int _value);
        
     private:
-        char *name;
+        std::string name;
         int value;
 };
 
 struct NetworkLockTable {
     Lock *tableLock;
-    std::map<char*, NetworkLock*> locks;
+    std::map<std::string, NetworkLock*> locks;
 
     NetworkLockTable() {
         tableLock = new Lock();
@@ -125,7 +125,7 @@ struct NetworkLockTable {
 
 struct NetworkConditionTable {
     Lock *tableLock;
-    std::map<char*, NetworkCondition*> conditions;
+    std::map<std::string, NetworkCondition*> conditions;
 
     NetworkConditionTable() {
         tableLock = new Lock();
@@ -138,7 +138,7 @@ struct NetworkConditionTable {
 
 struct NetworkMVTable {
     Lock *tableLock;
-    std::map<char*, NetworkMV*> mvs;
+    std::map<std::string, NetworkMV*> mvs;
 
     NetworkMVTable() {
         tableLock = new Lock();

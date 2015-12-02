@@ -31,9 +31,20 @@ void RPCServer::Receive_CreateLock() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *lockName = recv;
-DEBUG('r', "{%d}",mailbox);
-DEBUG('r', "2");
+        std::string lockName(recv);
+
+        // DEBUG('r', "{%d}",mailbox);
+        // DEBUG('r', "2");
+
+        // printf("\t CreateLock - there are %d locks\n", networkLockTable->locks.size());
+        // for (std::map<char*, NetworkLock*>::iterator it = networkLockTable->locks.begin(); it != networkLockTable->locks.end(); ++it) {
+        //     printf("\t CreateLock - %s / %s\n", it->first, it->second);
+        //     printf("\t RELEASE - %d \n", it->second == NULL);
+
+        //     if (it->first == lockName) {
+        //         printf("HERE!!\n");
+        //     }
+        // }
 
         // Check if the lock already exists
         NetworkLock *lock = networkLockTable->locks[lockName];
@@ -47,7 +58,7 @@ DEBUG('r', "2");
             int serverMailbox = MailboxCreateLock + 100;
 
             if ( lock != NULL ) {
-                DEBUG('n', "CreateLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                DEBUG('n', "CreateLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
@@ -62,7 +73,7 @@ DEBUG('r', "4");
         if ( lock != NULL ) {
             DEBUG('r', "a");
             // We DO have it
-            DEBUG('n', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            DEBUG('n', "CreateLock (Found Local) - mailbox %d name %s\n", mailbox, lockName.c_str());
             SendResponse(mailbox, -1);
             DEBUG('r', "b");
             continue;
@@ -82,10 +93,20 @@ DEBUG('r', "5");
         networkLockTable->locks[lockName] = lock;
         networkLockTable->tableLock->Release();
 
+        printf("\t CreateLock - there are %d locks\n", networkLockTable->locks.size());
+        for (std::map<std::string, NetworkLock*>::iterator it = networkLockTable->locks.begin(); it != networkLockTable->locks.end(); ++it) {
+            printf("\t CreateLock - %s / %s\n", it->first.c_str(), it->second);
+            printf("\t RELEASE - %d \n", it->second == NULL);
+
+            if (it->first == lockName) {
+                printf("HERE!!\n");
+            }
+        }
+
         DEBUG('r', "6");
 
         // Reply with success
-        DEBUG('n', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName);
+        DEBUG('n', "CreateLock (New) - mailbox %d name %s\n", mailbox, lockName.c_str());
         SendResponse(mailbox, -1);
     }
 }
@@ -101,7 +122,7 @@ void RPCServer::Receive_DestroyLock() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *lockName = recv;
+        std::string lockName(recv);
 
         // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks[lockName];
@@ -112,7 +133,7 @@ void RPCServer::Receive_DestroyLock() {
             int serverMailbox = MailboxDestroyLock + 100;
 
             if ( lock != NULL ) {
-                DEBUG('r', "DestroyLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                DEBUG('n', "DestroyLock (Found Remote) - mailbox %d name %s\n", mailbox, lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 
                 // Process the message (identical to the original syscall)
@@ -132,7 +153,7 @@ void RPCServer::Receive_DestroyLock() {
         // This is Client-to-Server
         if ( lock != NULL ) {
             // We DO have it
-            DEBUG('r', "DestroyLock (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            DEBUG('n', "DestroyLock (Found Local) - mailbox %d name %s\n", mailbox, lockName.c_str());
 
             // Process the message (identical to the original syscall)
             networkLockTable->tableLock->Acquire();
@@ -150,7 +171,7 @@ void RPCServer::Receive_DestroyLock() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("WARN: DestroyLock failed. No such lock - mailbox %d name %s\n", mailbox, lockName.c_str());
         SendResponse(mailbox, -2);
     }
 }
@@ -166,7 +187,7 @@ void RPCServer::Receive_Acquire() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *lockName = recv;
+        std::string lockName(recv);
 
         // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks[lockName];
@@ -177,7 +198,7 @@ void RPCServer::Receive_Acquire() {
             int serverMailbox = MailboxAcquire + 100;
 
             if ( lock != NULL ) {
-                DEBUG('r', "Acquire (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                DEBUG('r', "Acquire (Found Remote) - mailbox %d name %s\n", mailbox, lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -196,7 +217,7 @@ void RPCServer::Receive_Acquire() {
         // This is Client-to-Server
         if ( lock != NULL ) {
             // We DO have it
-            DEBUG('r', "Acquire (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            DEBUG('r', "Acquire (Found Local) - mailbox %d name %s\n", mailbox, lockName.c_str());
 
             // Handle it
             networkLockTable->tableLock->Acquire();
@@ -213,7 +234,7 @@ void RPCServer::Receive_Acquire() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: Acquire failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("ERROR: Acquire failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -230,7 +251,7 @@ void RPCServer::Receive_Release() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *lockName = recv;
+        std::string lockName(recv);
 
         // Check if the lock exists
         NetworkLock *lock = networkLockTable->locks[lockName];
@@ -241,8 +262,9 @@ void RPCServer::Receive_Release() {
         // }
 
         DEBUG('r', "RELEASE - there are %d locks\n", networkLockTable->locks.size());
-        for (std::map<char*, NetworkLock*>::iterator it = networkLockTable->locks.begin(); it != networkLockTable->locks.end(); ++it) {
-            DEBUG('r', "RELEASE - %s / %s\n", it->first, it->first);
+        for (std::map<std::string, NetworkLock*>::iterator it = networkLockTable->locks.begin(); it != networkLockTable->locks.end(); ++it) {
+            DEBUG('r', "RELEASE - %s / %s\n", it->first.c_str(), it->first.c_str());
+            printf("\t RELEASE - %d \n", it->second == NULL);
 
             if (it->first == lockName) {
                 printf("HERE!!\n");
@@ -267,7 +289,7 @@ void RPCServer::Receive_Release() {
             int serverMailbox = MailboxRelease + 100;
 
             if ( lock != NULL ) {
-                DEBUG('r', "Release (Found Remote) - mailbox %d name %s\n", mailbox, lockName);
+                DEBUG('r', "Release (Found Remote) - mailbox %d name %s\n", mailbox, lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -286,7 +308,7 @@ void RPCServer::Receive_Release() {
         // This is Client-to-Server
         if ( lock != NULL ) {
             // We DO have it
-            DEBUG('r', "Release (Found Local) - mailbox %d name %s\n", mailbox, lockName);
+            DEBUG('r', "Release (Found Local) - mailbox %d name %s\n", mailbox, lockName.c_str());
 
             // Handle it
             networkLockTable->tableLock->Acquire();
@@ -303,7 +325,7 @@ void RPCServer::Receive_Release() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: Release failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName);
+        printf("ERROR: Release failed. Terminating Nachos. No such lock - mailbox %d name %s\n", mailbox, lockName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -320,7 +342,7 @@ void RPCServer::Receive_CreateCondition() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *conditionName = recv;
+        std::string conditionName(recv);
 
         // Check if the condition already exists
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
@@ -331,7 +353,7 @@ void RPCServer::Receive_CreateCondition() {
             int serverMailbox = MailboxCreateCondition + 100;
 
             if ( condition != NULL ) {
-                DEBUG('r', "CreateCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                DEBUG('r', "CreateCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
@@ -344,7 +366,7 @@ void RPCServer::Receive_CreateCondition() {
         // This is Client-to-Server
         if ( condition != NULL ) {
             // We DO have it
-            DEBUG('r', "CreateCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            DEBUG('r', "CreateCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName.c_str());
             SendResponse(mailbox, -1);
             continue;
         } else {
@@ -361,7 +383,7 @@ void RPCServer::Receive_CreateCondition() {
         networkConditionTable->tableLock->Release();
 
         // Reply with success
-        DEBUG('r', "CreateCondition (New) - mailbox %d name %s\n", mailbox, conditionName);
+        DEBUG('r', "CreateCondition (New) - mailbox %d name %s\n", mailbox, conditionName.c_str());
         SendResponse(mailbox, -1);
     }
 }
@@ -377,7 +399,7 @@ void RPCServer::Receive_DestroyCondition() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *conditionName = recv;
+        std::string conditionName(recv);
 
         // Check if the condition exists
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
@@ -388,7 +410,7 @@ void RPCServer::Receive_DestroyCondition() {
             int serverMailbox = MailboxDestroyCondition + 100;
 
             if ( condition != NULL ) {
-                DEBUG('r', "DestroyCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                DEBUG('r', "DestroyCondition (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
                 
                 // Process the message (identical to the original syscall)
                 networkConditionTable->tableLock->Acquire();
@@ -408,7 +430,7 @@ void RPCServer::Receive_DestroyCondition() {
         // This is Client-to-Server
         if ( condition != NULL ) {
             // We DO have it
-            DEBUG('r', "DestroyCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            DEBUG('r', "DestroyCondition (Found Local) - mailbox %d name %s\n", mailbox, conditionName.c_str());
 
             // Process the message (identical to the original syscall)
             networkConditionTable->tableLock->Acquire();
@@ -426,7 +448,7 @@ void RPCServer::Receive_DestroyCondition() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("WARN: DestroyCondition failed. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("WARN: DestroyCondition failed. No such condition - mailbox %d name %s\n", mailbox, conditionName.c_str());
         SendResponse(mailbox, -2);
     }
 }
@@ -442,8 +464,8 @@ void RPCServer::Receive_Wait() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *conditionName = strtok(recv,",");
-        char *lockName = strtok(NULL,",");
+        std::string conditionName(strtok(recv, ","));
+        std::string lockName(strtok(NULL, ","));
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
@@ -455,7 +477,7 @@ void RPCServer::Receive_Wait() {
             int serverMailbox = MailboxWait + 100;
 
             if ( condition != NULL ) {
-                DEBUG('r', "Wait (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                DEBUG('r', "Wait (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -463,7 +485,7 @@ void RPCServer::Receive_Wait() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Wait (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Wait (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -484,14 +506,14 @@ void RPCServer::Receive_Wait() {
         // This is Client-to-Server
         if ( condition != NULL ) {
             // We DO have it
-            DEBUG('r', "Wait (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            DEBUG('r', "Wait (Found Local) - mailbox %d name %s\n", mailbox, conditionName.c_str());
 
             // Handle it
             networkConditionTable->tableLock->Acquire();
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                printf("ERROR: Wait (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Wait (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -511,7 +533,7 @@ void RPCServer::Receive_Wait() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: Wait failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Wait failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -528,8 +550,8 @@ void RPCServer::Receive_Signal() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *conditionName = strtok(recv,",");
-        char *lockName = strtok(NULL,",");
+        std::string conditionName(strtok(recv, ","));
+        std::string lockName(strtok(NULL, ","));
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
@@ -541,7 +563,7 @@ void RPCServer::Receive_Signal() {
             int serverMailbox = MailboxWait + 100;
 
             if ( condition != NULL ) {
-                DEBUG('r', "Signal (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                DEBUG('r', "Signal (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -549,7 +571,7 @@ void RPCServer::Receive_Signal() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Signal (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Signal (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -570,14 +592,14 @@ void RPCServer::Receive_Signal() {
         // This is Client-to-Server
         if ( condition != NULL ) {
             // We DO have it
-            DEBUG('r', "Signal (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            DEBUG('r', "Signal (Found Local) - mailbox %d name %s\n", mailbox, conditionName.c_str());
 
             // Handle it
             networkConditionTable->tableLock->Acquire();
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                printf("ERROR: Signal (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Signal (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -597,7 +619,7 @@ void RPCServer::Receive_Signal() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: Signal failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Signal failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -614,8 +636,8 @@ void RPCServer::Receive_Broadcast() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *conditionName = strtok(recv,",");
-        char *lockName = strtok(NULL,",");
+        std::string conditionName(strtok(recv, ","));
+        std::string lockName(strtok(NULL, ","));
 
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
@@ -627,7 +649,7 @@ void RPCServer::Receive_Broadcast() {
             int serverMailbox = MailboxWait + 100;
 
             if ( condition != NULL ) {
-                DEBUG('r', "Broadcast (Found Remote) - mailbox %d name %s\n", mailbox, conditionName);
+                DEBUG('r', "Broadcast (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -635,7 +657,7 @@ void RPCServer::Receive_Broadcast() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Broadcast (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                    printf("ERROR: Broadcast (Remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                     SendResponse(-mailbox, -2);
                     interrupt->Halt();
                 }
@@ -656,14 +678,14 @@ void RPCServer::Receive_Broadcast() {
         // This is Client-to-Server
         if ( condition != NULL ) {
             // We DO have it
-            DEBUG('r', "Broadcast (Found Local) - mailbox %d name %s\n", mailbox, conditionName);
+            DEBUG('r', "Broadcast (Found Local) - mailbox %d name %s\n", mailbox, conditionName.c_str());
 
             // Handle it
             networkConditionTable->tableLock->Acquire();
             networkLockTable->tableLock->Acquire();
 
             if (lock == NULL) {
-                printf("ERROR: Broadcast (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName);
+                printf("ERROR: Broadcast (Local) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
                 SendResponse(mailbox, -2);
                 interrupt->Halt();
             }
@@ -683,7 +705,7 @@ void RPCServer::Receive_Broadcast() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: Broadcast failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName);
+        printf("ERROR: Broadcast failed. Terminating Nachos. No such condition - mailbox %d name %s\n", mailbox, conditionName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -744,7 +766,7 @@ void RPCServer::Receive_CreateMV() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *mvName = recv;
+        std::string mvName(recv);
 
         // Check if the mv already exists
         NetworkMV *mv = networkMVTable->mvs[mvName];
@@ -755,7 +777,7 @@ void RPCServer::Receive_CreateMV() {
             int serverMailbox = MailboxCreateMV + 100;
 
             if ( mv != NULL ) {
-                DEBUG('r', "CreateMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                DEBUG('r', "CreateMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
                 SendResponse(-mailbox, -1);                         // Send a response to the original client
                 continue;
@@ -768,7 +790,7 @@ void RPCServer::Receive_CreateMV() {
         // This is Client-to-Server
         if ( mv != NULL ) {
             // We DO have it
-            DEBUG('r', "CreateMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+            DEBUG('r', "CreateMV (Found Local) - mailbox %d name %s\n", mailbox, mvName.c_str());
             SendResponse(mailbox, -1);
             continue;
         } else {
@@ -785,7 +807,7 @@ void RPCServer::Receive_CreateMV() {
         networkMVTable->tableLock->Release();
 
         // Reply with success
-        DEBUG('r', "CreateMV (New) - mailbox %d name %s\n", mailbox, mvName);
+        DEBUG('r', "CreateMV (New) - mailbox %d name %s\n", mailbox, mvName.c_str());
         SendResponse(mailbox, -1);
     }
 }
@@ -801,7 +823,7 @@ void RPCServer::Receive_DestroyMV() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *mvName = recv;
+        std::string mvName(recv);
 
         // Check if the mv exists
         NetworkMV *mv = networkMVTable->mvs[mvName];
@@ -812,7 +834,7 @@ void RPCServer::Receive_DestroyMV() {
             int serverMailbox = MailboxDestroyMV + 100;
 
             if ( mv != NULL ) {
-                DEBUG('r', "DestroyMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                DEBUG('r', "DestroyMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName.c_str());
                 
                 // Process the message (identical to the original syscall)
                 networkMVTable->tableLock->Acquire();
@@ -832,7 +854,7 @@ void RPCServer::Receive_DestroyMV() {
         // This is Client-to-Server
         if ( mv != NULL ) {
             // We DO have it
-            DEBUG('r', "DestroyMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+            DEBUG('r', "DestroyMV (Found Local) - mailbox %d name %s\n", mailbox, mvName.c_str());
 
             // Process the message (identical to the original syscall)
             networkMVTable->tableLock->Acquire();
@@ -850,7 +872,7 @@ void RPCServer::Receive_DestroyMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("WARN: DestroyMV failed. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("WARN: DestroyMV failed. No such mv - mailbox %d name %s\n", mailbox, mvName.c_str());
         SendResponse(mailbox, -2);
     }
 }
@@ -866,7 +888,7 @@ void RPCServer::Receive_GetMV() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *mvName = recv;
+        std::string mvName(recv);
 
         // Check if the mv exists
         NetworkMV *mv = networkMVTable->mvs[mvName];
@@ -877,7 +899,7 @@ void RPCServer::Receive_GetMV() {
             int serverMailbox = MailboxGetMV + 100;
 
             if ( mv != NULL ) {
-                DEBUG('r', "GetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                DEBUG('r', "GetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -897,7 +919,7 @@ void RPCServer::Receive_GetMV() {
         // This is Client-to-Server
         if ( mv != NULL ) {
             // We DO have it
-            DEBUG('r', "GetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+            DEBUG('r', "GetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName.c_str());
 
             // Handle it
             networkMVTable->tableLock->Acquire();
@@ -915,7 +937,7 @@ void RPCServer::Receive_GetMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: GetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("ERROR: GetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -932,7 +954,7 @@ void RPCServer::Receive_SetMV() {
 
         // Read the message
         int mailbox = inMailHdr.from;
-        char *mvName = strtok(recv,",");
+        std::string mvName(strtok(recv, ","));
         int mvValue = atoi(strtok(NULL,","));
 
         // Check if the mv exists
@@ -944,7 +966,7 @@ void RPCServer::Receive_SetMV() {
             int serverMailbox = MailboxSetMV + 100;
 
             if ( mv != NULL ) {
-                DEBUG('r', "SetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName);
+                DEBUG('r', "SetMV (Found Remote) - mailbox %d name %s\n", mailbox, mvName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
 
                 // Handle it
@@ -964,7 +986,7 @@ void RPCServer::Receive_SetMV() {
         // This is Client-to-Server
         if ( mv != NULL ) {
             // We DO have it
-            DEBUG('r', "SetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName);
+            DEBUG('r', "SetMV (Found Local) - mailbox %d name %s\n", mailbox, mvName.c_str());
 
             // Handle it
             networkMVTable->tableLock->Acquire();
@@ -982,7 +1004,7 @@ void RPCServer::Receive_SetMV() {
         }
 
         // This is Client-to-Server, no other server has it, this is an error
-        printf("ERROR: SetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName);
+        printf("ERROR: SetMV failed. Terminating Nachos. No such mv - mailbox %d name %s\n", mailbox, mvName.c_str());
         SendResponse(mailbox, -2);
         interrupt->Halt();
     }
@@ -1069,7 +1091,7 @@ void RPCServer::SendResponse(int mailbox, int response, int _machine) {
 // query is the original query from the client
 // identifier is a description for debugging
 //-----------------------------------------------------------------------------------------------//
-bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, char *query, char *identifier) {
+bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier) {
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char send[MaxMailSize];
@@ -1082,7 +1104,7 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, char *query, char *ide
     }
 
     // Send the query with no modifications
-    sprintf(send, "%s", query);
+    sprintf(send, "%s", query.c_str());
 
     // Send the query to all servers until out of servers or get a "yes"
     for (int serverToQuery = 0; serverToQuery <= 4; serverToQuery++) {
@@ -1211,7 +1233,7 @@ void RunServer() {
 // Create NetworkLock
 //-----------------------------------------------------------------------------------------------//
 
-NetworkLock::NetworkLock(char *_name) {
+NetworkLock::NetworkLock(std::string _name) {
     mailbox = -1;
     name = _name;
     queue = new List;
@@ -1226,13 +1248,13 @@ void NetworkLock::Acquire(int _mailbox) {
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     if (mailbox == -1) {                                // lock is available
         mailbox = _mailbox;
-        DEBUG('r', "Acquire success (Acquire) - mailbox %d name %s\n", mailbox, name);
+        DEBUG('r', "Acquire success (Acquire) - mailbox %d name %s\n", mailbox, name.c_str());
         RPCServer::SendResponse(mailbox, -1);
     } else if (mailbox != _mailbox) {                    // lock is busy
         queue->Append((void *) _mailbox);                // add mailbox to the wait queue
-        DEBUG('r', "Acquire waiting - mailbox %d name %s\n", mailbox, name);
+        DEBUG('r', "Acquire waiting - mailbox %d name %s\n", mailbox, name.c_str());
     } else {
-        printf("WARN: Acquire duplicate - mailbox %d name %s\n", mailbox, name);
+        printf("WARN: Acquire duplicate - mailbox %d name %s\n", mailbox, name.c_str());
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
@@ -1245,11 +1267,11 @@ void NetworkLock::Release(int _mailbox) {
             mailbox = -1;                               // no mailboxes are waiting
         } else {
             mailbox = (int) queue->Remove();            // wake up a waiting thread (referenced by mailbox)
-            DEBUG('r', "Acquire success (Release) - mailbox %d name %s\n", mailbox, name);
+            DEBUG('r', "Acquire success (Release) - mailbox %d name %s\n", mailbox, name.c_str());
             RPCServer::SendResponse(mailbox, -1);
         }
     } else {
-        printf("WARN: Release without acquire - mailbox %d name %s\n", mailbox, name);
+        printf("WARN: Release without acquire - mailbox %d name %s\n", mailbox, name.c_str());
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
@@ -1262,7 +1284,7 @@ bool NetworkLock::HasAcquired(int _mailbox) {
 // Create NetworkCondition
 //-----------------------------------------------------------------------------------------------//
 
-NetworkCondition::NetworkCondition(char* _name) {
+NetworkCondition::NetworkCondition(std::string _name) {
     name = _name;
     conditionLock = NULL;
     queue = new List;
@@ -1280,17 +1302,17 @@ void NetworkCondition::Wait(int mailbox, NetworkLock *lock) {
         if (lock->HasAcquired(mailbox)) {
             if (conditionLock == NULL) {                    // condition hasn't been assigned to a lock yet
                 conditionLock = lock;
-                DEBUG('r', "Wait assigned - mailbox %d name %s lock %s\n", mailbox, name, lock->getName());
+                DEBUG('r', "Wait assigned - mailbox %d name %s lock %s\n", mailbox, name.c_str(), lock->getName().c_str());
             } else if (conditionLock == lock) {             // ok to wait
                 queue->Append((void *) mailbox);            // add mailbox to wait queue
                 conditionLock->Release(mailbox);            // release mailbox's hold on the lock
-                DEBUG('r', "Wait waiting - mailbox %d name %s\n", mailbox, name);
+                DEBUG('r', "Wait waiting - mailbox %d name %s\n", mailbox, name.c_str());
             } else {
                 printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Terminating Nachos. Unacquired lock - mailbox %d name %s\n", mailbox, name);
+            printf("ERROR: Wait failed. Terminating Nachos. Unacquired lock - mailbox %d name %s\n", mailbox, name.c_str());
             interrupt->Halt();
         }
     } else {
@@ -1307,7 +1329,7 @@ void NetworkCondition::Signal(int mailbox, NetworkLock *lock) {
         if (lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
                 mailbox = (int) queue->Remove();        // remove one waiting thread from queue
-                DEBUG('r', "Signal thread - mailbox %d name %s\n", mailbox, name);
+                DEBUG('r', "Signal thread - mailbox %d name %s\n", mailbox, name.c_str());
                 RPCServer::SendResponse(mailbox, -1);
             } else {
                 printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
@@ -1350,7 +1372,7 @@ void NetworkCondition::Broadcast(int mailbox, NetworkLock *lock) {
 // Create NetworkMV
 //-----------------------------------------------------------------------------------------------//
 
-NetworkMV::NetworkMV(char *_name) {
+NetworkMV::NetworkMV(std::string _name) {
     value = 0;
     name = _name;
 }
