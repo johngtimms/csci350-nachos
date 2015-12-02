@@ -4,12 +4,12 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_CUSTOMERS			5
-#define NUM_APPLICATION_CLERKS	2
-#define NUM_PICTURE_CLERKS		2
-#define NUM_PASSPORT_CLERKS		2
-#define NUM_CASHIERS			2
-#define NUM_SENATORS			2
+#define NUM_CUSTOMERS			1
+#define NUM_APPLICATION_CLERKS	1
+#define NUM_PICTURE_CLERKS		0
+#define NUM_PASSPORT_CLERKS		0
+#define NUM_CASHIERS			0
+#define NUM_SENATORS			0
 
 struct Customer;
 struct Clerk;
@@ -38,7 +38,7 @@ bool timeToLeave;
 
 int dummyMV;
 
-typedef enum {FREE, BUSY, BREAK} ClerkState;
+typedef enum {BUSY, FREE, BREAK} ClerkState;
 typedef enum {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER} ClerkType;
 
 typedef struct Customer {
@@ -108,8 +108,8 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].senatorLineCV = CreateCondition("appSenatorCV", sizeof("appSenatorCV"), i);
 			applicationClerks[i].clerkCV = CreateCondition("appCV", sizeof("appCV"), i);
 			applicationClerks[i].breakCV = CreateCondition("appCV", sizeof("appCV"), i);
-			SetMV(applicationClerks[i].customerID, -1);
-			SetMV(applicationClerks[i].state, BUSY);
+			/*SetMV(applicationClerks[i].customerID, -1);*/
+			/*SetMV(applicationClerks[i].state, BUSY);*/
 			break;
 		case PICTURE_CLERK:
 			pictureClerks[i].lineLength = CreateMV("picClerkLineLength", sizeof("picClerkLineLength"), i);
