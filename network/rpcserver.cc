@@ -357,7 +357,7 @@ void RPCServer::Receive_Broadcast() {
         int machineID = inPktHdr.from;
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Broadcast - process %d thread %d conditionKey %d lockKey %d\n", processID, threadID, conditionKey, lockKey);
+        
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -374,6 +374,8 @@ void RPCServer::Receive_Broadcast() {
             printf("ERROR: Broadcast failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
+
+        DEBUG('r', "Broadcast - process %d thread %d conditionKey %d lockKey %d lockName %s\n", processID, threadID, conditionKey, lockKey, lock->name);
 
        // if (condition->IsOwner(machineID) && lock->IsOwner(machineID)) {
             condition->Broadcast(machineID,processID, threadID, lock);
@@ -813,7 +815,7 @@ void NetworkCondition::Wait(int _machineID, int process, int thread, NetworkLock
                 interrupt->Halt();
             }
         } else {
-            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %i Terminating Nachos.\n",process,thread,lock->name);
+            printf("ERROR: Wait failed. Unacquired lock. Process: %i, thread: %i, lock: %s Terminating Nachos.\n",process,thread,lock->name);
             interrupt->Halt();
         }
     } else {
@@ -877,8 +879,39 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
     if (lock != NULL) {
         if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
-                while (!queue->IsEmpty())                   // signal all mailbox's waiting
-                    Signal(_machineID, process, _thread, lock);
+                while (!queue->IsEmpty()){                // signal all mailbox's waiting
+                    //Signal(_machineID, process, _thread, lock); this doesnt work becaues it signals back to thread waiting in exception.cc after 1 signal
+
+                    // Do the regular Condition::Signal stuff
+                    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+                    if (lock != NULL) {
+                        if (/*lock->IsOwner(_machineID) && */lock->HasAcquired(mailbox)) {
+                            if (conditionLock == lock) {
+                                int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
+                                DEBUG('r', "Signal thread process %d thread %d mailbox: %i\n", processID, _thread, mailboxToSignal);
+
+                                RPCServer::SendResponse(machineID, mailboxToSignal, -1);
+
+                                
+
+                                // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
+                                // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
+                                // Similarly, the thread signaled is still sitting in Wait() in exception.cc, and it should Acquire() there
+                            } else {
+                                printf("ERROR: Signal failed. Wrong lock. Terminating Nachos.\n");
+                                interrupt->Halt();
+                            }
+                        } else {
+                            printf("ERROR: Signal failed. Unaquired lock. Terminating Nachos.\n");
+                            interrupt->Halt();
+                        }
+                    } else {
+                        printf("ERROR: Signal failed. Lock null. Terminating Nachos.\n");
+                        interrupt->Halt();
+                    }
+                    (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
+
+                }
             } else {
                 printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
@@ -891,6 +924,7 @@ void NetworkCondition::Broadcast(int _machineID, int process, int _thread, Netwo
         printf("ERROR: Broadcast failed. Lock null. Terminating Nachos.\n");
         interrupt->Halt();
     }
+    RPCServer::SendResponse(machineID, mailbox, -1); //signal back to thread waiting in exception.cc
 }
 
 /*
