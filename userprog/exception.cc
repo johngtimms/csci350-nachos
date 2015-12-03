@@ -28,6 +28,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <cstdlib>
 #include "process.h"
 
 #ifdef NETWORK
@@ -347,7 +348,8 @@ int Rand_Syscall() {
 
 // In Assignment 4 Part 2, the destination server is chosen randomly
 int getDestination() {
-    return destinationName;
+    int i = rand() % numServers;
+    return i;
 }
 
 // Used to get names of resources
@@ -478,13 +480,7 @@ void Signal_Syscall(unsigned int _conditionName, unsigned int _lockName) {
     sprintf(send, "%s,%s", conditionName, lockName);
 
     genericFunction(send, "Signal", MailboxSignal);
-
     genericFunction(lockName, "Release (after Signal)", MailboxRelease);
-
-    // Peppy - I don't think signal should be releasing the lock, so im commenting this next part
-    //         I could be wrong though...
-    //
-    // genericFunction(lockName, "Release (after Signal)", MailboxRelease);
 }
 
 void Broadcast_Syscall(unsigned int _conditionName, unsigned int _lockName) {
@@ -540,8 +536,6 @@ void NetPrint_Syscall(int text, int num) {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-
-    DEBUG('n', "NETPRINT mailbox %d machineName %d\n", mailbox, machineName);
     
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
@@ -563,16 +557,6 @@ void NetPrint_Syscall(int text, int num) {
         printf("ERROR: NetPrint failed. Server misconfigured. Terminating Nachos.\n");
         interrupt->Halt();
     }
-
-    // // Try receiving
-    // PacketHeader inPktHdr;
-    // MailHeader inMailHdr;
-    // char recv[MaxMailSize];
-
-    // // Get the response back
-    // postOffice->Receive(20, &inPktHdr, &inMailHdr, recv);
-    // int value = atoi(recv);
-    // printf("TEST VALUE: %d\n", value);
     
     delete[] buf;
 }
