@@ -106,8 +106,8 @@ void initClerk(ClerkType clerkType, int i) {
 			applicationClerks[i].lineCV = CreateCondition("appLineCV", sizeof("appLineCV"), i);
 			applicationClerks[i].bribeLineCV = CreateCondition("appBribeCV", sizeof("appBribeCV"), i);
 			applicationClerks[i].senatorLineCV = CreateCondition("appSenatorCV", sizeof("appSenatorCV"), i);
-			applicationClerks[i].clerkCV = CreateCondition("appCV", sizeof("appCV"), i);
-			applicationClerks[i].breakCV = CreateCondition("appCV", sizeof("appCV"), i);
+			applicationClerks[i].clerkCV = CreateCondition("appClerkCV", sizeof("appClerkCV"), i);
+			applicationClerks[i].breakCV = CreateCondition("appBreakCV", sizeof("appBreakCV"), i);
 			/*SetMV(applicationClerks[i].customerID, -1);*/
 			/*SetMV(applicationClerks[i].state, BUSY);*/
 			break;
@@ -126,14 +126,14 @@ void initClerk(ClerkType clerkType, int i) {
 			pictureClerks[i].customerID = -1;
 			pictureClerks[i].state = BUSY;
 			*/
-			pictureClerks[i].lineLock = CreateLock("pickLine", sizeof("picLine"), i);
+			pictureClerks[i].lineLock = CreateLock("picLine", sizeof("picLine"), i);
 			pictureClerks[i].bribeLineLock = CreateLock("picBribe", sizeof("picBribe"), i);
-			pictureClerks[i].senatorLineLock = CreateLock("picSenator", sizeof("picenatork"), i);
+			pictureClerks[i].senatorLineLock = CreateLock("picSenator", sizeof("picSenator"), i);
 			pictureClerks[i].clerkLock = CreateLock("picClerk", sizeof("picClerk"), i);
 			pictureClerks[i].moneyLock = CreateLock("picMoney", sizeof("picMoney"), i);
 			pictureClerks[i].lineCV = CreateCondition("picLineCV", sizeof("picLineCV"), i);
 			pictureClerks[i].bribeLineCV = CreateCondition("picBribeCV", sizeof("picBribeCV"), i);
-			pictureClerks[i].senatorLineCV = CreateCondition("picenatorCV", sizeof("picSenatorCV"), i);
+			pictureClerks[i].senatorLineCV = CreateCondition("picSenatorCV", sizeof("picSenatorCV"), i);
 			pictureClerks[i].clerkCV = CreateCondition("picClerkCV", sizeof("picClerkCV"), i);
 			pictureClerks[i].breakCV = CreateCondition("picBreakCV", sizeof("picBreakCV"), i);
 			/*
@@ -260,9 +260,7 @@ void setup() {
 
 	
 	senatorOutsideLineLock = CreateLock("senOutsideLineLock", sizeof("senOutsideLineLock"));
-	
 	senatorOutsideLineCV = CreateCondition("senOutsideLineCV", sizeof("senOutsideLineCV"));
-	
 	senatorInside = CreateMV("senInside", sizeof("senInside"));
 	senatorInsideLock = CreateLock("senInsideLock", sizeof("senInsideLock"));
 	senatorsOutside = CreateMV("sensOutside", sizeof("sensOutside"));
@@ -270,34 +268,19 @@ void setup() {
 	customerOutsideLineCV = CreateCondition("custOutsideLineCV", sizeof("custOutsideLineCV"));
 	customersOutside = CreateMV("custsOutside", sizeof("custsOutside"));
 	
-	
 	customerIndexLock = CreateLock("custIndexLock", sizeof("custIndexLock"));
-
-	
 	applicationClerkIndexLock = CreateLock("appClerkIndexLock", sizeof("appClerkIndexLock"));
 	pictureClerkIndexLock = CreateLock("picClerkIndexLock", sizeof("picClerkIndexLock"));
 	passportClerkIndexLock = CreateLock("passClerkIndexLock", sizeof("passClerkIndexLock"));
 	cashierIndexLock = CreateLock("cashierIndexLock", sizeof("cashierIndexLock"));
 	
 	nextAvailableCustomerIndex = CreateMV("custIndex", sizeof("custIndex"));
-	
 	nextAvailablePictureClerkIndex = CreateMV("nextPicClerkIndex", sizeof("nextPicClerkIndex"));
 	nextAvailablePassportClerkIndex = CreateMV("nextPassClerkIndex", sizeof("nextPassClerkIndex"));
 	nextAvailableCashierIndex = CreateMV("nextCashIndex", sizeof("nextCashIndex"));
-	nextAvailableApplicationClerkIndex = CreateMV("nextAppClerkIndex", sizeof("nextppClerkIndex"));
-	
+	nextAvailableApplicationClerkIndex = CreateMV("nextAppClerkIndex", sizeof("nextAppClerkIndex"));
 	
 	SetMV(senatorInside, 0);
-	/*
-	SetMV(senatorsOutside, 0);
-	SetMV(customersOutside, 0);
-	SetMV(nextAvailableCustomerIndex, 0);
-	SetMV(nextAvailablePictureClerkIndex, 0);
-	SetMV(nextAvailablePassportClerkIndex, 0);
-	SetMV(nextAvailableCashierIndex, 0);
-	SetMV(nextAvailableApplicationClerkIndex, 0);
-	*/
-
 
 	for(k = 0; k < numApplicationClerks; k++)
 		initClerk(APPLICATION_CLERK, k);
@@ -310,8 +293,6 @@ void setup() {
 	
 	for(k = 0; k < numCashiers; k++)
 		initClerk(CASHIER, k);
-		
-	
 	
 	for(k = 0; k < numCustomers; k++)
 		initCustomer(k, false);
