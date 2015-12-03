@@ -89,7 +89,7 @@ class NetworkCondition {
         NetworkCondition(std::string _name);
         ~NetworkCondition();
         void Wait(int mailbox, NetworkLock *lock);
-        void Signal(int mailbox, NetworkLock *lock);
+        void Signal(int mailbox, NetworkLock *lock, bool callingClientMessage = true);
         void Broadcast(int mailbox, NetworkLock *lock);
         
     private:
