@@ -145,12 +145,12 @@ void RPCServer::Receive_Release() {
         networkLockTable->tableLock->Acquire();
 
         lock = networkLockTable->locks[key];
-        if (lock != NULL)
+        if (lock != NULL) {
             lock->Release(machineID, processID, threadID);
             DEBUG('r', "Release Received - key: %d name: %s mailbox: %d\n", key, lock->name, ClientMailbox(machineID, processID, threadID));
             // Response (to any threads waiting to Acquire) is sent from lock->Release()
             // NO RESPONSE is sent to the thread making this actual call
-        else {
+        } else {
             printf("ERROR: Release failed. No such lock. Terminating Nachos.\n");
             interrupt->Halt();
         }
@@ -296,7 +296,6 @@ void RPCServer::Receive_Signal() {
         int machineID = inPktHdr.from;
         unsigned int conditionKey = atoi(strtok(NULL,","));
         unsigned int lockKey = atoi(strtok(NULL,","));
-        DEBUG('r', "Signal Received - conditionKey %d lockKey %d (machine: %d process: %d thread %d)\n", conditionKey, lockKey, machineID, processID, threadID);
 
         // Process the message (identical to original syscall)
         networkConditionTable->tableLock->Acquire();
@@ -486,6 +485,7 @@ void RPCServer::Receive_GetMV() {
         // Read the message
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
+        int machineID = inPktHdr.from;
         unsigned int key = atoi(strtok(NULL,","));
 
         // Process the message (identical to original syscall)
@@ -515,6 +515,7 @@ void RPCServer::Receive_SetMV() {
         // Read the message
         int processID = atoi(strtok(recv,","));
         int threadID = atoi(strtok(NULL,","));
+        int machineID = inPktHdr.from;
         unsigned int key = atoi(strtok(NULL,","));
         unsigned int value = atoi(strtok(NULL,","));
 
@@ -582,8 +583,6 @@ void RPCServer::SendResponse(int machineID, int mailbox, int response) {
 
     if ( !success )
         printf("WARN: SendResponse failed. Client misconfigured.\n");
-    else
-        DEBUG('r', "Send response success\n");
 }
 
 //-----------------------------------------------------------------------------------------------//
@@ -683,47 +682,47 @@ NetworkLock::~NetworkLock() {
     delete queue;
 }
 
-void NetworkLock::Acquire(int _machineID, int process, int thread) {
+void NetworkLock::Acquire(int machineID, int process, int thread) {
     // Do the regular Lock::Acquire stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); // get mailbox id of client calling acquire
+    int mailbox = RPCServer::ClientMailbox(machineID, process, thread); // get mailbox id of client calling acquire
     if (mailboxID == -1) {                               // lock is available
         mailboxID = mailbox;
-        DEBUG('r', "Acquire(): Success - name %s mailbox %d (machine %d)\n", name, mailbox, _machineID);
-        RPCServer::SendResponse(_machineID, mailboxID, -1);
+        DEBUG('r', "Acquire(): Success - name: %s mailbox: %d (machine: %d process: %d)\n", name, mailbox, machineID, process);
+        RPCServer::SendResponse(machineID, mailboxID, -1);
     } else if (mailboxID != mailbox) {                    // lock is busy
-        DEBUG('r', "Acquire(): Waiting to acquire - name %s mailbox %d (machine %d)\n", name, mailbox, _machineID);
+        DEBUG('r', "Acquire(): Waiting to acquire - name: %s mailbox: %d (machine: %d process: %d)\n", name, mailbox, machineID, process);
         queue->Append((void *) mailbox);                 // add mailbox ID to the wait queue
         
     } else {
-        printf("WARN: Acquire() Failed - name %s mailbox %d (machine %d)\n", name, mailbox, _machineID);
+        printf("WARN: Acquire() Failed - name: %s mailbox: %d (machine: %d process: %d)\n", name, mailbox, machineID, process);
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
 
-void NetworkLock::Release(int _machineID, int process, int thread) {
+void NetworkLock::Release(int machineID, int process, int thread) {
     // Do the regular Lock::Release stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
-    int mailbox = RPCServer::ClientMailbox(_machineID, process, thread); //get mailbox id of client calling release
+    int mailbox = RPCServer::ClientMailbox(machineID, process, thread); //get mailbox id of client calling release
     if (mailboxID == mailbox) {
         if (queue->IsEmpty()) {
             mailboxID = -1; //no mailbox's are waiting
         }
         else {
             mailboxID = (int) queue->Remove();           // wake up a waiting mailbox
-            DEBUG('r', "Release(): Success - name %s mailbox %d (machine %d)\n", name, _machineID, mailbox);
-            
+            DEBUG('r', "Release(): Success - name: %s mailbox: %d (machine: %d process: %d)\n", name, machineID, mailbox, process);
 
             // temporary way to get machineID from mailbox
             int machineToAcquire = mailboxID;
             while (machineToAcquire >= 10)
                 machineToAcquire /= 10;
             machineToAcquire--;
-            DEBUG('r', "Release(): Sending acquire request to mailbox %d (machine %d)\n", mailboxID, machineToAcquire);
-            RPCServer::SendResponse(machineToWakeUp, mailboxID, -1);
+
+            DEBUG('r', "Release(): Sending acquire request to mailbox: %d (machine: %d process: %d)\n", mailboxID, machineToAcquire, process);
+            RPCServer::SendResponse(machineToAcquire, mailboxID, -1);
         }
     } else {
-        printf("WARN: Release() Failed - name %s mailbox %d (machine %d)\n", name, mailbox, _machineID);
+        printf("WARN: Release() Failed - name: %s mailbox: %d (machine: %d)\n", name, mailbox, machineID);
     }
     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
 }
@@ -756,12 +755,12 @@ void NetworkCondition::Wait(int machineID, int process, int thread, NetworkLock*
         if (lock->HasAcquired(mailbox)) {
             if (conditionLock == NULL)  {                    // condition hasn't been assigned to a lock yet
                 conditionLock = lock;
-                DEBUG('r', "Wait(): CV assigned lock to lock %s mailbox %d (machine %d)\n", lock->name, mailbox, machineID);
+                DEBUG('r', "Wait(): CV assigned lock to lock: %s mailbox: %d (machine: %d process: %d)\n", lock->name, mailbox, machineID, process);
             }
             if (conditionLock == lock) {                    // ok to wait
                 queue->Append((void *) mailbox);             // add mailbox to wait queue
                 conditionLock->Release(machineID, process, thread);    // release waiting lock
-                DEBUG('r', "Wait(): Success - conditionName %s lockName %s mailbox %d (machine %d)\n", name, lock->name, mailbox, machineID);
+                DEBUG('r', "Wait(): Success - conditionName: %s lockName: %s mailbox %d (machine: %d process: %d)\n", name, lock->name, mailbox, machineID, process);
             } else {
                 printf("ERROR: Wait failed. Wrong lock. Terminating Nachos.\n");
                 interrupt->Halt();
@@ -784,8 +783,8 @@ void NetworkCondition::Signal(int machineID, int process, int _thread, NetworkLo
         if (lock->HasAcquired(mailbox)) {
             if (conditionLock == lock) {
                 int mailboxToSignal = (int) queue->Remove();         // remove one waiting mailbox from queue
-                DEBUG('r', "Signal(): Success - conditionName %s lockName %s mailbox %d (machine %d)\n", name, lock->name, mailbox, machineID);
-                RPCServer::SendResponse(_machineID, mailbox, -1);
+                DEBUG('r', "Signal(): Success - conditionName: %s lockName: %s mailbox: %d (machine: %d process: %d)\n", name, lock->name, mailbox, machineID, process);
+                RPCServer::SendResponse(machineID, mailbox, -1);
 
                 // TEMPORARY WAY TO GET MACHINE ID FROM MAILBOX
                 int machineIDToSignal = mailboxToSignal;
@@ -793,7 +792,7 @@ void NetworkCondition::Signal(int machineID, int process, int _thread, NetworkLo
                     machineIDToSignal /= 10;
                 machineIDToSignal--;
 
-                DEBUG('r', "Wait(): Sending release request to lockName %s mailbox %d (machine %d)\n", lock->name, mailboxToSignal, machineIDToSignal);
+                DEBUG('r', "Wait(): Sending release request to lockName: %s mailbox: %d (machine: %d process: %d)\n", lock->name, mailboxToSignal, machineIDToSignal, process);
                 RPCServer::SendResponse(machineIDToSignal, mailboxToSignal, -1);
                 // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
                 // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
@@ -832,7 +831,7 @@ void NetworkCondition::Broadcast(int machineID, int process, int _thread, Networ
                                     machineIDToSignal /= 10;
                                 machineIDToSignal--;
 
-                                DEBUG('r', "Broadcast(): Sending signal request to mailbox %d (machine %d)\n", mailboxToSignal, machineIDToSignal);
+                                DEBUG('r', "Broadcast(): Sending signal request to mailbox: %d (machine: %d process: %d)\n", mailboxToSignal, machineIDToSignal, process);
                                 RPCServer::SendResponse(machineIDToSignal, mailboxToSignal, -1);
                                 // That's why the second response is sent (so Signal() knows to go ahead and the thread signaled will be stuck
                                 // MUST Release() following this call to Signal() in exception.cc, otherwise Release())
@@ -851,7 +850,7 @@ void NetworkCondition::Broadcast(int machineID, int process, int _thread, Networ
                     }
                     (void) interrupt->SetLevel(oldLevel);               // re-enable interrupts
                 }
-                DEBUG('r', "Broadcast(): Success - conditionName %s lockName %s mailbox %d (machine %d)\n", name, lock->name, mailbox, machineID);
+                DEBUG('r', "Broadcast(): Success - conditionName: %s lockName: %s mailbox: %d (machine: %d process: %d)\n", name, lock->name, mailbox, machineID, process );
                 RPCServer::SendResponse(machineID, mailbox, -1); //signal back to thread waiting in exception.cc
             } else {
                 printf("ERROR: Broadcast failed. Wrong lock. Terminating Nachos.\n");
