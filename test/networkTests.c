@@ -86,6 +86,7 @@ int main() {
 	/* Test DestroyCondition */
 	DestroyCondition("conditionOne");
 	Print("\tDestroyCondition test (1/1): Destroyed one condition\n", 100);
+	Acquire("lockOne"); /* Don't destroy a lock held by someone else */
 	DestroyLock("lockOne");
 
 	/* Test NetHalt */

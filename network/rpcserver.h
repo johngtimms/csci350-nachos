@@ -74,7 +74,7 @@ class NetworkLock {
         NetworkLock(std::string _name);
         ~NetworkLock();
         void Acquire(int _mailbox);
-        void Release(int _mailbox);
+        void Release(int _mailbox, bool messageCaller = true);
         bool HasAcquired(int _mailbox);
         std::string getName() { return name; }
 
@@ -89,7 +89,7 @@ class NetworkCondition {
         NetworkCondition(std::string _name);
         ~NetworkCondition();
         void Wait(int mailbox, NetworkLock *lock);
-        void Signal(int mailbox, NetworkLock *lock, bool callingClientMessage = true);
+        void Signal(int mailbox, NetworkLock *lock, bool messageCaller = true);
         void Broadcast(int mailbox, NetworkLock *lock);
         
     private:

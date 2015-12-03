@@ -189,7 +189,7 @@ void Condition::Signal(Lock* conditionLock) {
                         } else
                             printf("WARN: thread is NULL (signal)\n");       // should never happen
                     } else
-                        printf("WARN: no threads waiting (signal)\n");
+                        printf("WARN: no threads waiting (signal) (%s)\n", (*conditionLock).getName());
                 } else
                     printf("WARN: incorrect lock (signal)\n");
             } else 
