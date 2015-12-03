@@ -480,7 +480,7 @@ void RPCServer::Receive_Signal() {
 
     for (;;) {
         // Wait for a mailbox message
-        postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
+        postOffice->Receive(MailboxSignal, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
         int mailbox = inMailHdr.from;
@@ -494,7 +494,7 @@ void RPCServer::Receive_Signal() {
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
             int serverMachine = inPktHdr.from;
-            int serverMailbox = MailboxWait + 100;
+            int serverMailbox = MailboxSignal + 100;
 
             if ( condition != NULL ) {
                 DEBUG('r', "Signal (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
@@ -566,7 +566,7 @@ void RPCServer::Receive_Broadcast() {
 
     for (;;) {
         // Wait for a mailbox message
-        postOffice->Receive(MailboxWait, &inPktHdr, &inMailHdr, recv);
+        postOffice->Receive(MailboxBroadcast, &inPktHdr, &inMailHdr, recv);
 
         // Read the message
         int mailbox = inMailHdr.from;
@@ -580,7 +580,7 @@ void RPCServer::Receive_Broadcast() {
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
             int serverMachine = inPktHdr.from;
-            int serverMailbox = MailboxWait + 100;
+            int serverMailbox = MailboxBroadcast + 100;
 
             if ( condition != NULL ) {
                 DEBUG('r', "Broadcast (Found Remote) - mailbox %d name %s\n", mailbox, conditionName.c_str());
