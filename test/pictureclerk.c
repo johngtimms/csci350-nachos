@@ -97,7 +97,7 @@ void runPictureClerk() {
             Print("PictureClerk %i is going on break\n", i);
             Wait(pictureClerk.breakCV, i, pictureClerk.clerkLock, i);
             Print("PictureClerk %i is coming off break\n", i);
-            Release(pictureClerk.clerk, i);
+            Release(pictureClerk.clerkLock, i);
             SetMV(pictureClerk.state, i, FREE);
             if(GetMV(timeToLeave, -1)) {
                 Print("PictureClerk %i is leaving the office.\n",i);

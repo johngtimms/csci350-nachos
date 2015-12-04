@@ -101,7 +101,7 @@ void runPassportClerk() {
             Wait(passportClerk.breakCV, i, passportClerk.clerkLock, i);
             Print("PassportClerk %i is coming off break\n", i);
             Release(passportClerk.clerkLock, i);
-            SetMV(passportClerks.state, i, FREE);
+            SetMV(passportClerk.state, i, FREE);
             if(GetMV(timeToLeave, -1)) {
                 Print("PassportClerk %i is leaving the office.\n",i);
                 Exit(0);

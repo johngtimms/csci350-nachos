@@ -4,7 +4,7 @@
 
 void runManager() {
 	bool allClerksOnBreak, allCustomersLeftOffice;
-	int applicationClerkMoneyTotal, pictureClerkMoneyTotal, passportClerkMoneyTotal, cashierMoneyTotal, k;
+	int applicationClerkMoneyTotal, pictureClerkMoneyTotal, passportClerkMoneyTotal, cashierMoneyTotal, totalMoneyMade, k;
 
 	totalMoneyMade = 0;
 	while(true) {
@@ -85,7 +85,7 @@ void runManager() {
 			if(GetMV(cashier.state, k) != BREAK)
 				allClerksOnBreak = false; 
 			else {
-				Acquire(cashier.clerkLock k);
+				Acquire(cashier.clerkLock, k);
 				Acquire(cashier.bribeLineLock, k);
 				Acquire(cashier.lineLock, k);
 				if((GetMV(cashier.bribeLineLength, k) + GetMV(cashier.lineLength, k)) >= 1 || GetMV(cashier.senatorLineLength, k) > 0) {
