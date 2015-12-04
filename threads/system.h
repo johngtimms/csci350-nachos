@@ -70,6 +70,7 @@ extern SynchDisk *synchDisk;
     extern RPCServer* rpcServer;
     extern int machineName;
     extern int destinationName;
+    extern int numServers;
     extern NetworkLockTable* networkLockTable;
     extern NetworkConditionTable* networkConditionTable;
     extern NetworkMVTable* networkMVTable;

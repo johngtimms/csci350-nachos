@@ -102,7 +102,6 @@ void
 MailBox::Put(PacketHeader pktHdr, MailHeader mailHdr, char *data)
 { 
     Mail *mail = new Mail(pktHdr, mailHdr, data); 
-
     messages->Append((void *)mail);	// put on the end of the list of 
 					// arrived messages, and wake up 
 					// any waiters

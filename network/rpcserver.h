@@ -28,6 +28,7 @@ class RPCServer {
         RPCServer();
         ~RPCServer();
 
+        // These functions handle calls from clients
         void Receive_CreateLock();
         void Receive_DestroyLock();
         void Receive_Acquire();
@@ -44,66 +45,76 @@ class RPCServer {
         void Receive_GetMV();
         void Receive_SetMV();
 
-        static int ClientMailbox(int machineID, int process, int thread);
-        static void SendResponse(int machineID, int mailbox, int response);
+        // To prevent overlap, mailbox IDs are calculated
+        static int ClientMailbox(int _machine, int process, int thread);
+
+        // Server-to-Client and Server-to-Server response messages
+        // For Server-to-Client responses, mailbox is obtained from a call to ClientMailbox
+        // For Server-to-Server messages, mailbox is one of the defined mailbox numbers above
+        // plus 100, because the receiving server will be waiting there for "yes" or "no" (see SendQuery)
+        // response is either "yes" or "no" (pass -1 or -2, respectively)
+        // if an int greater than or equal to zero is passed as the response, it will be sent unmodified (so that GetMV will work)
+        // Clients will interpret "yes" as success and "no" as an error
+        // Sending "yes" to a server tells it the sending server can handle the query
+        // Sending "no" to a server tells it the sending server cannot handle the query
+        // machine calculated from mailbox for Server-to-Client calls, for Server-to-Server calls it comes from machine
+        static void SendResponse(int mailbox, int response, int _machine = -1);
+
+        // Server-to-Server query messages
+        // mailboxTo is one of the defined mailbox numbers above
+        // mailboxFrom is the Server-to-Client mailbox obtained from ClientMailbox, which will be negated
+        // The negation of mailboxFrom tells the receiving server this is a Server-to-Server call
+        // query is the original query from the client
+        // identifier is a description for debugging
+        static bool SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier);
 };
 
 class NetworkLock {
     public:
-        char* name;
-        NetworkLock(char *_name);
+        NetworkLock(std::string _name);
         ~NetworkLock();
-        void Acquire(int _machineID, int process, int thread);
-        void Release(int _machineID, int process, int thread);
-        bool IsOwner(int _machineID);
-        bool HasAcquired(int mailbox);
+        void Acquire(int _mailbox);
+        void Release(int _mailbox, bool messageCaller = true);
+        bool HasAcquired(int _mailbox);
+        std::string getName() { return name; }
 
     private:
-        // int machineID;
-        // int processID;
-        // int threadID;
-        int mailboxID;
+        int mailbox; // If this is set, it means the lock is held
+        std::string name;
         List *queue;
 };
 
 class NetworkCondition {
     public:
-        char* name;
-        NetworkCondition(char *_name);
+        NetworkCondition(std::string _name);
         ~NetworkCondition();
-        void Wait(int _machineID, int process, int thread, NetworkLock *lock);
-        void Signal(int _machineID, int process, int _thread, NetworkLock *lock);
-        void Broadcast(int _machineID, int process, int _thread, NetworkLock *lock);
-        bool IsOwner(int _machineID);
+        void Wait(int mailbox, NetworkLock *lock);
+        void Signal(int mailbox, NetworkLock *lock, bool messageCaller = true);
+        void Broadcast(int mailbox, NetworkLock *lock);
         
     private:
-        // int machineID;
-        // int processID;
-        int mailboxID;
+        std::string name;
         NetworkLock *conditionLock;
         List *queue;
 };
 
 class NetworkMV {
     public:
-        int value;
-        char* name;
-        NetworkMV(char *_name);
+        NetworkMV(std::string _name);
         ~NetworkMV();
-        bool IsOwner(int process);
+        int getMV();
+        void setMV(int _value);
        
     private:
-        // int machineID;
-        // int processID;
+        std::string name;
+        int value;
 };
 
 struct NetworkLockTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkLock*> locks;
+    std::map<std::string, NetworkLock*> locks;
 
     NetworkLockTable() {
-        index = 0;
         tableLock = new Lock();
     }
 
@@ -113,12 +124,10 @@ struct NetworkLockTable {
 };
 
 struct NetworkConditionTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkCondition*> conditions;
+    std::map<std::string, NetworkCondition*> conditions;
 
     NetworkConditionTable() {
-        index = 0;
         tableLock = new Lock();
     }
 
@@ -128,12 +137,10 @@ struct NetworkConditionTable {
 };
 
 struct NetworkMVTable {
-    int index;
     Lock *tableLock;
-    std::map<int, NetworkMV*> mvs;
+    std::map<std::string, NetworkMV*> mvs;
 
     NetworkMVTable() {
-        index = 0;
         tableLock = new Lock();
     }
 
