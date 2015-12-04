@@ -580,6 +580,8 @@ void RPCServer::Receive_Signal() {
             int serverMachine = inPktHdr.from;
             int serverMailbox = MailboxSignal + 100;
 
+            bool subordinateActive = false;
+
             if ( condition != NULL ) {
                 DEBUG('r', "Receive_Signal (remote) - %d signaling %s with %s\n", mailbox, conditionName.c_str(), lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
@@ -589,15 +591,27 @@ void RPCServer::Receive_Signal() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Signal (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    subordinateActive = true;
+
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Signal (subordinate");
+                    
+                    if (!result) {
+                        printf("ERROR: Receive_Signal (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();
+                    }
                 }
 
                 condition->Signal(-mailbox, lock);
 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Signal (subordinate done"); // Sending a bogus mailbox
+                }
 
                 // Success response to the original client is sent from Signal()
                 continue;
@@ -662,6 +676,8 @@ void RPCServer::Receive_Broadcast() {
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
         NetworkLock *lock = networkLockTable->locks[lockName];
 
+        bool subordinateActive = false;
+
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
             int serverMachine = inPktHdr.from;
@@ -676,15 +692,27 @@ void RPCServer::Receive_Broadcast() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Broadcast (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    subordinateActive = true;
+
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Broadcast (subordinate)");
+
+                    if (!result) {
+                        printf("ERROR: Receive_Broadcast (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();          
+                    }
                 }
 
                 condition->Broadcast(-mailbox, lock);
 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Broadcast (subordinate done)"); // Sending a bogus mailbox
+                }
 
                 // Success response to the original client is sent from Broadcast()
                 continue;
@@ -1173,6 +1201,7 @@ static void DummyReceive_CreateMV(int arg) { RPCServer* rpcs = (RPCServer *) arg
 static void DummyReceive_DestroyMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_DestroyMV(); }
 static void DummyReceive_GetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_GetMV(); }
 static void DummyReceive_SetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_SetMV(); }
+static void DummyReceive_ServerLockSubordinate(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_ServerLockSubordinate(); }
 
 //-----------------------------------------------------------------------------------------------//
 // RunServer() is called from main.cc when the "--server" flag is used.
@@ -1240,6 +1269,9 @@ void RunServer() {
 
     Thread *tSetMV = new Thread("SetMV thread");
     tSetMV->Fork(DummyReceive_SetMV, (int) rpcServer);
+
+    Thread *tServerLockSubordinate = new Thread("ServerLockSubordinate thread");
+    tServerLockSubordinate->Fork(DummyReceive_ServerLockSubordinate, (int) rpcServer);
 }
 
 //-----------------------------------------------------------------------------------------------//
