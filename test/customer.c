@@ -6,86 +6,86 @@ bool didntGoInLineBecauseOfSenator = false;
 
 bool enterApplicationLine(int clerkID) {
 	int length;
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /* don't go in line if there is a senator present, unless you are a senator */
-		if(GetMV(customers[ssn].isSenator)) {	
-			Acquire(applicationClerks[clerkID].senatorLineLock);
-			/*applicationClerks[clerkID].senatorLineLength++;*/
-			length = GetMV(applicationClerks[clerkID].senatorLineLength);
-			SetMV(applicationClerks[clerkID].senatorLineLength, length + 1);
+	if(!GetMV(senatorInside, -1) || GetMV(customer.isSenator, ssn)) { /* don't go in line if there is a senator present, unless you are a senator */
+		if(GetMV(customer.isSenator, ssn)) {	
+			Acquire(applicationClerk.senatorLineLock, clerkID);
+			/*applicationClerk.senatorLineLength++;*/
+			length = GetMV(applicationClerk.senatorLineLength, clerkID);
+			SetMV(applicationClerk.senatorLineLength, clerkID, length + 1);
 			Print("Senator %i has gotten in senator line for ", ssn);
 			Print("ApplicationClerk %i\n", clerkID);
-			Wait(applicationClerks[clerkID].senatorLineCV, applicationClerks[clerkID].senatorLineLock);
-			/*applicationClerks[clerkID].senatorLineLength--;*/
-			length = GetMV(applicationClerks[clerkID].senatorLineLength);
-			SetMV(applicationClerks[clerkID].senatorLineLength, length - 1);
-		/*} else if(customers[ssn].didBribe) {*/
-		} else if(GetMV(customers[ssn].didBribe)) {
-			Acquire(applicationClerks[clerkID].bribeLineLock);
-			/*applicationClerks[clerkID].bribeLineLength++;*/
-			length = GetMV(applicationClerks[clerkID].bribeLineLength);
-			SetMV(applicationClerks[clerkID].bribeLineLength, length + 1);
+			Wait(applicationClerk.senatorLineCV, clerkID, applicationClerk.senatorLineLock, clerkID);
+			/*applicationClerk.senatorLineLength--;*/
+			length = GetMV(applicationClerk.senatorLineLength, clerkID);
+			SetMV(applicationClerk.senatorLineLength, clerkID, length - 1);
+		/*} else if(customer.didBribe) {*/
+		} else if(GetMV(customer.didBribe, ssn)) {
+			Acquire(applicationClerk.bribeLineLock, clerkID);
+			/*applicationClerk.bribeLineLength++;*/
+			length = GetMV(applicationClerk.bribeLineLength, clerkID);
+			SetMV(applicationClerk.bribeLineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in bribe line for ", ssn);
 			Print("ApplicationClerk %i\n", clerkID);
-			Wait(applicationClerks[clerkID].bribeLineCV, applicationClerks[clerkID].bribeLineLock);
-			/*applicationClerks[clerkID].bribeLineLength--;*/
-			length = GetMV(applicationClerks[clerkID].bribeLineLength);
-			SetMV(applicationClerks[clerkID].bribeLineLength, length - 1);
+			Wait(applicationClerk.bribeLineCV, clerkID, applicationClerk.bribeLineLock, clerkID);
+			/*applicationClerk.bribeLineLength--;*/
+			length = GetMV(applicationClerk.bribeLineLength, clerkID);
+			SetMV(applicationClerk.bribeLineLength, clerkID, length - 1);
 		} else {
-			Acquire(applicationClerks[clerkID].lineLock);
-			/*applicationClerks[clerkID].lineLength++;*/
-			length = GetMV(applicationClerks[clerkID].lineLength);
-			SetMV(applicationClerks[clerkID].lineLength, length + 1);
+			Acquire(applicationClerk.lineLock, clerkID);
+			/*applicationClerk.lineLength++;*/
+			length = GetMV(applicationClerk.lineLength, clerkID);
+			SetMV(applicationClerk.lineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in regular line for ", ssn);
 			Print("ApplicationClerk %i\n", clerkID);
-			Wait(applicationClerks[clerkID].lineCV, applicationClerks[clerkID].lineLock);
+			Wait(applicationClerk.lineCV, clerkID, applicationClerk.lineLock, clerkID);
 			Print("Customer %i woken up from line\n",ssn);
-			/*applicationClerks[clerkID].lineLength--;*/
-			length = GetMV(applicationClerks[clerkID].lineLength);
-			SetMV(applicationClerks[clerkID].lineLength, length - 1);
+			/*applicationClerk.lineLength--;*/
+			length = GetMV(applicationClerk.lineLength, clerkID);
+			SetMV(applicationClerk.lineLength, clerkID, length - 1);
 		}
 	} else {
 		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	
 	/* Called out of line, make sure it wasn't because of a senator */
-	Acquire(senatorInsideLock);
-	/*if(senatorInside && !customers[ssn].isSenator) {*/
-	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
-		Release(senatorInsideLock);
-		/*if(customers[ssn].didBribe)*/
+	Acquire(senatorInsideLock, -1);
+	/*if(senatorInside && !customer.isSenator) {*/
+	if(GetMV(senatorInside, -1) && !GetMV(customer.isSenator, ssn)) {
+		Release(senatorInsideLock, -1);
+		/*if(customer.didBribe)*/
 		if(!didntGoInLineBecauseOfSenator) {
-			if(GetMV(customers[ssn].didBribe))
-				Release(applicationClerks[clerkID].bribeLineLock);
+			if(GetMV(customer.didBribe, ssn))
+				Release(applicationClerk.bribeLineLock, clerkID);
 			else
-				Release(applicationClerks[clerkID].lineLock);
+				Release(applicationClerk.lineLock, clerkID);
 		} else {
 			didntGoInLineBecauseOfSenator = false; /*reset bool*/
 		}
-		Acquire(customerOutsideLineLock);
+		Acquire(customerOutsideLineLock, -1);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length + 1);
-		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length + 1);
+		Wait(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
 		Print("Customer %i is notified that there are no more senators, and can come in now.\n", ssn);
 		/*customersOutside -= 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length - 1);
-		Release(customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length - 1);
+		Release(customerOutsideLineLock, -1);
 		return true;
 	} else {
-		Release(senatorInsideLock);
+		Release(senatorInsideLock, -1);
 		/* Change the clerk to BUSY before releasing the clerk's line lock */
-		/*applicationClerks[clerkID].state = BUSY;*/
-		SetMV(applicationClerks[clerkID].state, BUSY);
-		/*if(customers[ssn].isSenator)*/
-		if(GetMV(customers[ssn].isSenator))
-			Release(applicationClerks[clerkID].senatorLineLock);
-		/*else if(customers[ssn].didBribe)*/
-		else if(GetMV(customers[ssn].didBribe))
-			Release(applicationClerks[clerkID].bribeLineLock);
+		/*applicationClerk.state = BUSY;*/
+		SetMV(applicationClerk.state, clerkID, BUSY);
+		/*if(customer.isSenator)*/
+		if(GetMV(customer.isSenator, ssn))
+			Release(applicationClerk.senatorLineLock, clerkID);
+		/*else if(customer.didBribe)*/
+		else if(GetMV(customer.didBribe, ssn))
+			Release(applicationClerk.bribeLineLock, clerkID);
 		else
-			Release(applicationClerks[clerkID].lineLock);
+			Release(applicationClerk.lineLock, clerkID);
 		return false;
 	}
 }
@@ -94,86 +94,86 @@ bool enterPictureLine(int clerkID) {
 	int length;
 	/* Stand in line */
 	/*Print("Customer %i about to stand in picture clerk line\n", ssn); 
-	Print("Picture clerk state %i\n",GetMV(pictureClerks[clerkID].state));*/
-	/*if(pictureClerks[clerkID].state != FREE) {*/
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
-		/*if(customers[ssn].isSenator) {*/
-		if(GetMV(customers[ssn].isSenator)) {
-			Acquire(pictureClerks[clerkID].senatorLineLock);
-			/*pictureClerks[clerkID].senatorLineLength++;*/
-			length = GetMV(pictureClerks[clerkID].senatorLineLength);
-			SetMV(pictureClerks[clerkID].senatorLineLength, length + 1);
+	Print("Picture clerk state %i\n",GetMV(pictureClerk.state));*/
+	/*if(pictureClerk.state != FREE) {*/
+	if(!GetMV(senatorInside, -1) || GetMV(customer.isSenator, ssn)) { /*don't go in line if there is a senator present, unless you are a senator /*
+		/*if(customer.isSenator) {*/
+		if(GetMV(customer.isSenator, ssn)) {
+			Acquire(pictureClerk.senatorLineLock, clerkID);
+			/*pictureClerk.senatorLineLength++;*/
+			length = GetMV(pictureClerk.senatorLineLength, clerkID);
+			SetMV(pictureClerk.senatorLineLength, clerkID, length + 1);
 			Print("Senator %i has gotten in senator line for ", ssn);
 			Print("PictureClerk %i\n", clerkID);
-			Wait(pictureClerks[clerkID].senatorLineCV, pictureClerks[clerkID].senatorLineLock);
-			/*pictureClerks[clerkID].senatorLineLength--;*/
-			length = GetMV(pictureClerks[clerkID].senatorLineLength);
-			SetMV(pictureClerks[clerkID].senatorLineLength, length - 1);
-		/*} else if (customers[ssn].didBribe) {*/
-		} else if(GetMV(customers[ssn].didBribe)) {
-			Acquire(pictureClerks[clerkID].bribeLineLock);
-			/*pictureClerks[clerkID].bribeLineLength++;*/
-			length = GetMV(pictureClerks[clerkID].bribeLineLength);
-			SetMV(pictureClerks[clerkID].bribeLineLength, length + 1);
+			Wait(pictureClerk.senatorLineCV, clerkID, pictureClerk.senatorLineLock, clerkID);
+			/*pictureClerk.senatorLineLength--;*/
+			length = GetMV(pictureClerk.senatorLineLength, clerkID);
+			SetMV(pictureClerk.senatorLineLength, clerkID, length - 1);
+		/*} else if (customer.didBribe) {*/
+		} else if(GetMV(customer.didBribe, ssn)) {
+			Acquire(pictureClerk.bribeLineLock, clerkID);
+			/*pictureClerk.bribeLineLength++;*/
+			length = GetMV(pictureClerk.bribeLineLength, clerkID);
+			SetMV(pictureClerk.bribeLineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in bribe line for ", ssn);
 			Print("PictureClerk %i\n", clerkID);
-			Wait(pictureClerks[clerkID].bribeLineCV, pictureClerks[clerkID].bribeLineLock);
-			/*pictureClerks[clerkID].bribeLineLength--;*/
-			length = GetMV(pictureClerks[clerkID].bribeLineLength);
-			SetMV(pictureClerks[clerkID].bribeLineLength, length - 1);
+			Wait(pictureClerk.bribeLineCV, clerkID, pictureClerk.bribeLineLock, clerkID);
+			/*pictureClerk.bribeLineLength--;*/
+			length = GetMV(pictureClerk.bribeLineLength, clerkID);
+			SetMV(pictureClerk.bribeLineLength, clerkID, length - 1);
 		} else {
-			Acquire(pictureClerks[clerkID].lineLock);
-			/*pictureClerks[clerkID].lineLength++;*/
-			length = GetMV(pictureClerks[clerkID].lineLength);
-			SetMV(pictureClerks[clerkID].lineLength, length + 1);
+			Acquire(pictureClerk.lineLock, clerkID);
+			/*pictureClerk.lineLength++;*/
+			length = GetMV(pictureClerk.lineLength, clerkID);
+			SetMV(pictureClerk.lineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in regular line for ", ssn);
 			Print("PictureClerk %i\n", clerkID);
-			Wait(pictureClerks[clerkID].lineCV, pictureClerks[clerkID].lineLock);
-			/*pictureClerks[clerkID].lineLength--;*/
-			length = GetMV(pictureClerks[clerkID].lineLength);
-			SetMV(pictureClerks[clerkID].lineLength, length - 1);
+			Wait(pictureClerk.lineCV, clerkID, pictureClerk.lineLock, clerkID);
+			/*pictureClerk.lineLength--;*/
+			length = GetMV(pictureClerk.lineLength, clerkID);
+			SetMV(pictureClerk.lineLength, clerkID, length - 1);
 		}
 	} else {
 		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
-	Acquire(senatorInsideLock);
-	/*if(senatorInside && !customers[ssn].isSenator) {*/
-	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
-		Release(senatorInsideLock);
-		/*if(customers[ssn].didBribe)*/
+	Acquire(senatorInsideLock, -1);
+	/*if(senatorInside && !customer.isSenator) {*/
+	if(GetMV(senatorInside, -1) && !GetMV(customer.isSenator, ssn)) {
+		Release(senatorInsideLock, -1);
+		/*if(customer.didBribe)*/
 		if(!didntGoInLineBecauseOfSenator) {
-			if(GetMV(customers[ssn].didBribe))
-				Release(pictureClerks[clerkID].bribeLineLock);
+			if(GetMV(customer.didBribe, ssn))
+				Release(pictureClerk.bribeLineLock, clerkID);
 			else
-				Release(pictureClerks[clerkID].lineLock);
+				Release(pictureClerk.lineLock, clerkID);
 		} else {
 			didntGoInLineBecauseOfSenator = false; /*reset bool*/
 		}
-		Acquire(customerOutsideLineLock);
+		Acquire(customerOutsideLineLock, -1);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length + 1);
-		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length + 1);
+		Wait(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
 		/*customersOutside -= 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length - 1);
-		Release(customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length - 1);
+		Release(customerOutsideLineLock, -1);
 		return true;
 	} else {
-		Release(senatorInsideLock);
+		Release(senatorInsideLock, -1);
 		/* Change the clerk to BUSY before releasing the clerk's line lock */
-		/*pictureClerks[clerkID].state = BUSY;*/
-		SetMV(pictureClerks[clerkID].state, BUSY);
-		/*if(customers[ssn].isSenator)*/
-		if(GetMV(customers[ssn].isSenator))
-			Release(pictureClerks[clerkID].senatorLineLock);
-		/*else if(customers[ssn].didBribe)*/
-		else if(GetMV(customers[ssn].didBribe))
-			Release(pictureClerks[clerkID].bribeLineLock);
+		/*pictureClerk.state = BUSY;*/
+		SetMV(pictureClerk.state, clerkID, BUSY);
+		/*if(customer.isSenator)*/
+		if(GetMV(customer.isSenator, ssn))
+			Release(pictureClerk.senatorLineLock, clerkID);
+		/*else if(customer.didBribe)*/
+		else if(GetMV(customer.didBribe, ssn))
+			Release(pictureClerk.bribeLineLock, clerkID);
 		else
-			Release(pictureClerks[clerkID].lineLock);
+			Release(pictureClerk.lineLock, clerkID);
 		return false;
 	}
 }
@@ -182,85 +182,85 @@ bool enterPassportLine(int clerkID) {
 	int length;
 	/* Stand in line */
 	/*Print("Customer %i about to stand in passport clerk line\n", ssn);*/ 
-	/*if(passportClerks[clerkID].state != FREE) {*/
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
-		/*if(customers[ssn].isSenator) {*/
-		if(GetMV(customers[ssn].isSenator)) {
-			Acquire(passportClerks[clerkID].senatorLineLock);
-			/*passportClerks[clerkID].senatorLineLength++;*/
-			length = GetMV(passportClerks[clerkID].senatorLineLength);
-			SetMV(passportClerks[clerkID].senatorLineLength, length + 1);
+	/*if(passportClerk.state != FREE) {*/
+	if(!GetMV(senatorInside, -1) || GetMV(customer.isSenator, ssn)) { /*don't go in line if there is a senator present, unless you are a senator /*
+		/*if(customer.isSenator) {*/
+		if(GetMV(customer.isSenator, ssn)) {
+			Acquire(passportClerk.senatorLineLock, clerkID);
+			/*passportClerk.senatorLineLength++;*/
+			length = GetMV(passportClerk.senatorLineLength, clerkID);
+			SetMV(passportClerk.senatorLineLength, clerkID, length + 1);
 			Print("Senator %i has gotten in senator line for ", ssn);
 			Print("PassportClerk %i\n", clerkID);
-			Wait(passportClerks[clerkID].senatorLineCV, passportClerks[clerkID].senatorLineLock);
-			/*passportClerks[clerkID].senatorLineLength--;*/
-			length = GetMV(passportClerks[clerkID].senatorLineLength);
-			SetMV(passportClerks[clerkID].senatorLineLength, length - 1);
-		/*} else if(customers[ssn].didBribe) {*/
-		} else if(GetMV(customers[ssn].didBribe)) {
-			Acquire(passportClerks[clerkID].bribeLineLock);
-			/*passportClerks[clerkID].bribeLineLength++;*/
-			length = GetMV(passportClerks[clerkID].bribeLineLength);
-			SetMV(passportClerks[clerkID].bribeLineLength, length + 1);
+			Wait(passportClerk.senatorLineCV, clerkID, passportClerk.senatorLineLock, clerkID);
+			/*passportClerk.senatorLineLength--;*/
+			length = GetMV(passportClerk.senatorLineLength, clerkID);
+			SetMV(passportClerk.senatorLineLength, clerkID, length - 1);
+		/*} else if(customer.didBribe) {*/
+		} else if(GetMV(customer.didBribe, ssn)) {
+			Acquire(passportClerk.bribeLineLock, clerkID);
+			/*passportClerk.bribeLineLength++;*/
+			length = GetMV(passportClerk.bribeLineLength, clerkID);
+			SetMV(passportClerk.bribeLineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in bribe line for ", ssn);
 			Print("PassportClerk %i\n", clerkID);
-			Wait(passportClerks[clerkID].bribeLineCV, passportClerks[clerkID].bribeLineLock);
-			/*passportClerks[clerkID].bribeLineLength--;*/
-			length = GetMV(passportClerks[clerkID].bribeLineLength);
-			SetMV(passportClerks[clerkID].bribeLineLength, length - 1);
+			Wait(passportClerk.bribeLineCV, clerkID, passportClerk.bribeLineLock, clerkID);
+			/*passportClerk.bribeLineLength--;*/
+			length = GetMV(passportClerk.bribeLineLength, clerkID);
+			SetMV(passportClerk.bribeLineLength, clerkID, length - 1);
 		} else {
-			Acquire(passportClerks[clerkID].lineLock);
-			/*passportClerks[clerkID].lineLength++;*/
-			length = GetMV(passportClerks[clerkID].lineLength);
-			SetMV(passportClerks[clerkID].lineLength, length + 1);
+			Acquire(passportClerk.lineLock, clerkID);
+			/*passportClerk.lineLength++;*/
+			length = GetMV(passportClerk.lineLength, clerkID);
+			SetMV(passportClerk.lineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in regular line for ", ssn);
 			Print("PassportClerk %i\n", clerkID);
-			Wait(passportClerks[clerkID].lineCV, passportClerks[clerkID].lineLock);
-			/*passportClerks[clerkID].lineLength--;*/
-			length = GetMV(passportClerks[clerkID].lineLength);
-			SetMV(passportClerks[clerkID].lineLength, length - 1);
+			Wait(passportClerk.lineCV, clerkID, passportClerk.lineLock, clerkID);
+			/*passportClerk.lineLength--;*/
+			length = GetMV(passportClerk.lineLength, clerkID);
+			SetMV(passportClerk.lineLength, clerkID, length - 1);
 		}
 	} else {
 		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
-	Acquire(senatorInsideLock);
-	/*if(senatorInside && !customers[ssn].isSenator) {*/
-	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
-		Release(senatorInsideLock);
-		/*if(customers[ssn].didBribe)*/
+	Acquire(senatorInsideLock, -1);
+	/*if(senatorInside && !customer.isSenator) {*/
+	if(GetMV(senatorInside, -1) && !GetMV(customer.isSenator, ssn)) {
+		Release(senatorInsideLock, -1);
+		/*if(customer.didBribe)*/
 		if(!didntGoInLineBecauseOfSenator) {
-			if(GetMV(customers[ssn].didBribe))
-				Release(passportClerks[clerkID].bribeLineLock);
+			if(GetMV(customer.didBribe, ssn))
+				Release(passportClerk.bribeLineLock, clerkID);
 			else
-				Release(passportClerks[clerkID].lineLock);
+				Release(passportClerk.lineLock, clerkID);
 		} else {
 			didntGoInLineBecauseOfSenator = false; /*reset bool*/
 		}
-		Acquire(customerOutsideLineLock);
+		Acquire(customerOutsideLineLock, -1);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length + 1);
-		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length + 1);
+		Wait(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
 		/*customersOutside -= 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length - 1);
-		Release(customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length - 1);
+		Release(customerOutsideLineLock, -1);
 		return true;
 	} else {
-		Release(senatorInsideLock);
+		Release(senatorInsideLock, -1);
 		/* Change the clerk to BUSY before releasing the clerk's line lock */
-		/*passportClerks[clerkID].state = BUSY;*/
-		SetMV(passportClerks[clerkID].state, BUSY);
-		/*if(customers[ssn].isSenator)*/
-		if(GetMV(customers[ssn].isSenator))
-			Release(passportClerks[clerkID].senatorLineLock);
-		/*else if(customers[ssn].didBribe)*/
-		else if(GetMV(customers[ssn].didBribe))
-			Release(passportClerks[clerkID].bribeLineLock);
+		/*passportClerk.state = BUSY;*/
+		SetMV(passportClerk.state, clerkID, BUSY);
+		/*if(customer.isSenator)*/
+		if(GetMV(customer.isSenator, ssn))
+			Release(passportClerk.senatorLineLock, clerkID);
+		/*else if(customer.didBribe)*/
+		else if(GetMV(customer.didBribe, ssn))
+			Release(passportClerk.bribeLineLock, clerkID);
 		else
-			Release(passportClerks[clerkID].lineLock);
+			Release(passportClerk.lineLock, clerkID);
 		return false;
 	}
 }
@@ -269,85 +269,85 @@ bool enterCashierLine(int clerkID) {
 	int length;
 	/* Stand in line */
 	/*Print("Customer %i about to stand in cashier clerk line\n", ssn); */
-	/*if(cashiers[clerkID].state != FREE) {*/
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
-		/*if(customers[ssn].isSenator) {*/
-		if(GetMV(customers[ssn].isSenator)) {
-			Acquire(cashiers[clerkID].senatorLineLock);
-			/*cashiers[clerkID].senatorLineLength++;*/
-			length = GetMV(cashiers[clerkID].senatorLineLength);
-			SetMV(cashiers[clerkID].senatorLineLength, length + 1);
+	/*if(cashier.state != FREE) {*/
+	if(!GetMV(senatorInside, -1) || GetMV(customer.isSenator, ssn)) { /*don't go in line if there is a senator present, unless you are a senator /*
+		/*if(customer.isSenator) {*/
+		if(GetMV(customer.isSenator, ssn)) {
+			Acquire(cashier.senatorLineLock, clerkID);
+			/*cashier.senatorLineLength++;*/
+			length = GetMV(cashier.senatorLineLength, clerkID);
+			SetMV(cashier.senatorLineLength, clerkID, length + 1);
 			Print("Senator %i has gotten in senator line for ", ssn);
 			Print("Cashier %i\n", clerkID);
-			Wait(cashiers[clerkID].senatorLineCV, cashiers[clerkID].senatorLineLock);
-			/*cashiers[clerkID].senatorLineLength--;*/
-			length = GetMV(cashiers[clerkID].senatorLineLength);
-			SetMV(cashiers[clerkID].senatorLineLength, length - 1);
-		/*} else if(customers[ssn].didBribe) {*/
-		} else if(GetMV(customers[ssn].didBribe)) {
-			Acquire(cashiers[clerkID].bribeLineLock);
-			/*cashiers[clerkID].bribeLineLength++;*/
-			length = GetMV(cashiers[clerkID].bribeLineLength);
-			SetMV(cashiers[clerkID].bribeLineLength, length + 1);
+			Wait(cashier.senatorLineCV, clerkID, cashier.senatorLineLock, clerkID);
+			/*cashier.senatorLineLength--;*/
+			length = GetMV(cashier.senatorLineLength, clerkID);
+			SetMV(cashier.senatorLineLength, clerkID, length - 1);
+		/*} else if(customer.didBribe) {*/
+		} else if(GetMV(customer.didBribe, ssn)) {
+			Acquire(cashier.bribeLineLock, clerkID);
+			/*cashier.bribeLineLength++;*/
+			length = GetMV(cashier.bribeLineLength, clerkID);
+			SetMV(cashier.bribeLineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in bribe line for ", ssn);
 			Print("Cashier %i\n", clerkID);
-			Wait(cashiers[clerkID].bribeLineCV, cashiers[clerkID].bribeLineLock);
-			/*cashiers[clerkID].bribeLineLength--;*/
-			length = GetMV(cashiers[clerkID].bribeLineLength);
-			SetMV(cashiers[clerkID].bribeLineLength, length - 1);
+			Wait(cashier.bribeLineCV, clerkID, cashier.bribeLineLock, clerkID);
+			/*cashier.bribeLineLength--;*/
+			length = GetMV(cashier.bribeLineLength, clerkID);
+			SetMV(cashier.bribeLineLength, clerkID, length - 1);
 		} else {
-			Acquire(cashiers[clerkID].lineLock);
-			/*cashiers[clerkID].lineLength++;*/
-			length = GetMV(cashiers[clerkID].lineLength);
-			SetMV(cashiers[clerkID].lineLength, length + 1);
+			Acquire(cashier.lineLock, clerkID);
+			/*cashier.lineLength++;*/
+			length = GetMV(cashier.lineLength, clerkID);
+			SetMV(cashier.lineLength, clerkID, length + 1);
 			Print("Customer %i has gotten in regular line for ", ssn);
 			Print("Cashier %i\n", clerkID);
-			Wait(cashiers[clerkID].lineCV, cashiers[clerkID].lineLock);
-			/*cashiers[clerkID].lineLength--;*/
-			length = GetMV(cashiers[clerkID].lineLength);
-			SetMV(cashiers[clerkID].lineLength, length - 1);
+			Wait(cashier.lineCV, clerkID, cashier.lineLock, clerkID);
+			/*cashier.lineLength--;*/
+			length = GetMV(cashier.lineLength, clerkID);
+			SetMV(cashier.lineLength, clerkID, length - 1);
 		}
 	} else {
 		didntGoInLineBecauseOfSenator = true; /*set this so that we know not to release the line locks (never entered line)*/
 	}
 	/* Called out of line, make sure it wasn't because of a senator */
-	Acquire(senatorInsideLock);
-	/*if(senatorInside && !customers[ssn].isSenator) {*/
-	if(GetMV(senatorInside) && !GetMV(customers[ssn].isSenator)) {
-		Release(senatorInsideLock);
-		/*if(customers[ssn].didBribe)*/
+	Acquire(senatorInsideLock, -1);
+	/*if(senatorInside && !customer.isSenator) {*/
+	if(GetMV(senatorInside, -1) && !GetMV(customer.isSenator, ssn)) {
+		Release(senatorInsideLock, -1);
+		/*if(customer.didBribe)*/
 		if(!didntGoInLineBecauseOfSenator) {
-			if(GetMV(customers[ssn].didBribe))
-				Release(cashiers[clerkID].bribeLineLock);
+			if(GetMV(customer.didBribe, ssn))
+				Release(cashier.bribeLineLock, clerkID);
 			else
-				Release(cashiers[clerkID].lineLock);
+				Release(cashier.lineLock, clerkID);
 		} else {
 			didntGoInLineBecauseOfSenator = false; /*reset bool*/
 		}
-		Acquire(customerOutsideLineLock);
+		Acquire(customerOutsideLineLock, -1);
 		Print("Customer %i is going outside the Passport Office because there is a Senator present.\n", ssn);
 		/*customersOutside += 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length + 1);
-		Wait(customerOutsideLineCV, customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length + 1);
+		Wait(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
 		/*customersOutside -= 1;*/
-		length = GetMV(customersOutside);
-		SetMV(customersOutside, length - 1);
-		Release(customerOutsideLineLock);
+		length = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, length - 1);
+		Release(customerOutsideLineLock, -1);
 		return true;
 	} else {
-		Release(senatorInsideLock);
+		Release(senatorInsideLock, -1);
 		/* Change the clerk to BUSY before releasing the clerk's line lock */
-		/*cashiers[clerkID].state = BUSY;*/
-		SetMV(cashiers[clerkID].state, BUSY);
-		/*if(customers[ssn].isSenator)*/
-		if(GetMV(customers[ssn].isSenator))
-			Release(cashiers[clerkID].senatorLineLock);
-		/*else if(customers[ssn].didBribe)*/
-		else if(GetMV(customers[ssn].didBribe))
-			Release(cashiers[clerkID].bribeLineLock);
+		/*cashier.state = BUSY;*/
+		SetMV(cashier.state, clerkID, BUSY);
+		/*if(customer.isSenator)*/
+		if(GetMV(customer.isSenator, ssn))
+			Release(cashier.senatorLineLock, clerkID);
+		/*else if(customer.didBribe)*/
+		else if(GetMV(customer.didBribe, ssn))
+			Release(cashier.bribeLineLock, clerkID);
 		else
-			Release(cashiers[clerkID].lineLock);
+			Release(cashier.lineLock, clerkID);
 		return false;
 	}
 }
@@ -375,103 +375,103 @@ int chooseLine(ClerkType clerkType) {
 	minLength = 51;
 	canBribe = false;
 
-	/*if(customers[ssn].money > 500 && !customers[ssn].isSenator)*/
-	if(GetMV(customers[ssn].money) > 500 && !GetMV(customers[ssn].isSenator))
+	/*if(customer.money > 500 && !customer.isSenator)*/
+	if(GetMV(customer.money, ssn) > 500 && !GetMV(customer.isSenator, ssn))
 		canBribe = true;
 	/* Choose the shortest line possible */
 	switch(clerkType) {
 		case APPLICATION_CLERK:
 			for(i = 0; i < numApplicationClerks; i++) {
-				/*if(applicationClerks[i].lineLength < minLength) {*/
-				if(GetMV(applicationClerks[i].lineLength) < minLength) {
-					/*customers[ssn].clerkID = i;*/
-					SetMV(customers[ssn].clerkID, i);
-					/*minLength = applicationClerks[i].lineLength;*/
-					minLength = GetMV(applicationClerks[i].lineLength);
-					/*customers[ssn].didBribe = false;*/
-					SetMV(customers[ssn].didBribe, false);
+				/*if(applicationClerk.lineLength < minLength) {*/
+				if(GetMV(applicationClerk.lineLength, i) < minLength) {
+					/*customer.clerkID = i;*/
+					SetMV(customer.clerkID, ssn, i);
+					/*minLength = applicationClerk.lineLength;*/
+					minLength = GetMV(applicationClerk.lineLength, i);
+					/*customer.didBribe = false;*/
+					SetMV(customer.didBribe, ssn, false);
 				}
 				if(canBribe) {
-					/*if(applicationClerks[i].bribeLineLength < minLength) {*/
-					if(GetMV(applicationClerks[i].bribeLineLength) < minLength) {
-						/*customers[ssn].clerkID = i;*/
-						SetMV(customers[ssn].clerkID, i);
-						/*minLength = applicationClerks[i].bribeLineLength;*/
-						minLength = GetMV(applicationClerks[i].bribeLineLength);
-						/*customers[ssn].didBribe = true;*/
-						SetMV(customers[ssn].didBribe, true);
+					/*if(applicationClerk.bribeLineLength < minLength) {*/
+					if(GetMV(applicationClerk.bribeLineLength, i) < minLength) {
+						/*customer.clerkID = i;*/
+						SetMV(customer.clerkID, ssn, i);
+						/*minLength = applicationClerk.bribeLineLength;*/
+						minLength = GetMV(applicationClerk.bribeLineLength, i);
+						/*customer.didBribe = true;*/
+						SetMV(customer.didBribe, ssn, true);
 					}
 				}
 			}
 			break;
 		case PICTURE_CLERK:
 			for(i = 0; i < numPictureClerks; i++) {
-				/*if(pictureClerks[i].lineLength < minLength) {*/
-				if(GetMV(pictureClerks[i].lineLength) < minLength) {
-					/*customers[ssn].clerkID = i;*/
-					SetMV(customers[ssn].clerkID, i);
-					/*minLength = pictureClerks[i].lineLength;*/
-					minLength = GetMV(pictureClerks[i].lineLength);
-					/*customers[ssn].didBribe = false;*/
-					SetMV(customers[ssn].didBribe, false);
+				/*if(pictureClerk.lineLength < minLength) {*/
+				if(GetMV(pictureClerk.lineLength, i) < minLength) {
+					/*customer.clerkID = i;*/
+					SetMV(customer.clerkID, ssn, i);
+					/*minLength = pictureClerk.lineLength;*/
+					minLength = GetMV(pictureClerk.lineLength, i);
+					/*customer.didBribe = false;*/
+					SetMV(customer.didBribe, ssn, false);
 				}
 				if(canBribe) {
-					/*if(pictureClerks[i].bribeLineLength < minLength) {*/
-					if(GetMV(pictureClerks[i].bribeLineLength) < minLength) {
-						/*customers[ssn].clerkID = i;*/
-						SetMV(customers[ssn].clerkID, i);
-						/*minLength = pictureClerks[i].bribeLineLength;*/
-						minLength = GetMV(pictureClerks[i].bribeLineLength);
-						/*customers[ssn].didBribe = true;*/
-						SetMV(customers[ssn].didBribe, true);
+					/*if(pictureClerk.bribeLineLength < minLength) {*/
+					if(GetMV(pictureClerk.bribeLineLength, i) < minLength) {
+						/*customer.clerkID = i;*/
+						SetMV(customer.clerkID, ssn, i);
+						/*minLength = pictureClerk.bribeLineLength;*/
+						minLength = GetMV(pictureClerk.bribeLineLength, i);
+						/*customer.didBribe = true;*/
+						SetMV(customer.didBribe, ssn, true);
 					}
 				}
 			}
 			break;
 		case PASSPORT_CLERK:
 			for(i = 0; i < numPassportClerks; i++) {
-				/*if(passportClerks[i].lineLength < minLength) {*/
-				if(GetMV(passportClerks[i].lineLength) < minLength) {
-					/*customers[ssn].clerkID = i;*/
-					SetMV(customers[ssn].clerkID, i);
-					/*minLength = passportClerks[i].lineLength;*/
-					minLength = GetMV(passportClerks[i].lineLength);
-					/*customers[ssn].didBribe = false;*/
-					SetMV(customers[ssn].didBribe, false);
+				/*if(passportClerk.lineLength < minLength) {*/
+				if(GetMV(passportClerk.lineLength, i) < minLength) {
+					/*customer.clerkID = i;*/
+					SetMV(customer.clerkID, ssn, i);
+					/*minLength = passportClerk.lineLength;*/
+					minLength = GetMV(passportClerk.lineLength, i);
+					/*customer.didBribe = false;*/
+					SetMV(customer.didBribe, ssn, false);
 				}
 				if(canBribe) {
-					/*if(passportClerks[i].bribeLineLength < minLength) {*/
-					if(GetMV(passportClerks[i].bribeLineLength) < minLength) {
-						/*customers[ssn].clerkID = i;*/
-						SetMV(customers[ssn].clerkID, i);
-						/*minLength = passportClerks[i].bribeLineLength;*/
-						minLength = GetMV(passportClerks[i].bribeLineLength);
-						/*customers[ssn].didBribe = true;*/
-						SetMV(customers[ssn].didBribe, true);
+					/*if(passportClerk.bribeLineLength < minLength) {*/
+					if(GetMV(passportClerk.bribeLineLength, i) < minLength) {
+						/*customer.clerkID = i;*/
+						SetMV(customer.clerkID, ssn, i);
+						/*minLength = passportClerk.bribeLineLength;*/
+						minLength = GetMV(passportClerk.bribeLineLength, i);
+						/*customer.didBribe = true;*/
+						SetMV(customer.didBribe, ssn, true);
 					}
 				}
 			}
 			break;
 		case CASHIER:
 			for(i = 0; i < numCashiers; i++) {
-				/*if(cashiers[i].lineLength < minLength) {*/
-				if(GetMV(cashiers[i].lineLength) < minLength) {
-					/*customers[ssn].clerkID = i;*/
-					SetMV(customers[ssn].clerkID, i);
-					/*minLength = cashiers[i].lineLength;*/
-					minLength = GetMV(cashiers[i].lineLength);
-					/*customers[ssn].didBribe = false;*/
-					SetMV(customers[ssn].didBribe, false);
+				/*if(cashier.lineLength < minLength) {*/
+				if(GetMV(cashier.lineLength, i) < minLength) {
+					/*customer.clerkID = i;*/
+					SetMV(customer.clerkID, ssn, i);
+					/*minLength = cashier.lineLength;*/
+					minLength = GetMV(cashier.lineLength, i);
+					/*customer.didBribe = false;*/
+					SetMV(customer.didBribe, ssn, false);
 				}
 				if(canBribe) {
-					/*if(cashiers[i].bribeLineLength < minLength) {*/
-					if(GetMV(cashiers[i].bribeLineLength) < minLength) {
-						/*customers[ssn].clerkID = i;*/
-						SetMV(customers[ssn].clerkID, i);
-						/*minLength = cashiers[i].bribeLineLength;*/
-						minLength = GetMV(cashiers[i].bribeLineLength);
-						/*customers[ssn].didBribe = true;*/
-						SetMV(customers[ssn].didBribe, true);
+					/*if(cashier.bribeLineLength < minLength) {*/
+					if(GetMV(cashier.bribeLineLength, i) < minLength) {
+						/*customer.clerkID = i;*/
+						SetMV(customer.clerkID, ssn, i);
+						/*minLength = cashier.bribeLineLength;*/
+						minLength = GetMV(cashier.bribeLineLength, i);
+						/*customer.didBribe = true;*/
+						SetMV(customer.didBribe, ssn, true);
 					}
 				}
 			}
@@ -484,46 +484,46 @@ void waitInLine(ClerkType clerkType) {
 	int clerkID, money;
 	senatord = false;
 	chooseLine(clerkType);
-	/*clerkID = customers[ssn].clerkID;*/
-	clerkID = GetMV(customers[ssn].clerkID);
+	/*clerkID = customer.clerkID;*/
+	clerkID = GetMV(customer.clerkID, ssn);
 	senatord = enterLine(clerkType, clerkID);
 	while(senatord) {
 		clerkID = chooseLine(clerkType);
 		senatord = enterLine(clerkType, clerkID);
 	}
-	/*if(customers[ssn].didBribe) {*/
-	if(GetMV(customers[ssn].didBribe)) {
-		/*customers[ssn].money = customers[ssn].money - 500;*/
-		money = GetMV(customers[ssn].money);
-		SetMV(customers[ssn].money, money - 500);
+	/*if(customer.didBribe) {*/
+	if(GetMV(customer.didBribe, ssn)) {
+		/*customer.money = customer.money - 500;*/
+		money = GetMV(customer.money, ssn);
+		SetMV(customer.money, ssn, money - 500);
 		switch(clerkType) {
 			case APPLICATION_CLERK:
-				Acquire(applicationClerks[clerkID].moneyLock);
-				/*applicationClerks[clerkID].money = applicationClerks[clerkID].money + 500;*/
-				money = GetMV(applicationClerks[clerkID].money);
-				SetMV(applicationClerks[clerkID].money, money + 500);
-				Release(applicationClerks[clerkID].moneyLock);
+				Acquire(applicationClerk.moneyLock, clerkID);
+				/*applicationClerk.money = applicationClerk.money + 500;*/
+				money = GetMV(applicationClerk.money, clerkID);
+				SetMV(applicationClerk.money, clerkID, money + 500);
+				Release(applicationClerk.moneyLock, clerkID);
 				break;
 			case PICTURE_CLERK:
-				Acquire(pictureClerks[clerkID].moneyLock);
-				/*pictureClerks[clerkID].money = pictureClerks[clerkID].money + 500;*/
-				money = GetMV(pictureClerks[clerkID].money);
-				SetMV(pictureClerks[clerkID].money, money + 500);
-				Release(pictureClerks[clerkID].moneyLock);
+				Acquire(pictureClerk.moneyLock, clerkID);
+				/*pictureClerk.money = pictureClerk.money + 500;*/
+				money = GetMV(pictureClerk.money, clerkID);
+				SetMV(pictureClerk.money, clerkID, money + 500);
+				Release(pictureClerk.moneyLock, clerkID);
 				break;
 			case PASSPORT_CLERK:
-				Acquire(passportClerks[clerkID].moneyLock);
-				/*passportClerks[clerkID].money = passportClerks[clerkID].money + 500;*/
-				money = GetMV(passportClerks[clerkID].money);
-				SetMV(passportClerks[clerkID].money, money + 500);
-				Release(passportClerks[clerkID].moneyLock);
+				Acquire(passportClerk.moneyLock, clerkID);
+				/*passportClerk.money = passportClerk.money + 500;*/
+				money = GetMV(passportClerk.money, clerkID);
+				SetMV(passportClerk.money, clerkID, money + 500);
+				Release(passportClerk.moneyLock, clerkID);
 				break;
 			case CASHIER:
-				Acquire(cashiers[clerkID].moneyLock);
-				/*cashiers[clerkID].money = cashiers[clerkID].money + 500;*/
-				money = GetMV(cashiers[clerkID].money);
-				SetMV(cashiers[clerkID].money, money + 500);
-				Release(cashiers[clerkID].moneyLock);
+				Acquire(cashier.moneyLock, clerkID);
+				/*cashier.money = cashier.money + 500;*/
+				money = GetMV(cashier.money, clerkID);
+				SetMV(cashier.money, clerkID, money + 500);
+				Release(cashier.moneyLock, clerkID);
 				break;
 		}
 	}
@@ -532,105 +532,105 @@ void waitInLine(ClerkType clerkType) {
 void doApplication() {
 	int clerkID;
 	waitInLine(APPLICATION_CLERK);
-	/*clerkID = customers[ssn].clerkID;*/
-	clerkID = GetMV(customers[ssn].clerkID);
+	/*clerkID = customer.clerkID;*/
+	clerkID = GetMV(customer.clerkID, ssn);
 	/* Interaction with clerk */
-	Acquire(applicationClerks[clerkID].clerkLock);
-	/*applicationClerks[clerkID].customerID = ssn;*/
-	SetMV(applicationClerks[clerkID].customerID, ssn);
-    Signal(applicationClerks[clerkID].clerkCV, applicationClerks[clerkID].clerkLock); /* Give incomplete application to Application Clerk */
-    /*if(customers[ssn].isSenator)*/
-    if(GetMV(customers[ssn].isSenator))
+	Acquire(applicationClerk.clerkLock, clerkID);
+	/*applicationClerk.customerID = ssn;*/
+	SetMV(applicationClerk.customerID, clerkID, ssn);
+    Signal(applicationClerk.clerkCV, clerkID, applicationClerk.clerkLock, clerkID); /* Give incomplete application to Application Clerk */
+    /*if(customer.isSenator)*/
+    if(GetMV(customer.isSenator, ssn))
 		 Print("Senator %i has given SSN ", ssn);
 	else
 		 Print("Customer %i has given SSN ", ssn);
     Print("%i to ", ssn);
     Print("Application Clerk %i\n", clerkID);
-    Wait(applicationClerks[clerkID].clerkCV, applicationClerks[clerkID].clerkLock);   /* Wait for Application Clerk */
-    Signal(applicationClerks[clerkID].clerkCV, applicationClerks[clerkID].clerkLock); /* Accept completed application */
-    /*customers[ssn].hasApp = true;*/
-    SetMV(customers[ssn].hasApp, true);
-    Release(applicationClerks[clerkID].clerkLock);
+    Wait(applicationClerk.clerkCV, clerkID, applicationClerk.clerkLock, clerkID);   /* Wait for Application Clerk */
+    Signal(applicationClerk.clerkCV, clerkID, applicationClerk.clerkLock, clerkID); /* Accept completed application */
+    /*customer.hasApp = true;*/
+    SetMV(customer.hasApp, ssn, true);
+    Release(applicationClerk.clerkLock, clerkID);
 }
 
 void doPicture() {
 	int clerkID, randNumber;
 	waitInLine(PICTURE_CLERK);
-	/*clerkID = customers[ssn].clerkID;*/
-	clerkID = GetMV(customers[ssn].clerkID);
+	/*clerkID = customer.clerkID;*/
+	clerkID = GetMV(customer.clerkID, ssn);
     /* Interaction with clerk */
-    /*customers[ssn].seenPic = false;*/
-    SetMV(customers[ssn].seenPic, false);
-    Acquire(pictureClerks[clerkID].clerkLock);
-    /*pictureClerks[clerkID].customerID = ssn;*/
-    SetMV(pictureClerks[clerkID].customerID, ssn);
-    Signal(pictureClerks[clerkID].clerkCV,pictureClerks[clerkID].clerkLock); /* Customer with Clerk */
-    /*if(customers[ssn].isSenator)*/
-    if(GetMV(customers[ssn].isSenator))
+    /*customer.seenPic = false;*/
+    SetMV(customer.seenPic, ssn, false);
+    Acquire(pictureClerk.clerkLock, clerkID);
+    /*pictureClerk.customerID = ssn;*/
+    SetMV(pictureClerk.customerID, clerkID, ssn);
+    Signal(pictureClerk.clerkCV, clerkID, pictureClerk.clerkLock, clerkID); /* Customer with Clerk */
+    /*if(customer.isSenator)*/
+    if(GetMV(customer.isSenator, ssn))
 		 Print("Senator %i has given SSN ", ssn);
 	else
 		 Print("Customer %i has given SSN ", ssn);
     Print("%i to ", ssn);
     Print("Picture Clerk %i\n", clerkID);
-    Wait(pictureClerks[clerkID].clerkCV, pictureClerks[clerkID].clerkLock);   /* Wait for Picture Clerk */
-    /*customers[ssn].seenPic = true;*/
-    SetMV(customers[ssn].seenPic, true);
+    Wait(pictureClerk.clerkCV, clerkID, pictureClerk.clerkLock, clerkID);   /* Wait for Picture Clerk */
+    /*customer.seenPic = true;*/
+    SetMV(customer.seenPic, ssn, true);
     /*if(Rand() % 4 == 0 && !senatorInside) {*/ /* Customer decides whether they don't like picture */
     randNumber = Rand() % 4;
-    if(randNumber == 0 && !GetMV(senatorInside)) {
+    if(randNumber == 0 && !GetMV(senatorInside, -1)) {
     	Print("randNumber was %i\n",randNumber);
-    	/*customers[ssn].likedPic = false;*/
-    	SetMV(customers[ssn].likedPic, false);
-    	/*if(customers[ssn].isSenator)*/
-    	if(GetMV(customers[ssn].isSenator))
+    	/*customer.likedPic = false;*/
+    	SetMV(customer.likedPic, ssn, false);
+    	/*if(customer.isSenator)*/
+    	if(GetMV(customer.isSenator, ssn))
         	Print("Senator %i does not like their picture from ", ssn);
     	else
     		Print("Customer %i does not like their picture from ", ssn);
     	Print("Picture Clerk %i\n", clerkID);
-    	Signal(pictureClerks[clerkID].clerkCV, pictureClerks[clerkID].clerkLock);
-        Release(pictureClerks[clerkID].clerkLock);
+    	Signal(pictureClerk.clerkCV, clerkID, pictureClerk.clerkLock, clerkID);
+        Release(pictureClerk.clerkLock, clerkID);
         doPicture();
     } else {
-        /*customers[ssn].likedPic = true;*/
-        SetMV(customers[ssn].likedPic, true);
-        /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator))
+        /*customer.likedPic = true;*/
+        SetMV(customer.likedPic, ssn, true);
+        /*if(customer.isSenator)*/
+        if(GetMV(customer.isSenator, ssn))
         	Print("Senator %i does like their picture from ", ssn);
         else	
         	Print("Customer %i does like their picture from ", ssn);
     	Print("Picture Clerk %i\n", clerkID);
-        Signal(pictureClerks[clerkID].clerkCV, pictureClerks[clerkID].clerkLock);
-        /*customers[ssn].hasPic = true;*/
-        SetMV(customers[ssn].hasPic, true);
-        Release(pictureClerks[clerkID].clerkLock);
+        Signal(pictureClerk.clerkCV, clerkID, pictureClerk.clerkLock, clerkID);
+        /*customer.hasPic = true;*/
+        SetMV(customer.hasPic, ssn, true);
+        Release(pictureClerk.clerkLock, clerkID);
     }
 }
 
 void doPassport() {
 	int clerkID, wait, k;
 	waitInLine(PASSPORT_CLERK);
-	/*clerkID = customers[ssn].clerkID;*/
-	clerkID = GetMV(customers[ssn].clerkID);
+	/*clerkID = customer.clerkID;*/
+	clerkID = GetMV(customer.clerkID, ssn);
 	/* Interaction with clerk */
-	Acquire(passportClerks[clerkID].clerkLock);
-    /*passportClerks[clerkID].customerID = ssn;*/
-    SetMV(passportClerks[clerkID].customerID, ssn);
-    Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock); 
-    Wait(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock); 
-    /*if(customers[ssn].hasApp && customers[ssn].hasPic) {*/
-    if(GetMV(customers[ssn].hasApp) && GetMV(customers[ssn].hasPic)) {
-        Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock);
-        Release(passportClerks[clerkID].clerkLock);
+	Acquire(passportClerk.clerkLock, clerkID);
+    /*passportClerk.customerID = ssn;*/
+    SetMV(passportClerk.customerID, clerkID, ssn);
+    Signal(passportClerk.clerkCV, clerkID, passportClerk.clerkLock, clerkID); 
+    Wait(passportClerk.clerkCV, clerkID, passportClerk.clerkLock, clerkID); 
+    /*if(customer.hasApp && customer.hasPic) {*/
+    if(GetMV(customer.hasApp, ssn) && GetMV(customer.hasPic, ssn)) {
+        Signal(passportClerk.clerkCV, clerkID, passportClerk.clerkLock, clerkID);
+        Release(passportClerk.clerkLock, clerkID);
     } else {
-        Signal(passportClerks[clerkID].clerkCV,passportClerks[clerkID].clerkLock);
-        /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator))
+        Signal(passportClerk.clerkCV, clerkID, passportClerk.clerkLock, clerkID);
+        /*if(customer.isSenator)*/
+        if(GetMV(customer.isSenator, ssn))
         	Print("Senator %i has gone to PassportClerk ", ssn);
         else
         	Print("Customer %i has gone to PassportClerk ", ssn);
         Print("%i too soon\n", clerkID);
         Print("-They are going to the back of the line\n", 0);
-        Release(passportClerks[clerkID].clerkLock);
+        Release(passportClerk.clerkLock, clerkID);
         wait = Rand() % ((100 - 20) + 1) + 20;
         for(k = 0; k < wait; k++) 
             Yield();
@@ -640,46 +640,46 @@ void doPassport() {
 void doCashier() {
 	int clerkID, wait, k, money;
 	waitInLine(CASHIER);	
-	/*clerkID = customers[ssn].clerkID;*/
-	clerkID = GetMV(customers[ssn].clerkID);
+	/*clerkID = customer.clerkID;*/
+	clerkID = GetMV(customer.clerkID, ssn);
 	/* Interaction with cashier */
-    Acquire(cashiers[clerkID].clerkLock);
-    /*cashiers[clerkID].customerID = ssn;*/
-    SetMV(cashiers[clerkID].customerID, ssn);
-    Signal(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock);
-    Wait(cashiers[clerkID].clerkCV,cashiers[clerkID].clerkLock); 
-    /*if(customers[ssn].certifiedByPassportClerk && customers[ssn].hasPaidForPassport) {*/
-    if(GetMV(customers[ssn].certifiedByPassportClerk) && GetMV(customers[ssn].hasPaidForPassport)) {
-        /*customers[ssn].money = customers[ssn].money - 100;*/
-        money = GetMV(customers[ssn].money);
-        SetMV(customers[ssn].money, money - 100);
-        /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator))
+    Acquire(cashier.clerkLock, clerkID);
+    /*cashier.customerID = ssn;*/
+    SetMV(cashier.customerID, clerkID, ssn);
+    Signal(cashier.clerkCV, clerkID, cashier.clerkLock, clerkID);
+    Wait(cashier.clerkCV, clerkID, cashier.clerkLock, clerkID); 
+    /*if(customer.certifiedByPassportClerk && customer.hasPaidForPassport) {*/
+    if(GetMV(customer.certifiedByPassportClerk, ssn) && GetMV(customer.hasPaidForPassport, ssn)) {
+        /*customer.money = customer.money - 100;*/
+        money = GetMV(customer.money, ssn);
+        SetMV(customer.money, ssn, money - 100);
+        /*if(customer.isSenator)*/
+        if(GetMV(customer.isSenator, ssn))
         	Print("Senator %i has given Cashier ", ssn);
         else
         	Print("Customer %i has given Cashier ", ssn);
         Print("%i $100\n", clerkID);
-        /*customers[ssn].hasPassport = true;*/
-        SetMV(customers[ssn].hasPassport, true);
- 		Signal(cashiers[clerkID].clerkCV, cashiers[clerkID].clerkLock);
-        Release(cashiers[clerkID].clerkLock);
-        /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator)) {
+        /*customer.hasPassport = true;*/
+        SetMV(customer.hasPassport, ssn, true);
+ 		Signal(cashier.clerkCV, clerkID, cashier.clerkLock, clerkID);
+        Release(cashier.clerkLock, clerkID);
+        /*if(customer.isSenator)*/
+        if(GetMV(customer.isSenator, ssn)) {
         	Print("Senator %i is leaving the Passport Office\n", ssn);
         }
         else {
         	Print("Customer %i is leaving the Passport Office\n", ssn);
         }
     } else {
-        Signal(cashiers[clerkID].clerkCV, cashiers[clerkID].clerkLock);
-        /*if(customers[ssn].isSenator)*/
-        if(GetMV(customers[ssn].isSenator))
+        Signal(cashier.clerkCV, clerkID, cashier.clerkLock, clerkID);
+        /*if(customer.isSenator)*/
+        if(GetMV(customer.isSenator, ssn))
         	Print("Senator %i has gone to Cashier ", ssn);
         else
         	Print("Customer %i has gone to Cashier ", ssn);
         Print("%i too soon\n", clerkID);
         Print("-They are going to the back of the line\n", 0);
-        Release(cashiers[clerkID].clerkLock);
+        Release(cashier.clerkLock, clerkID);
         wait = Rand() % ((100 - 20) + 1) + 20;
         for(k = 0; k < wait; k++) 
             Yield();
@@ -690,79 +690,79 @@ void runSenator() {
 	int i, k;
 	Print("Running Senator: %i\n", ssn);
 	
-	Acquire(senatorOutsideLineLock);
-	Acquire(senatorInsideLock);
+	Acquire(senatorOutsideLineLock, -1);
+	Acquire(senatorInsideLock, -1);
 
 	/* Senators wait on other senators outside */
 	/*if(senatorsOutside > 0 || senatorInside) {*/
-	if(GetMV(senatorsOutside) > 0 || GetMV(senatorInside)) {
+	if(GetMV(senatorsOutside, -1) > 0 || GetMV(senatorInside, -1)) {
 		/*senatorsOutside = senatorsOutside + 1;*/
-		i = GetMV(senatorsOutside);
-		SetMV(senatorsOutside, i + 1);
-		Release(senatorInsideLock);
+		i = GetMV(senatorsOutside, -1);
+		SetMV(senatorsOutside, -1, i + 1);
+		Release(senatorInsideLock, -1);
 		Print("Senator: %i is going to wait outside because there is a senator inside.\n", ssn);
-		Wait(senatorOutsideLineCV, senatorOutsideLineLock);
-		Acquire(senatorInsideLock);
+		Wait(senatorOutsideLineCV, -1, senatorOutsideLineLock, -1);
+		Acquire(senatorInsideLock, -1);
 		/*senatorsOutside = senatorsOutside - 1;*/
-		i = GetMV(senatorsOutside);
-		SetMV(senatorsOutside, i - 1);
+		i = GetMV(senatorsOutside, -1);
+		SetMV(senatorsOutside, -1, i - 1);
 	}
 		
 	/* NOTICE: Don't Signal() senatorOutsideLineCV except for when a senator leaves. */
 	/*senatorInside = true;*/
-	SetMV(senatorInside, true);
-	Release(senatorInsideLock);
-	Release(senatorOutsideLineLock);
+	SetMV(senatorInside, -1, true);
+	Release(senatorInsideLock, -1);
+	Release(senatorOutsideLineLock, -1);
 		
 	/* Senator entering, alert all lines to empty */
 	for(k = 0; k < numApplicationClerks; k++) {
-		Acquire(applicationClerks[k].lineLock);
-		/*if(applicationClerks[k].lineLength > 0)*/
-		if(GetMV(applicationClerks[k].lineLength) > 0) {
-			Broadcast(applicationClerks[k].lineCV, applicationClerks[k].lineLock);
+		Acquire(applicationClerk.lineLock, k);
+		/*if(applicationClerk.lineLength > 0)*/
+		if(GetMV(applicationClerk.lineLength, k) > 0) {
+			Broadcast(applicationClerk.lineCV, k, applicationClerk.lineLock, k);
 		}
-		Release(applicationClerks[k].lineLock);
-		Acquire(applicationClerks[k].bribeLineLock);
-		/*if(applicationClerks[k].bribeLineLength > 0) */
-		if(GetMV(applicationClerks[k].bribeLineLength) > 0)
-			Broadcast(applicationClerks[k].bribeLineCV, applicationClerks[k].bribeLineLock);
-		Release(applicationClerks[k].bribeLineLock);
+		Release(applicationClerk.lineLock, k);
+		Acquire(applicationClerk.bribeLineLock, k);
+		/*if(applicationClerk.bribeLineLength > 0) */
+		if(GetMV(applicationClerk.bribeLineLength, k) > 0)
+			Broadcast(applicationClerk.bribeLineCV, k, applicationClerk.bribeLineLock, k);
+		Release(applicationClerk.bribeLineLock, k);
 	}
 	for(k = 0; k < numPictureClerks; k++) {
-		Acquire(pictureClerks[k].lineLock);
-		/*if(pictureClerks[k].lineLength > 0)*/
-		if(GetMV(pictureClerks[k].lineLength) > 0)
-			Broadcast(pictureClerks[k].lineCV, pictureClerks[k].lineLock);
-		Release(pictureClerks[k].lineLock);
-		Acquire(pictureClerks[k].bribeLineLock);
-		/*if(pictureClerks[k].bribeLineLength > 0) */
-		if(GetMV(pictureClerks[k].bribeLineLength) > 0)
-			Broadcast(pictureClerks[k].bribeLineCV, pictureClerks[k].bribeLineLock);
-		Release(pictureClerks[k].bribeLineLock);
+		Acquire(pictureClerk.lineLock, k);
+		/*if(pictureClerk.lineLength > 0)*/
+		if(GetMV(pictureClerk.lineLength, k) > 0)
+			Broadcast(pictureClerk.lineCV, k, pictureClerk.lineLock, k);
+		Release(pictureClerk.lineLock, k);
+		Acquire(pictureClerk.bribeLineLock, k);
+		/*if(pictureClerk.bribeLineLength > 0) */
+		if(GetMV(pictureClerk.bribeLineLength, k) > 0)
+			Broadcast(pictureClerk.bribeLineCV, k, pictureClerk.bribeLineLock, k);
+		Release(pictureClerk.bribeLineLock, k);
 	}
 	for(k = 0; k < numPassportClerks; k++) {
-		Acquire(passportClerks[k].lineLock);
-		/*if(passportClerks[k].lineLength > 0)*/
-		if(GetMV(passportClerks[k].lineLength) > 0)
-			Broadcast(passportClerks[k].lineCV, passportClerks[k].lineLock);
-		Release(passportClerks[k].lineLock);
-		Acquire(passportClerks[k].bribeLineLock);
-		/*if(passportClerks[k].bribeLineLength > 0) */
-		if(GetMV(passportClerks[k].bribeLineLength) > 0)
-			Broadcast(passportClerks[k].bribeLineCV, passportClerks[k].bribeLineLock);
-		Release(passportClerks[k].bribeLineLock);
+		Acquire(passportClerk.lineLock, k);
+		/*if(passportClerk.lineLength > 0)*/
+		if(GetMV(passportClerk.lineLength, k) > 0)
+			Broadcast(passportClerk.lineCV, k, passportClerk.lineLock, k);
+		Release(passportClerk.lineLock, k);
+		Acquire(passportClerk.bribeLineLock, k);
+		/*if(passportClerk.bribeLineLength > 0) */
+		if(GetMV(passportClerk.bribeLineLength, k) > 0)
+			Broadcast(passportClerk.bribeLineCV, k, passportClerk.bribeLineLock, k);
+		Release(passportClerk.bribeLineLock, k);
 	}
 	for(k = 0; k < numCashiers; k++) {
-		Acquire(cashiers[k].lineLock);
-		/*if(cashiers[k].lineLength > 0)*/
-		if(GetMV(cashiers[k].lineLength) > 0)
-			Broadcast(cashiers[k].lineCV, cashiers[k].lineLock);
-		Release(cashiers[k].lineLock);
-		Acquire(cashiers[k].bribeLineLock);
-		/*if(cashiers[k].bribeLineLength > 0) */
-		if(GetMV(cashiers[k].bribeLineLength) > 0)
-			Broadcast(cashiers[k].bribeLineCV, cashiers[k].bribeLineLock);
-		Release(cashiers[k].bribeLineLock);
+		Acquire(cashier.lineLock, k);
+		/*if(cashier.lineLength > 0)*/
+		if(GetMV(cashier.lineLength, k) > 0)
+			Broadcast(cashier.lineCV, k, cashier.lineLock, k);
+		Release(cashier.lineLock, k);
+		Acquire(cashier.bribeLineLock, k);
+		/*if(cashier.bribeLineLength > 0) */
+		if(GetMV(cashier.bribeLineLength, k) > 0)
+			Broadcast(cashier.bribeLineCV, k, cashier.bribeLineLock, k);
+		Release(cashier.bribeLineLock, k);
 	}
 	
     /* Randomly decide whether to go to AppClerk or PicClerk first */
@@ -778,45 +778,45 @@ void runSenator() {
     doCashier();
 
     /* Add code here to Broadcast() when a senator leaves */
-    Acquire(senatorOutsideLineLock);
-    Acquire(senatorInsideLock);
-    Acquire(customerOutsideLineLock);
+    Acquire(senatorOutsideLineLock, -1);
+    Acquire(senatorInsideLock, -1);
+    Acquire(customerOutsideLineLock, -1);
 	/*senatorInside = false;*/
-	SetMV(senatorInside, false);
+	SetMV(senatorInside, -1, false);
 	/*if(senatorsOutside > 0)*/
-	if(GetMV(senatorsOutside) > 0)
-		Broadcast(senatorOutsideLineCV, senatorOutsideLineLock);
-	Release(senatorInsideLock);
-	Release(senatorOutsideLineLock);
+	if(GetMV(senatorsOutside, -1) > 0)
+		Broadcast(senatorOutsideLineCV, -1, senatorOutsideLineLock, -1);
+	Release(senatorInsideLock, -1);
+	Release(senatorOutsideLineLock, -1);
 	/*if there are no other senators outside, then customers can come in */
 	/*if(senatorsOutside == false && customersOutside > 0)*/
-	if(GetMV(senatorsOutside) == false && GetMV(customersOutside) > 0) 
-		Broadcast(customerOutsideLineCV, customerOutsideLineLock);
-	Release(customerOutsideLineLock);
+	if(GetMV(senatorsOutside, -1) == false && GetMV(customersOutside, -1) > 0) 
+		Broadcast(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
+	Release(customerOutsideLineLock, -1);
 }
 
 void runCustomer() {
 	int i;
 	Print("Running Customer: %i\n", ssn);
 
-	Acquire(senatorOutsideLineLock);
-	Acquire(senatorInsideLock);
+	Acquire(senatorOutsideLineLock, -1);
+	Acquire(senatorInsideLock, -1);
 
-	if(GetMV(senatorsOutside) > 0 || GetMV(senatorInside)) {
-		Release(senatorInsideLock);
-		Release(senatorOutsideLineLock);
-		Acquire(customerOutsideLineLock);
-		i = GetMV(customersOutside);
-		SetMV(customersOutside, i + 1);
-		Wait(customerOutsideLineCV,customerOutsideLineLock);
+	if(GetMV(senatorsOutside, -1) > 0 || GetMV(senatorInside, -1)) {
+		Release(senatorInsideLock, -1);
+		Release(senatorOutsideLineLock, -1);
+		Acquire(customerOutsideLineLock, -1);
+		i = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, i + 1);
+		Wait(customerOutsideLineCV, -1, customerOutsideLineLock, -1);
 		Print("Customer %i is notified that there are no more senators, and can come in now.\n", ssn);
-		i = GetMV(customersOutside);
-		SetMV(customersOutside, i - 1);
-		Release(customerOutsideLineLock);
+		i = GetMV(customersOutside, -1);
+		SetMV(customersOutside, -1, i - 1);
+		Release(customerOutsideLineLock, -1);
 	}
 	
-	Release(senatorInsideLock);
-	Release(senatorOutsideLineLock);
+	Release(senatorInsideLock, -1);
+	Release(senatorOutsideLineLock, -1);
 
 	/* Customer has 1 in 10 chance of going to Passport Clerk first*/
 	if(Rand() % 10 == 9999) 
@@ -839,19 +839,19 @@ void runCustomer() {
 }
 
 int main() {
-    Setup();
+	Setup();
     
-    Acquire(customerIndexLock);
-    ssn = GetMV(nextAvailableCustomerIndex);
-    SetMV(nextAvailableCustomerIndex, ssn + 1);
-    Release(customerIndexLock);
+    Acquire(customer.indexLock, -1);
+    ssn = GetMV(customer.index, -1);
+    SetMV(customer.index, -1, ssn + 1);
+    Release(customer.indexLock, -1);
     
-    if(GetMV(customers[ssn].isSenator))
+    if(GetMV(customer.isSenator, ssn))
 		runSenator();
 	else
 		runCustomer();
 
-	SetMV(customers[ssn].leftOffice, true);
+	SetMV(customer.leftOffice, ssn, true);
     
 	Exit(0);
 }
