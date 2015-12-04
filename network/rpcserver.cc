@@ -342,6 +342,66 @@ void RPCServer::Receive_Release() {
     }
 }
 
+void RPCServer::Receive_ServerLockSubordinate() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+    char conf[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "sub"); // Special message (other than "yes") to prevent confusion
+
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, recv); 
+
+        // Read the message
+        int mailbox = inMailHdr.from;                           // The mailbox that's touching the Condition, that *SHOULD* be holding the lock
+        std::string lockName(recv);                             // The lock name we hope is on this server
+        int serverMachine = inPktHdr.from;                      // The server that has the Condition
+        int serverMailbox = MailboxServerLockSubordinate + 100; // The mailbox that will be used to talk back to the server
+
+        // Make sure we haven't accidentally interrupted a confirmation to another subordinate
+        if ( strcmp(test,recv) == 0 ) {
+            SendResponse(serverMailbox, -2, serverMachine);
+            continue;
+        }
+
+        // Acquire the NetworkLockTable lock
+        networkLockTable->tableLock->Acquire();
+
+        // Check for the lock on this server
+        NetworkLock *lock = networkLockTable->locks[lockName];
+
+        // Check if we have the lock
+        if ( lock != NULL ) {
+            // We do, check that the mailbox owns the lock
+            bool hasAcquired = lock->HasAcquired(mailbox);
+
+            if (hasAcquired) {
+                // It does, tell the server with Wait/Signal/Broadcast to go ahead
+                SendResponse(serverMailbox, -1, serverMachine);
+            } else {
+                // It does not, tell the server
+                SendResponse(serverMailbox, -2, serverMachine);
+            }
+
+            // Wait for the server to tell us it's done
+            postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, conf); 
+
+            // Double-check this worked
+            if ( strcmp(test,conf) != 0 ) {
+                printf("ERROR: Subordinate failure. Nachos halting.\n");
+                interrupt->Halt();
+            }
+        } else {
+            // Tell the server we do not have the lock
+            SendResponse(serverMailbox, -2, serverMachine);
+        }
+
+        // Release the LockTable lock
+        networkLockTable->tableLock->Release();
+    }
+}
+
 void RPCServer::Receive_CreateCondition() {
     PacketHeader inPktHdr;
     MailHeader inMailHdr;
@@ -526,6 +586,7 @@ void RPCServer::Receive_Wait() {
          networkLockTable->tableLock->Acquire();
          */
         int mailbox = inMailHdr.from;
+        std::string together(recv);
         std::string conditionName(strtok(recv, ","));
         std::string lockName(strtok(NULL, ","));
         
@@ -535,9 +596,19 @@ void RPCServer::Receive_Wait() {
         
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
+
+            // We CANNOT assume that the lock and the condition were created on the same server
+            // It might be good to create a "lock swap" that pulls the lock over to the condition server
+            // when the lock is being assigned to the condition
+            // The other option would be a way to talk to the other server to ensure that the lock matches
+            // and is held, but then you woulnd't be able to maintain immutability on the lock while the server
+            // that held the condition is working
+
             int serverMachine = inPktHdr.from;
             int serverMailbox = MailboxWait + 100;
-            
+
+            bool subordinateActive = false;
+
             if ( condition != NULL ) {
                 DEBUG('r', "Receive_Wait (remote) - %d waiting on %s with %s\n", mailbox, conditionName.c_str(), lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
@@ -547,16 +618,29 @@ void RPCServer::Receive_Wait() {
                 networkLockTable->tableLock->Acquire();
                 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    subordinateActive = true;
+
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Wait (subordinate)");
+
+                    if (!result) {
+                        printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();          
+                    }
                 }
                 
                 condition->Wait(-mailbox, lock);
                 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
-                
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Wait (subordinate done)"); // Sending a bogus mailbox
+                }
+
+
                 // Success response to the original client is sent from Wait()
                 continue;
             } else {
@@ -594,7 +678,7 @@ void RPCServer::Receive_Wait() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            bool result = SendQuery(MailboxWait, mailbox, conditionName, "Wait");
+            bool result = SendQuery(MailboxWait, mailbox, together, "Wait");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -628,6 +712,7 @@ void RPCServer::Receive_Signal() {
          networkLockTable->tableLock->Acquire();
          */
         int mailbox = inMailHdr.from;
+        std::string together(recv);
         std::string conditionName(strtok(recv, ","));
         std::string lockName(strtok(NULL, ","));
         
@@ -639,7 +724,9 @@ void RPCServer::Receive_Signal() {
         if (mailbox < 0) {
             int serverMachine = inPktHdr.from;
             int serverMailbox = MailboxSignal + 100;
-            
+
+            bool subordinateActive = false;
+
             if ( condition != NULL ) {
                 DEBUG('r', "Receive_Signal (remote) - %d signaling %s with %s\n", mailbox, conditionName.c_str(), lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
@@ -649,16 +736,28 @@ void RPCServer::Receive_Signal() {
                 networkLockTable->tableLock->Acquire();
                 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Signal (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    subordinateActive = true;
+
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Signal (subordinate");
+                    
+                    if (!result) {
+                        printf("ERROR: Receive_Signal (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();
+                    }
                 }
                 
                 condition->Signal(-mailbox, lock);
                 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
-                
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Signal (subordinate done"); // Sending a bogus mailbox
+                }
+
                 // Success response to the original client is sent from Signal()
                 continue;
             } else {
@@ -696,7 +795,7 @@ void RPCServer::Receive_Signal() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            bool result = SendQuery(MailboxSignal, mailbox, conditionName, "Signal");
+            bool result = SendQuery(MailboxSignal, mailbox, together, "Signal");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -731,13 +830,17 @@ void RPCServer::Receive_Broadcast() {
          networkLockTable->tableLock->Acquire();
          */
         int mailbox = inMailHdr.from;
+        std::string together(recv);
         std::string conditionName(strtok(recv, ","));
         std::string lockName(strtok(NULL, ","));
         
         // Check if the condition exists (and get the lock, because we assume they are on the same server)
         NetworkCondition *condition = networkConditionTable->conditions[conditionName];
         NetworkLock *lock = networkLockTable->locks[lockName];
-        
+
+
+        bool subordinateActive = false;
+
         // Check if this is a Server-to-Server query
         if (mailbox < 0) {
             int serverMachine = inPktHdr.from;
@@ -752,16 +855,29 @@ void RPCServer::Receive_Broadcast() {
                 networkLockTable->tableLock->Acquire();
                 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Broadcast (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    subordinateActive = true;
+
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Broadcast (subordinate)");
+
+                    if (!result) {
+                        printf("ERROR: Receive_Broadcast (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();          
+                    }
                 }
                 
                 condition->Broadcast(-mailbox, lock);
                 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
-                
+
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Broadcast (subordinate done)"); // Sending a bogus mailbox
+                }
+
                 // Success response to the original client is sent from Broadcast()
                 continue;
             } else {
@@ -799,7 +915,7 @@ void RPCServer::Receive_Broadcast() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            bool result = SendQuery(MailboxBroadcast, mailbox, conditionName, "Broadcast");
+            bool result = SendQuery(MailboxBroadcast, mailbox, together, "Broadcast");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -1105,6 +1221,7 @@ void RPCServer::Receive_SetMV() {
          
          */
         int mailbox = inMailHdr.from;
+        std::string together(recv);
         std::string mvName(strtok(recv, ","));
         int mvValue = atoi(strtok(NULL,","));
         
@@ -1157,7 +1274,7 @@ void RPCServer::Receive_SetMV() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
-            bool result = SendQuery(MailboxSetMV, mailbox, mvName, "SetMV");
+            bool result = SendQuery(MailboxSetMV, mailbox, together, "SetMV");
             if (result)
                 continue; // One of the other servers had it, we can finish
         }
@@ -1263,7 +1380,9 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, std::string query, cha
     char send[MaxMailSize];
     char recv[MaxMailSize];
     char test[MaxMailSize]; strcpy(test, "yes");
-    
+
+    DEBUG('r', "SendQuery (start) - mailboxTo %d mailboxFrom %d query %s identifier %s\n", mailboxTo, mailboxFrom, query.c_str(), identifier);
+
     // If I am the only server, return false
     if (numServers == 1) {
         return false;
@@ -1273,7 +1392,7 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, std::string query, cha
     sprintf(send, "%s", query.c_str());
     
     // Send the query to all servers until out of servers or get a "yes"
-    for (int serverToQuery = 0; serverToQuery <= 4; serverToQuery++) {
+    for (int serverToQuery = 0; serverToQuery < numServers; serverToQuery++) {
         // Don't send a query to ourselves
         if (machineName == serverToQuery) {
             continue;
@@ -1284,7 +1403,11 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, std::string query, cha
         outMailHdr.to = mailboxTo;
         outMailHdr.from = -mailboxFrom; // MAILBOX IS NEGATED HERE. DO NOT PRE-NEGATE.
         outMailHdr.length = strlen(send) + 1;
-        
+
+
+        DEBUG('r', "SendQuery (query %d) - mailboxTo %d mailboxFrom %d query %s identifier %s\n", serverToQuery, mailboxTo, mailboxFrom, query.c_str(), identifier);
+
+
         // Send the query message
         bool success = postOffice->Send(outPktHdr, outMailHdr, send);
         
@@ -1296,14 +1419,24 @@ bool RPCServer::SendQuery(int mailboxTo, int mailboxFrom, std::string query, cha
         // Use mailboxTo + 100 to listen for "yes" or "no"
         int mailbox = mailboxTo + 100;
         postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-        
-        // If we get a "yes", then return 0. Otherwise keep trying.
+
+
+        // If we get a "yes", then return true. Otherwise keep trying.
+
         // A "yes" means the other server is handling the request
-        if ( strcmp(test,recv) )
+        if ( strcmp(test,recv) == 0 ) {
+            DEBUG('r', "SendQuery (true %d) - mailboxTo %d mailboxFrom %d query %s identifier %s\n", serverToQuery, mailboxTo, mailboxFrom, query.c_str(), identifier);
             return true;
+        } else {
+            DEBUG('r', "SendQuery (false %d) - mailboxTo %d mailboxFrom %d query %s identifier %s\n", serverToQuery, mailboxTo, mailboxFrom, query.c_str(), identifier);
+        }
     }
-    
-    // Query was ultimately unsuccessful
+
+
+    DEBUG('r', "SendQuery (false) - mailboxTo %d mailboxFrom %d query %s identifier %s\n", mailboxTo, mailboxFrom, query.c_str(), identifier);
+
+    // Query was ultimately unsuccessful 
+
     return false;
 }
 
@@ -1326,6 +1459,7 @@ static void DummyReceive_CreateMV(int arg) { RPCServer* rpcs = (RPCServer *) arg
 static void DummyReceive_DestroyMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_DestroyMV(); }
 static void DummyReceive_GetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_GetMV(); }
 static void DummyReceive_SetMV(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_SetMV(); }
+static void DummyReceive_ServerLockSubordinate(int arg) { RPCServer* rpcs = (RPCServer *) arg; rpcs->Receive_ServerLockSubordinate(); }
 
 //-----------------------------------------------------------------------------------------------//
 // RunServer() is called from main.cc when the "--server" flag is used.
@@ -1393,6 +1527,9 @@ void RunServer() {
     
     Thread *tSetMV = new Thread("SetMV thread");
     tSetMV->Fork(DummyReceive_SetMV, (int) rpcServer);
+
+    Thread *tServerLockSubordinate = new Thread("ServerLockSubordinate thread");
+    tServerLockSubordinate->Fork(DummyReceive_ServerLockSubordinate, (int) rpcServer);
 }
 
 //-----------------------------------------------------------------------------------------------//

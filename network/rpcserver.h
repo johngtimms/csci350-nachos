@@ -7,21 +7,22 @@
 #include "synchlist.h"
 
 // The network-backed syscalls are mapped to the following mailboxes:
-#define MailboxCreateLock           0
-#define MailboxDestroyLock          1
-#define MailboxAcquire              2
-#define MailboxRelease              3
-#define MailboxCreateCondition      4
-#define MailboxDestroyCondition     5
-#define MailboxWait                 6
-#define MailboxSignal               7
-#define MailboxBroadcast            8
-#define MailboxNetPrint             9
-#define MailboxNetHalt              10
-#define MailboxCreateMV             11
-#define MailboxDestroyMV            12
-#define MailboxGetMV                13
-#define MailboxSetMV                14
+#define MailboxCreateLock               0
+#define MailboxDestroyLock              1
+#define MailboxAcquire                  2
+#define MailboxRelease                  3
+#define MailboxCreateCondition          4
+#define MailboxDestroyCondition         5
+#define MailboxWait                     6
+#define MailboxSignal                   7
+#define MailboxBroadcast                8
+#define MailboxNetPrint                 9
+#define MailboxNetHalt                  10
+#define MailboxCreateMV                 11
+#define MailboxDestroyMV                12
+#define MailboxGetMV                    13
+#define MailboxSetMV                    14
+#define MailboxServerLockSubordinate    15
 
 class RPCServer {
     public:
@@ -44,6 +45,7 @@ class RPCServer {
         void Receive_DestroyMV();
         void Receive_GetMV();
         void Receive_SetMV();
+        void Receive_ServerLockSubordinate();
 
         // To prevent overlap, mailbox IDs are calculated
         static int ClientMailbox(int _machine, int process, int thread);

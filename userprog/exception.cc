@@ -403,40 +403,30 @@ int genericFunction(char *message, char *identifier, int action) {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    
-    DEBUG('l', "Generic Function (start) - message \'%s\' identifier \'%s\' action \'%d\' process %d thread %d machine %d mailbox %d\n", message, identifier, action, processID, threadID, machineName, mailbox);
-    
     // Because the server mailbox defines the action, the message is all that must be sent
     sprintf(send, "%s", message);
-    
-    DEBUG('r', "0 - %s\n", identifier);
-    
+
+
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = action;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
-    
-    DEBUG('r', "1 - %s\n", identifier);
-    
+
+    DEBUG('l', "Generic Function (start) - message \'%s\' identifier \'%s\' action \'%d\' serverTo \'%d\' mailbox \'%d\'\n", message, identifier, action, outPktHdr.to, mailbox);
+
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    DEBUG('r', "2 - %s\n", identifier);
-    
+
     // Check that the send worked
     if ( !success )
         printf("WARN: %s failed. Server misconfigured.\n", identifier);
-    
-    DEBUG('r', "3 - %s\n", identifier);
-    
+
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    
-    DEBUG('l', "Generic Function (end) - recv \'%s\' message \'%s\' identifier \'%s\' action \'%d\' process %d thread %d machine %d mailbox %d\n", recv, message, identifier, action, processID, threadID, machineName, mailbox);
-    
-    DEBUG('r', "4 - %s\n", identifier);
-    
+
+    DEBUG('l', "Generic Function (end) - recv \'%s\' message \'%s\' identifier \'%s\' action \'%d\' serverTo \'%d\' serverFrom \'%d\' mailbox \'%d\'\n", recv, message, identifier, action, outPktHdr.to, inPktHdr.from, mailbox);
+
     // GetMV is a special case- it's the only RPC we support that returns a value other than "yes"
     if ( action == MailboxGetMV ) {
         int value = atoi(recv);
