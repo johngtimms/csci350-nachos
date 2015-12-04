@@ -8,10 +8,15 @@ Group: Name                 Email
 I. Requirements:
 
     Part 1:
-
-
+	All Passport Office Entities must work together across Nachos clients. It is the server's responsibility 
+	to connect the various entities together. User programs are not to know anything about the fact that remote 
+	procedure calls are being used. In addition, Nachos clients do not directly talk to each other. All client 
+	messages are to go to a Nachos server, and the server connects the clients and user programs.
 
     Part 2:
+	Multiple servers must be able to work together and receive a request from any client. Each server is to only 
+	have the locks/CVs/MVs in their table that they create. This means that no server will have a complete set of 
+	locks/CVs/MVs. Only all the servers together have all the locks/CVs/MVs.
 
         
 
@@ -43,6 +48,10 @@ III. Design:
         machine can interact with a resource. As before, threads make RPCs with a unique mailbox as their
         return address. 
 
+	And a header file was added, setup.h, to the test directory. In here, a function Setup() is implemented to
+	setup every lock, condition variable, monitor variable, and struct needed for each user program. Each user program
+	will first call Setup() to either create locks/cvs/mvs using names, or retrieve them if they are already created.
+
 The mailbox id was previously the concatination of the process and thread ids, now it is the 
         concatination of the machine, process, and thread ids, which will prevent collisions. 
 
@@ -72,9 +81,16 @@ The mailbox id was previously the concatination of the process and thread ids, n
 IV. Implementation:
 
     Files Modified:
+	userprog/exception.cc
+	network/rpcserver.h
+	network/rpcserver.cc
+	test/networkTests.c
 
 
     Files Added:
+	test/setup.h
+	test/customerstarter.c
+	test/clerkstarter.c
 
 
     Data Structures Added:
@@ -91,6 +107,390 @@ V. Testing:
     How To Test:
 
         Part 1:
+		We well test running the Passport Office simulation with 1 working server, 
+		1 client nachos instance that exec’s 5 customers and 2 senators,
+
+		and a 2nd client nachos instance that exec’s 2 application clerks, 2 picture clerks,
+		2 passport clerks, 2 cashiers, and 1 manager.
+
+		Testing multiple clients with one server:
+		Open three terminal windows, one for the server, and two others for two clients
+
+		Make sure all windows are in the vm directory and run this for the one server:
+		nachos --server -m 0 -ns 1
+		(this starts the server, indicating machine: #0, number of servers: 1)
+		
+		In the second terminal window, also in the vm directory, run this first client:
+		nachos -x ../test/customerstarter -m 1 -ns 1
+		(this starts 5 customers and 2 senators, exec’ing test/customer.c 7 times, using 7 mailboxes,
+		1 for each exec’d process)
+		(indicating machine: #1, number of servers: 1)
+
+		In the third terminal window, also in the vm directory, run the second client:
+		nachos -x ../test/clerkstarter -m 2 -ns 1
+		(this starts 2 app clerks, 2 pic clerks, 2 passport clerks, 2 cashiers, 1 manger, using 9 mailboxes,
+		1 for each exec’d process)
+		(indicating machine: #2, number of servers: 1)
+
+		Expected output: 
+		In the server window: 
+		SERVER RUNNING - MACHINE NAME IS 0
+		SERVER RUNNING - numServers is 1
+
+		In the second terminal window (customerstarter)
+
+
+=================================================
+=========Starting Customers And Senators=========
+=================================================
+Number of Customers: 5
+Number of Senators: 2
+Setting up locks/cvs/mvs...
+Running Customer: 0
+Running Customer: 1
+Running Customer: 2
+Running Customer: 3
+Running Customer: 4
+Running Senator: 5
+Running Senator: 6
+Customer 0 has gotten in regular line for ApplicationClerk 0
+Customer 1 has gotten in regular line for ApplicationClerk 0
+Customer 2 has gotten in regular line for ApplicationClerk 0
+Customer 0 woken up from line
+Senator: 6 is going to wait outside because there is a senator inside.
+Customer 3 is going outside the Passport Office because there is a Senator present.
+Customer 1 woken up from line
+Customer 0 is going outside the Passport Office because there is a Senator present.
+Customer 4 is going outside the Passport Office because there is a Senator present.
+Customer 2 woken up from line
+Customer 1 is going outside the Passport Office because there is a Senator present.
+Customer 2 is going outside the Passport Office because there is a Senator present.
+Senator 5 has gotten in senator line for ApplicationClerk 0
+Senator 5 has given SSN 5 to Application Clerk 0
+Senator 5 has gotten in senator line for PictureClerk 0
+Senator 5 has given SSN 5 to Picture Clerk 0
+Senator 5 does like their picture from Picture Clerk 0
+Senator 5 has gotten in senator line for PassportClerk 0
+Senator 5 has gotten in senator line for Cashier 0
+Senator 5 has given Cashier 0 $100
+Senator 5 is leaving the Passport Office
+Senator 6 has gotten in senator line for ApplicationClerk 0
+Senator 6 has given SSN 6 to Application Clerk 0
+Senator 6 has gotten in senator line for PictureClerk 0
+Senator 6 has given SSN 6 to Picture Clerk 0
+Senator 6 does like their picture from Picture Clerk 0
+Senator 6 has gotten in senator line for PassportClerk 0
+Senator 6 has gotten in senator line for Cashier 0
+Senator 6 has given Cashier 0 $100
+Senator 6 is leaving the Passport Office
+Customer 3 is notified that there are no more senators, and can come in now.
+Customer 0 is notified that there are no more senators, and can come in now.
+Customer 4 is notified that there are no more senators, and can come in now.
+Customer 1 is notified that there are no more senators, and can come in now.
+Customer 2 is notified that there are no more senators, and can come in now.
+Customer 3 has gotten in regular line for ApplicationClerk 0
+Customer 0 has gotten in regular line for ApplicationClerk 0
+Customer 4 has gotten in regular line for ApplicationClerk 0
+Customer 1 has gotten in regular line for ApplicationClerk 0
+Customer 2 has gotten in bribe line for ApplicationClerk 0
+Customer 2 has given SSN 2 to Application Clerk 0
+Customer 2 has gotten in regular line for PictureClerk 0
+Customer 3 woken up from line
+Customer 3 has given SSN 3 to Application Clerk 0
+Customer 0 woken up from line
+Customer 3 has gotten in bribe line for PictureClerk 0
+Customer 0 has given SSN 0 to Application Clerk 0
+Customer 0 has gotten in regular line for PictureClerk 1
+Customer 4 woken up from line
+Customer 4 has given SSN 4 to Application Clerk 0
+Customer 3 has given SSN 3 to Picture Clerk 0
+Customer 3 does like their picture from Picture Clerk 0
+Customer 1 woken up from line
+Customer 4 has gotten in bribe line for PictureClerk 0
+Customer 3 has gotten in regular line for PassportClerk 0
+Customer 1 has given SSN 1 to Application Clerk 0
+Customer 1 has gotten in bribe line for PictureClerk 0
+Customer 4 has given SSN 4 to Picture Clerk 0
+Customer 0 has given SSN 0 to Picture Clerk 1
+randNumber was 0
+Customer 4 does not like their picture from Picture Clerk 0
+randNumber was 0
+Customer 0 does not like their picture from Picture Clerk 1
+Customer 4 has gotten in regular line for PictureClerk 1
+Customer 0 has gotten in regular line for PictureClerk 1
+Customer 1 has given SSN 1 to Picture Clerk 0
+Customer 1 does like their picture from Picture Clerk 0
+Customer 3 has gotten in regular line for Cashier 0
+Customer 4 has given SSN 4 to Picture Clerk 1
+Customer 1 has gotten in regular line for PassportClerk 0
+Customer 4 does like their picture from Picture Clerk 1
+Customer 4 has gotten in bribe line for PassportClerk 0
+Customer 2 has given SSN 2 to Picture Clerk 0
+randNumber was 0
+Customer 2 does not like their picture from Picture Clerk 0
+Customer 0 has given SSN 0 to Picture Clerk 1
+Customer 2 has gotten in regular line for PictureClerk 0
+Customer 0 does like their picture from Picture Clerk 1
+Customer 3 has given Cashier 0 $100
+Customer 3 is leaving the Passport Office
+Customer 2 has given SSN 2 to Picture Clerk 0
+Customer 0 has gotten in regular line for PassportClerk 1
+Customer 2 does like their picture from Picture Clerk 0
+Customer 2 has gotten in regular line for PassportClerk 0
+Customer 4 has gotten in regular line for Cashier 0
+Customer 0 has gotten in regular line for Cashier 0
+Customer 1 has gotten in bribe line for Cashier 0
+Customer 4 has given Cashier 0 $100
+Customer 4 is leaving the Passport Office
+Customer 2 has gotten in regular line for Cashier 1
+Customer 1 has given Cashier 0 $100
+Customer 1 is leaving the Passport Office
+Customer 2 has given Cashier 1 $100
+Customer 2 is leaving the Passport Office
+Customer 0 has given Cashier 0 $100
+Customer 0 is leaving the Passport Office
+=================================================
+========FINISHED SIMULATING PASSPORT OFFICE======
+=================================================
+
+
+		
+		In the third terminal window (clerkstarter)
+
+=================================================
+================Starting Clerks==================
+=================================================
+Number of ApplicationClerks: 2
+Number of PictureClerks: 2
+Number of PassportClerks: 2
+Number of Cashiers: 2
+Number of Managers: 1
+Setting up locks/cvs/mvs...
+Running Cashier: 0
+Running PassportClerk: 0
+Running PictureClerk: 0
+Running ApplicationClerk: 0
+Running Cashier: 1
+Running PassportClerk: 1
+Running PictureClerk: 1
+ApplicationClerk 0 has signalled a Senator to come to their counter
+Running ApplicationClerk: 1
+Cashier 0 is going on break
+PassportClerk 0 is going on break
+PictureClerk 0 is going on break
+Cashier 1 is going on break
+PassportClerk 1 is going on break
+PictureClerk 1 is going on break
+ApplicationClerk 1 is going on break
+ApplicationClerk 0 has recieved SSN 5 from Senator 5
+ApplicationClerk 0 has recorded a completed application from Senator 5
+ApplicationClerk 0 is going on break
+Manager has woken up a PictureClerk
+PictureClerk 0 is coming off break
+PictureClerk 0 has signalled a Senator to come to their counter
+PictureClerk 0 has recieved SSN 5 from Senator 5
+PictureClerk 0 has taken a picture of Senator 5
+PictureClerk 0 has been told that Senator 5 does like their picture
+PictureClerk 0 is going on break
+Manager has woken up a PassportClerk
+PassportClerk 0 is coming off break
+PassportClerk 0 has signalled a Senator to come to their counter
+PassportClerk 0 has recieved SSN 5 from Senator 5
+PassportClerk 0 has determined that Senator 5 has both their application and picture completed
+PassportClerk 0 has recorded Senator 5's passport documentation
+PassportClerk 0 is going on break
+Manager has woken up a Cashier
+Cashier 0 is coming off break
+Cashier 0 has signalled a Senator to come to their counter
+Cashier 0 has recieved SSN 5 from Senator 5
+Cashier 0 has verified that Senator 5 has been certified by a PassportClerk
+Cashier 0 has receieved the $100 from Senator 5 after ceritification
+Cashier 0 has provided Senator 5 their completed passport
+Cashier 0 has recorded that Senator 5 has been given their completed passport.
+Cashier 0 is going on break
+Manager has woken up an ApplicationClerk
+ApplicationClerk 0 is coming off break
+ApplicationClerk 0 has signalled a Senator to come to their counter
+ApplicationClerk 0 has recieved SSN 6 from Senator 6
+ApplicationClerk 0 has recorded a completed application from Senator 6
+ApplicationClerk 0 is going on break
+Manager has woken up a PictureClerk
+PictureClerk 0 is coming off break
+PictureClerk 0 has signalled a Senator to come to their counter
+PictureClerk 0 has recieved SSN 6 from Senator 6
+PictureClerk 0 has taken a picture of Senator 6
+PictureClerk 0 has been told that Senator 6 does like their picture
+PictureClerk 0 is going on break
+Manager has woken up a PassportClerk
+PassportClerk 0 is coming off break
+PassportClerk 0 has signalled a Senator to come to their counter
+PassportClerk 0 has recieved SSN 6 from Senator 6
+PassportClerk 0 has determined that Senator 6 has both their application and picture completed
+PassportClerk 0 has recorded Senator 6's passport documentation
+PassportClerk 0 is going on break
+Manager has woken up a Cashier
+Cashier 0 is coming off break
+Cashier 0 has signalled a Senator to come to their counter
+Cashier 0 has recieved SSN 6 from Senator 6
+Cashier 0 has verified that Senator 6 has been certified by a PassportClerk
+Cashier 0 has receieved the $100 from Senator 6 after ceritification
+Cashier 0 has provided Senator 6 their completed passport
+Cashier 0 has recorded that Senator 6 has been given their completed passport.
+Cashier 0 is going on break
+Manager has woken up an ApplicationClerk
+ApplicationClerk 0 is coming off break
+ApplicationClerk 0 has signalled a Customer to come to their counter
+ApplicationClerk 0 has recieved SSN 2 from Customer 2
+ApplicationClerk 0 has accepted application from Customer 2
+ApplicationClerk 0 has signalled a Customer to come to their counter
+ApplicationClerk 0 has recieved SSN 3 from Customer 3
+ApplicationClerk 0 has accepted application from Customer 3
+ApplicationClerk 0 has signalled a Customer to come to their counter
+Manager has woken up a PictureClerk
+PictureClerk 0 is coming off break
+ApplicationClerk 0 has recieved SSN 0 from Customer 0
+ApplicationClerk 0 has accepted application from Customer 0
+PictureClerk 0 has signalled a Customer to come to their counter
+ApplicationClerk 0 has signalled a Customer to come to their counter
+ApplicationClerk 0 has recieved SSN 4 from Customer 4
+ApplicationClerk 0 has accepted application from Customer 4
+PictureClerk 0 has recieved SSN 3 from Customer 3
+PictureClerk 0 has taken a picture of Customer 3
+ApplicationClerk 0 has signalled a Customer to come to their counter
+PictureClerk 0 has been told that Customer 3 does like their picture
+ApplicationClerk 0 has recieved SSN 1 from Customer 1
+ApplicationClerk 0 has accepted application from Customer 1
+PictureClerk 0 has signalled a Customer to come to their counter
+Manager has woken up a PictureClerk
+PictureClerk 1 is coming off break
+ApplicationClerk 0 is going on break
+Manager has woken up a PassportClerk
+PictureClerk 1 has signalled a Customer to come to their counter
+PassportClerk 0 is coming off break
+PassportClerk 0 has signalled a Customer to come to their counter
+PictureClerk 0 has recieved SSN 4 from Customer 4
+PictureClerk 0 has taken a picture of Customer 4
+PictureClerk 1 has recieved SSN 0 from Customer 0
+PictureClerk 1 has taken a picture of Customer 0
+PictureClerk 0 has been told that Customer 4 does not like their picture
+PassportClerk 0 has recieved SSN 3 from Customer 3
+PassportClerk 0 has determined that Customer 3 has both their application and picture completed
+PictureClerk 1 has been told that Customer 0 does not like their picture
+PictureClerk 0 has signalled a Customer to come to their counter
+PassportClerk 0 has recorded Customer 3's passport documentation
+PictureClerk 1 has signalled a Customer to come to their counter
+PictureClerk 0 has recieved SSN 1 from Customer 1
+PictureClerk 0 has taken a picture of Customer 1
+PassportClerk 0 is going on break
+PictureClerk 0 has been told that Customer 1 does like their picture
+PictureClerk 1 has recieved SSN 4 from Customer 4
+PictureClerk 1 has taken a picture of Customer 4
+PictureClerk 1 has been told that Customer 4 does like their picture
+Manager has woken up a Cashier
+Cashier 0 is coming off break
+PictureClerk 0 has signalled a Customer to come to their counter
+Cashier 0 has signalled a Customer to come to their counter
+PictureClerk 1 has signalled a Customer to come to their counter
+PictureClerk 0 has recieved SSN 2 from Customer 2
+PictureClerk 0 has taken a picture of Customer 2
+Cashier 0 has recieved SSN 3 from Customer 3
+Cashier 0 has verified that Customer 3 has been certified by a PassportClerk
+Cashier 0 has receieved the $100 from Customer 3 after ceritification
+PictureClerk 0 has been told that Customer 2 does not like their picture
+Cashier 0 has provided Customer 3 their completed passport
+Cashier 0 has recorded that Customer 3 has been given their completed passport.
+PictureClerk 1 has recieved SSN 0 from Customer 0
+PictureClerk 1 has taken a picture of Customer 0
+PictureClerk 0 has signalled a Customer to come to their counter
+PictureClerk 1 has been told that Customer 0 does like their picture
+Manager has woken up a PassportClerk
+PassportClerk 0 is coming off break
+Cashier 0 is going on break
+PictureClerk 0 has recieved SSN 2 from Customer 2
+PictureClerk 0 has taken a picture of Customer 2
+PictureClerk 1 is going on break
+PassportClerk 0 has signalled a Customer to come to their counter
+Manager has woken up a PassportClerk
+PictureClerk 0 has been told that Customer 2 does like their picture
+PassportClerk 1 is coming off break
+PassportClerk 1 has signalled a Customer to come to their counter
+PassportClerk 0 has recieved SSN 4 from Customer 4
+PassportClerk 0 has determined that Customer 4 has both their application and picture completed
+PictureClerk 0 is going on break
+PassportClerk 1 has recieved SSN 0 from Customer 0
+PassportClerk 1 has determined that Customer 0 has both their application and picture completed
+PassportClerk 0 has recorded Customer 4's passport documentation
+PassportClerk 1 has recorded Customer 0's passport documentation
+PassportClerk 0 has signalled a Customer to come to their counter
+PassportClerk 1 is going on break
+PassportClerk 0 has recieved SSN 1 from Customer 1
+PassportClerk 0 has determined that Customer 1 has both their application and picture completed
+Manager has woken up a Cashier
+PassportClerk 0 has recorded Customer 1's passport documentation
+Cashier 0 is coming off break
+Cashier 0 has signalled a Customer to come to their counter
+PassportClerk 0 has signalled a Customer to come to their counter
+Cashier 0 has recieved SSN 4 from Customer 4
+Cashier 0 has verified that Customer 4 has been certified by a PassportClerk
+Cashier 0 has receieved the $100 from Customer 4 after ceritification
+PassportClerk 0 has recieved SSN 2 from Customer 2
+PassportClerk 0 has determined that Customer 2 has both their application and picture completed
+Cashier 0 has provided Customer 4 their completed passport
+Cashier 0 has recorded that Customer 4 has been given their completed passport.
+PassportClerk 0 has recorded Customer 2's passport documentation
+Cashier 0 has signalled a Customer to come to their counter
+PassportClerk 0 is going on break
+Cashier 0 has recieved SSN 1 from Customer 1
+Cashier 0 has verified that Customer 1 has been certified by a PassportClerk
+Manager has woken up a Cashier
+Cashier 0 has receieved the $100 from Customer 1 after ceritification
+Cashier 1 is coming off break
+Cashier 0 has provided Customer 1 their completed passport
+Cashier 0 has recorded that Customer 1 has been given their completed passport.
+Cashier 1 has signalled a Customer to come to their counter
+Cashier 0 has signalled a Customer to come to their counter
+Cashier 1 has recieved SSN 2 from Customer 2
+Cashier 1 has verified that Customer 2 has been certified by a PassportClerk
+Cashier 1 has receieved the $100 from Customer 2 after ceritification
+Cashier 0 has recieved SSN 0 from Customer 0
+Cashier 0 has verified that Customer 0 has been certified by a PassportClerk
+Cashier 0 has receieved the $100 from Customer 0 after ceritification
+Cashier 1 has provided Customer 2 their completed passport
+Cashier 1 has recorded that Customer 2 has been given their completed passport.
+Cashier 0 has provided Customer 0 their completed passport
+Cashier 0 has recorded that Customer 0 has been given their completed passport.
+Cashier 1 is going on break
+Cashier 0 is going on break
+All Customers have left the office.
+ApplicationClerk 0 is coming off break
+ApplicationClerk 1 is coming off break
+ApplicationClerk 0 is leaving the office.
+PictureClerk 0 is coming off break
+ApplicationClerk 1 is leaving the office.
+PictureClerk 0 is leaving the office.
+PictureClerk 1 is coming off break
+PassportClerk 0 is coming off break
+PictureClerk 1 is leaving the office.
+PassportClerk 1 is coming off break
+PassportClerk 0 is leaving the office.
+Cashier 0 is coming off break
+PassportClerk 1 is leaving the office.
+Cashier 0 is leaving the office.
+Final totals:
+Manager has counted a total of $500 for ApplicationClerks
+Manager has counted a total of $1500 for PictureClerks
+Manager has counted a total of $500 for PassportClerks
+Manager has counted a total of $1200 for Cashiers
+Manager has counted a total of $3700 for the Passport Office
+Cashier 1 is coming off break
+Cashier 1 is leaving the office.
+=================================================
+========FINISHED SIMULATING PASSPORT OFFICE======
+=================================================
+
+
+
+
 
     
         Part 2:
