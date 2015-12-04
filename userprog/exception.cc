@@ -1,18 +1,18 @@
 // exception.cc
-//	Entry point into the Nachos kernel from user programs.
-//	There are two kinds of things that can cause control to
-//	transfer back to here from user code:
+//  Entry point into the Nachos kernel from user programs.
+//  There are two kinds of things that can cause control to
+//  transfer back to here from user code:
 //
-//	syscall -- The user code explicitly requests to call a procedure
-//	in the Nachos kernel.  Right now, the only function we support is
-//	"Halt".
+//  syscall -- The user code explicitly requests to call a procedure
+//  in the Nachos kernel.  Right now, the only function we support is
+//  "Halt".
 //
-//	exceptions -- The user code does something that the CPU can't handle.
-//	For instance, accessing memory that doesn't exist, arithmetic errors,
-//	etc.
+//  exceptions -- The user code does something that the CPU can't handle.
+//  For instance, accessing memory that doesn't exist, arithmetic errors,
+//  etc.
 //
-//	Interrupts (which can also cause control to transfer from user
-//	code into the Nachos kernel) are handled elsewhere.
+//  Interrupts (which can also cause control to transfer from user
+//  code into the Nachos kernel) are handled elsewhere.
 //
 // For now, this only handles the Halt() system call.
 // Everything else core dumps.
@@ -453,7 +453,7 @@ int genericFunction(char *message, char *identifier, int action) {
 // Sends a request to the server with the name of a new lock to create
 // If the lock already exists, the server will still complete the request successfully
 void CreateLock_Syscall(unsigned int _lockName, int index) {
-    char *lockName = argumentReader(_lockName, index, "CreateLock");
+    char *lockName = argumentReader(_lockName, "CreateLock");
     
     // Append index of lock to its name if need be
     if(index > -1)
@@ -684,7 +684,7 @@ void NetHalt_Syscall() {
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
-    int rv = 0; 	// the return value from a syscall
+    int rv = 0;     // the return value from a syscall
     if(which == SyscallException) {
         switch (type) {
             default:
@@ -735,39 +735,39 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateLock:
                 DEBUG('a', "CreateLock syscall.\n");
-                CreateLock_Syscall(machine->ReadRegister(4));
+                CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_DestroyLock:
                 DEBUG('a', "DestroyLock syscall.\n");
-                DestroyLock_Syscall(machine->ReadRegister(4));
+                DestroyLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_Acquire:
                 DEBUG('a', "Acquire syscall.\n");
-                Acquire_Syscall(machine->ReadRegister(4));
+                Acquire_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_Release:
                 DEBUG('a', "Release syscall.\n");
-                Release_Syscall(machine->ReadRegister(4));
+                Release_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_CreateCondition:
                 DEBUG('a', "CreateCondition syscall.\n");
-                CreateCondition_Syscall(machine->ReadRegister(4));
+                CreateCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_DestroyCondition:
                 DEBUG('a', "DestroyCondition syscall.\n");
-                DestroyCondition_Syscall(machine->ReadRegister(4));
+                DestroyCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_Wait:
                 DEBUG('a', "Wait syscall.\n");
-                Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
                 break;
             case SC_Signal:
                 DEBUG('a', "Signal syscall.\n");
-                Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
                 break;
             case SC_Broadcast:
                 DEBUG('a', "Broadcast syscall.\n");
-                Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6), machine->ReadRegister(7));
                 break;
             case SC_Print:
                 Print_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
@@ -784,16 +784,16 @@ void ExceptionHandler(ExceptionType which) {
                 NetHalt_Syscall();
                 break;
             case SC_CreateMV:
-                CreateMV_Syscall(machine->ReadRegister(4));
+                CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_DestroyMV:
-                DestroyMV_Syscall(machine->ReadRegister(4));
+                DestroyMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_GetMV:
-                rv = GetMV_Syscall(machine->ReadRegister(4));
+                rv = GetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
                 break;
             case SC_SetMV:
-                SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
                 break;
 #endif
         }
@@ -818,7 +818,7 @@ int copyin(unsigned int vaddr, int len, char *buf) {
     // Return the number of bytes so read, or -1 if an error occors.
     // Errors can generally mean a bad virtual address was passed in.
     bool result;
-    int n = 0;			// The number of bytes copied in
+    int n = 0;          // The number of bytes copied in
     int *paddr = new int;
     
     while ( n >= 0 && n < len) {
@@ -844,7 +844,7 @@ int copyout(unsigned int vaddr, int len, char *buf) {
     // occors.  Errors can generally mean a bad virtual address was
     // passed in.
     bool result;
-    int n = 0;			// The number of bytes copied in
+    int n = 0;          // The number of bytes copied in
     while ( n >= 0 && n < len) {
         // Note that we check every byte's address
         result = machine->WriteMem( vaddr, 1, (int)(buf[n++]) );
@@ -862,7 +862,7 @@ void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
     // vaddr.  The file name is at most MAXFILENAME chars long.  No
     // way to return errors, though...
-    char *buf = new char[len+1];	// Kernel buffer to put the name in
+    char *buf = new char[len+1];    // Kernel buffer to put the name in
     
     if (!buf)
         return;
@@ -883,9 +883,9 @@ int Open_Syscall(unsigned int vaddr, int len) {
     // the file is opened successfully, it is put in the address
     // space's file table and an id returned that can find the file
     // later.  If there are any errors, -1 is returned.
-    char *buf = new char[len+1];	// Kernel buffer to put the name in
-    OpenFile *f;			// The new open file
-    int id;				// The openfile id
+    char *buf = new char[len+1];    // Kernel buffer to put the name in
+    OpenFile *f;            // The new open file
+    int id;             // The openfile id
     
     if(!buf) {
         printf("%s","Can't allocate kernel buffer in Open\n");
@@ -918,8 +918,8 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
     // console exists, create one. For disk files, the file is looked
     // up in the current address space's open file table and used as
     // the target of the write.
-    char *buf;		// Kernel buffer for output
-    OpenFile *f;	// Open file for output
+    char *buf;      // Kernel buffer for output
+    OpenFile *f;    // Open file for output
     
     if(id == ConsoleInput)
         return;
@@ -955,8 +955,8 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
     // a Write arrives for the synchronized Console, and no such
     // console exists, create one.    We reuse len as the number of bytes
     // read, which is an unnessecary savings of space.
-    char *buf;		// Kernel buffer for input
-    OpenFile *f;	// Open file for output
+    char *buf;      // Kernel buffer for input
+    OpenFile *f;    // Open file for output
     
     if(id == ConsoleOutput)
         return -1;
