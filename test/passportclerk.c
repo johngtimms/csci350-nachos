@@ -84,7 +84,6 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Customer %i's passport documentation\n", myCustomer);
-                /*customers[myCustomer].certifiedByPassportClerk = true;*/
                 SetMV(customer.certifiedByPassportClerk, myCustomer, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
