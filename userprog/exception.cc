@@ -371,20 +371,6 @@ int Rand_Syscall() {
 
 #ifdef NETWORK
 
-/*
-// Sends a request with the process's ID, gets a lock ID back
-int CreateLock_Syscall(unsigned int vaddr, int len, int index) {
-    char *name = new char[len+1];
-    if( copyin(vaddr,len,name) == -1 ) {
-        printf("%s","Bad pointer passed to CreateMV\n");
-        delete[] name;
-        return -1;
-    }
-    name[len] = '\0';
-    //concatenate(name,len,index);
-    sprintf(name, "%s%i", name, index);
-    
-*/
 // In Assignment 4 Part 2, the destination server is chosen randomly
 int getDestination() {
     int i = rand() % numServers;
@@ -402,7 +388,6 @@ char* argumentReader(unsigned int vaddr, char *identifier) {
         return NULL;
     }
     name[32] = '\0';
-
     return name;
 }
 
@@ -447,13 +432,6 @@ int genericFunction(char *message, char *identifier, int action) {
 
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-/*
-    int key = atoi(recv);
-    DEBUG('z', "CreateLock process %d thread %d key: %i name: %s\n", processID, threadID, key, name);
-    delete[] name;
-    name = 0;
-    return key;
-*/
 
     DEBUG('l', "Generic Function (end) - recv \'%s\' message \'%s\' identifier \'%s\' action \'%d\' process %d thread %d machine %d mailbox %d\n", recv, message, identifier, action, processID, threadID, machineName, mailbox);
 
@@ -474,176 +452,168 @@ int genericFunction(char *message, char *identifier, int action) {
 
 // Sends a request to the server with the name of a new lock to create
 // If the lock already exists, the server will still complete the request successfully 
-void CreateLock_Syscall(unsigned int _lockName) {
-    char *lockName = argumentReader(_lockName, "CreateLock");
+void CreateLock_Syscall(unsigned int _lockName, int index) {
+    char *lockName = argumentReader(_lockName, index, "CreateLock");
+
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+
     genericFunction(lockName, "CreateLock", MailboxCreateLock);
 }
 
 // Sends a request to the server with the name of a lock to destroy
-void DestroyLock_Syscall(unsigned int _lockName) {
+void DestroyLock_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "DestroyLock");
+
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+
     genericFunction(lockName, "DestroyLock", MailboxDestroyLock);
 }
 
-void Acquire_Syscall(unsigned int _lockName) {
+void Acquire_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "Acquire");
+
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+
     genericFunction(lockName, "Acquire", MailboxAcquire);
 }
 
-void Release_Syscall(unsigned int _lockName) {
+void Release_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "Release");
+
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+
     genericFunction(lockName, "Release", MailboxRelease);
 }
 
-void CreateCondition_Syscall(unsigned int _conditionName) {
+void CreateCondition_Syscall(unsigned int _conditionName, int index) {
     char *conditionName = argumentReader(_conditionName, "CreateCondition");
+
+    // Append index of condition to its name if need be
+    if(index > -1)
+        sprintf(conditionName, "%s%i", conditionName, index);
+
     genericFunction(conditionName, "CreateCondition", MailboxCreateCondition);
 }
 
-void DestroyCondition_Syscall(unsigned int _conditionName) {
+void DestroyCondition_Syscall(unsigned int _conditionName, int index) {
     char *conditionName = argumentReader(_conditionName, "DestroyCondition");
+
+    // Append index of condition to its name if need be
+    if(index > -1)
+        sprintf(conditionName, "%s%i", conditionName, index);
+
     genericFunction(conditionName, "DestroyCondition", MailboxDestroyCondition);
 }
 
-/*
-int CreateCondition_Syscall(unsigned int vaddr, int len, int index) {
-    char *name = new char[len+1];
-    if( copyin(vaddr,len,name) == -1 ) {
-        printf("%s","Bad pointer passed to CreateMV\n");
-        delete[] name;
-        return -1;
-    }
-    name[len] = '\0';
-    //concatenate(name,len,index);
-    sprintf(name, "%s%i", name, index);
-    
-    PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-*/
-void Wait_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Wait_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Wait");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+
     char *lockName = argumentReader(_lockName, "Wait");
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
 
     // Wait is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
 
-/*
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    int key = atoi(recv);
-    delete[] name;
-    name = 0;
-    return key;
-*/
     genericFunction(send, "Wait", MailboxWait);
     genericFunction(lockName, "Acquire (after Wait)", MailboxAcquire);
 }
 
-void Signal_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Signal_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Signal");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+
     char *lockName = argumentReader(_lockName, "Signal");
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
 
     // Signal is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
 
     genericFunction(send, "Signal", MailboxSignal);
-    genericFunction(lockName, "Release (after Signal)", MailboxRelease);
+    // genericFunction(lockName, "Release (after Signal)", MailboxRelease);
 }
 
-void Broadcast_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Broadcast_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Broadcast");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+
     char *lockName = argumentReader(_lockName, "Broadcast");
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
 
     // Signal is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
 
-/*
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    
-    if ( strcmp(test,recv) )
-        printf("WARN: Wait failed for lock with key: %i and condition with key: %i. Recieved bad server message.\n",lockKey, conditionKey);
-    
-    // After getting the CV, we need to acquire the lock
-    DEBUG('z', "Acquire (after Wait) - process %d thread %d condition %d lock %d\n", processID, threadID, conditionKey, lockKey);
-    sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxAcquire;
-    outMailHdr.from = mailbox; // need a reply
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-        printf("WARN: Acquire (after Wait) failed. Server misconfigured.\n");
-
-    // Get the response back
-    if(lockKey == 12 && machineName == 1)
-        DEBUG('z', "APP CLERK WAITING FOR response to get appclerk LOCK!!!!!!!!\n");
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-*/
     genericFunction(send, "Broadcast", MailboxBroadcast);
 
     // After broadcasting, need to release the lock so the waiting thread can acquire
-    genericFunction(lockName, "Release (after Broadcast)", MailboxRelease);
+    // genericFunction(lockName, "Release (after Broadcast)", MailboxRelease);
 }
 
-void CreateMV_Syscall(unsigned int _mvName) {
+void CreateMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "CreateMV");
+
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+
     genericFunction(mvName, "CreateMV", MailboxCreateMV);
 }
 
-void DestroyMV_Syscall(unsigned int _mvName) {
+void DestroyMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "DestroyMV");
+
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+
     genericFunction(mvName, "DestroyMV", MailboxDestroyMV);
 }
 
-int GetMV_Syscall(unsigned int _mvName) {
+int GetMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "GetMV");
+
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+
     int value = genericFunction(mvName, "GetMV", MailboxGetMV);
 
     return value;
 }
 
-void SetMV_Syscall(unsigned int _mvName, int _mvValue) {
+void SetMV_Syscall(unsigned int _mvName, int index, int mvValue) {
     char *mvName = argumentReader(_mvName, "SetMV");
-    int mvValue = _mvValue;
+
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
 
     // SetMV is special, it needs to send the MV name and value together
     char send[MaxMailSize];
     sprintf(send, "%s,%d", mvName, mvValue);
-
-/*
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    
-    if ( strcmp(test,recv) )
-        printf("WARN: Broadcast failed. Recieved bad server message.\n");
-    
-    /*
-    // After broadcasting, need to release the lock so the waiting thread can acquire
-    DEBUG('z', "Release (after Broadcast) process %d thread %d\n", processID, threadID);
-    sprintf(send, "%d,%d,%d", processID, threadID, lockKey);
-    
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;
-    outMailHdr.to = MailboxRelease;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-    
-    // Send the request message
-    success = postOffice->Send(outPktHdr, outMailHdr, send);
-    
-    if ( !success )
-    	printf("WARN: Release (after Broadcast) failed. Server misconfigured.\n");
-    //
-*/
 
     genericFunction(send, "SetMV", MailboxSetMV);
 }
@@ -710,133 +680,6 @@ void NetHalt_Syscall() {
     
     delete[] buf;
 }
-
-/*
-int CreateMV_Syscall(unsigned int vaddr, int len, int index) {
-    char *name = new char[len+1];
-    if( copyin(vaddr,len,name) == -1 ) {
-        printf("%s","Bad pointer passed to CreateMV\n");
-        delete[] name;
-        return -1;
-    }
-    name[len] = '\0';
-    //concatenate(name,len,index);
-    sprintf(name, "%s%i", name, index);
-    
-	PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
-    char recv[MaxMailSize];
-
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    DEBUG('z', "CreateMV process %d thread %d machine %d\n", processID, threadID, machineName);
-    sprintf(send, "%d,%d,%s", processID, threadID, name);
-
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
-    outMailHdr.to = MailboxCreateMV;
-    outMailHdr.from = mailbox; // need a reply, send my mailbox
-    outMailHdr.length = strlen(send) + 1;
-
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-    if ( !success )
-      printf("WARN: CreateMV failed. Server misconfigured.\n");
-
-    // Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    int key = atoi(recv);
-    DEBUG('z', "CreateMV successful with key: %i\n", key);
-
-    delete[] name;
-    name = 0;
-    return key;
-}
-
-void DestroyMV_Syscall(int key) {
-	PacketHeader outPktHdr;
-    MailHeader outMailHdr;
-    char send[MaxMailSize];
-
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    DEBUG('z', "DestroyMV - process %d thread %d key %d\n", processID, threadID, key);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
-    outMailHdr.to = MailboxDestroyMV;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-    if ( !success )
-      printf("WARN: DestroyMV failed. Server misconfigured.\n");
-}
-
-int GetMV_Syscall(int key) {
-	PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char send[MaxMailSize];
-    char recv[MaxMailSize];
-
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-    DEBUG('z', "GetMV - process %d thread %d key %d\n", processID, threadID, key);
-    sprintf(send, "%d,%d,%d", processID, threadID, key);
-
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
-    outMailHdr.to = MailboxGetMV;
-    outMailHdr.from = mailbox; 
-    outMailHdr.length = strlen(send) + 1;
-
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-    if ( !success )
-      printf("WARN: GetMV failed. Server misconfigured.\n");
-
-  	// Get the response back
-    postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-    int value = atoi(recv);
-    return value;
-}
-
-void SetMV_Syscall(int key, int value) {
-	PacketHeader outPktHdr;
-    MailHeader outMailHdr;
-    char send[MaxMailSize];
-
-    // Form the request message
-    int processID = currentThread->space->spaceID;
-    int threadID = currentThread->getID();
-    DEBUG('z', "SetMV - process %d thread %d key %d value %d\n", processID, threadID, key, value);
-    sprintf(send, "%d,%d,%d,%d", processID, threadID, key, value);
-
-    // Construct packet header, mail header for the message
-    outPktHdr.to = destinationName;     
-    outMailHdr.to = MailboxSetMV;
-    outMailHdr.from = 0; // no reply needed
-    outMailHdr.length = strlen(send) + 1;
-
-    // Send the request message
-    bool success = postOffice->Send(outPktHdr, outMailHdr, send); 
-
-    if ( !success )
-      printf("WARN: SetMV failed. Server misconfigured.\n");
-}
-
-*/
 #endif
 
 void ExceptionHandler(ExceptionType which) {
@@ -892,9 +735,6 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateLock:
                 DEBUG('a', "CreateLock syscall.\n");
-/*
-                rv = CreateLock_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
-*/
                 CreateLock_Syscall(machine->ReadRegister(4));
                 break;
             case SC_DestroyLock:
@@ -911,9 +751,6 @@ void ExceptionHandler(ExceptionType which) {
                 break;
             case SC_CreateCondition:
                 DEBUG('a', "CreateCondition syscall.\n");
-/*
-                rv = CreateCondition_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
-*/
                 CreateCondition_Syscall(machine->ReadRegister(4));
                 break;
             case SC_DestroyCondition:
@@ -947,9 +784,6 @@ void ExceptionHandler(ExceptionType which) {
                     NetHalt_Syscall();
                     break;
                 case SC_CreateMV:
-/*
-                	rv = CreateMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
-*/
                 	CreateMV_Syscall(machine->ReadRegister(4));
                 	break;
                 case SC_DestroyMV:
