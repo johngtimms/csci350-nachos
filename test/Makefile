@@ -30,7 +30,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c -w $(INCDIR)
 
-all: halt matmult sort networkTests newpassportoffice customer applicationclerk pictureclerk passportclerk cashier manager clerkstarter customerstarter
+all: halt matmult sort networkTests newpassportoffice customer applicationclerk pictureclerk passportclerk cashier manager clerkstarter customerstarter testMV
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -115,6 +115,12 @@ customerstarter: customerstarter.o start.o
 	$(LD) $(LDFLAGS) start.o customerstarter.o -o customerstarter.coff
 	../bin/coff2noff customerstarter.coff customerstarter
 
+testMV.o: testMV.c
+	$(CC) $(CFLAGS) -c testMV.c
+testMV: testMV.o start.o
+	$(LD) $(LDFLAGS) start.o testMV.o -o testMV.coff
+	../bin/coff2noff testMV.coff testMV
+
 clean:
 	rm -f *.o *.coff
-	rm -f halt matmult sort passportOffice networkTests customer applicationclerk newpassportoffice pictureclerk passportclerk cashier manager clerkstarter customerstarter
+	rm -f halt matmult sort passportOffice networkTests customer applicationclerk newpassportoffice pictureclerk passportclerk cashier manager clerkstarter customerstarter testMV
