@@ -94,10 +94,10 @@ void runApplicationClerk() {
 int main() {
     Setup();
 
-    Acquire(applicationClerkIndexLock, -1);
-	i = GetMV(nextAvailableApplicationClerkIndex, -1);
-    SetMV(nextAvailableApplicationClerkIndex, -1, i + 1);
-	Release(applicationClerkIndexLock, -1);
+    Acquire(applicationClerk.indexLock, -1);
+	i = GetMV(applicationClerk.index, -1);
+    SetMV(applicationClerk.index, -1, i + 1);
+	Release(applicationClerk.indexLock, -1);
 	runApplicationClerk();
     
 	Exit(0);

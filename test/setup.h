@@ -11,6 +11,8 @@ typedef int bool;
 #define NUM_CASHIERS			2
 #define NUM_SENATORS			2
 
+int numCustomers, numSenators, numApplicationClerks, numPictureClerks, numPassportClerks, numCashiers;
+
 char *senatorInside = "SenatorInside";
 char *senatorInsideLock = "SenatorInsideLock";
 char *senatorsOutside = "NumSenatorsOutside";
@@ -26,105 +28,29 @@ typedef enum {FREE, BUSY, BREAK} ClerkState;
 typedef enum {APPLICATION_CLERK, PICTURE_CLERK, PASSPORT_CLERK, CASHIER} ClerkType;
 
 typedef struct Customer {
-	char *index = "CustomerIndex";
-	char *indexLock = "CustomerIndexLock";
-	char *money = "CustomerMoney";
-	char *clerkID = "CustomerClerkID";
-	char *didBribe = "CustomerDidBribe";		
-	char *isSenator = "CustomerIsSenator";
-	char *seenApp = "CustomerSeenApp";
-	char *hasApp = "CustomerHasApp";
-	char *seenPic = "CustomerSeenPic";
-	char *likedPic = "CustomerLikedPic";
-	char *hasPic = "CustomerHasPic";
-	char *hasPaidForPassport = "CustomerHasPaid";
-	char *certifiedByPassportClerk = "CustomerCertified";
-	char *hasPassport = "CustomerHasPassport";
-	char *leftOffice = "CustomerLeftOffice";
+	char *index, *indexLock, *money, *clerkID, *didBribe, *isSenator, *seenApp, *hasApp, *seenPic, *likedPic, *hasPic, *hasPaidForPassport, 
+			*certifiedByPassportClerk, *hasPassport, *leftOffice;
 } Customer;
 
+
 typedef struct ApplicationClerk {
-	char *index = "ApplicationClerkIndex";
-	char *indexLock = "ApplicationClerkIndexLock";
-	char *customerID = "ApplicationClerkCustomerID";
-	char *state = "ApplicationClerkState";
-	char *clerkLock = "ApplicationClerkLock";
-	char *clerkCV = "ApplicationClerkCV";
-	char *breakCV = "ApplicationClerkBreakCV";
-	char *money = "ApplicationClerkMoney";
-	char *moneyLock = "ApplicationClerkMoneyLock";
-	char *lineLength = "ApplicationClerkLineLength";
-	char *lineLock = "ApplicationClerkLineLength";
-	char *lineCV = "ApplicationClerkLineCV";
-	char *bribeLineLength = "ApplicationClerkBribeLineLength";
-	char *bribeLineLock = "ApplicationClerkBribeLineLock";
-	char *bribeLineCV = "ApplicationClerkBribeLineCV";
-	char *senatorLineLength = "ApplicationClerkSenatorLineLength";
-	char *senatorLineLock = "ApplicationClerkSenatorLineLock";
-	char *senatorLineCV = "ApplicationClerkSenatorLineCV";	
+	char *index, *indexLock, *customerID, *state, *clerkLock, *clerkCV, *breakCV, *money, *moneyLock, *lineLength, *lineLock, *lineCV, *bribeLineLength,
+			*bribeLineLock, *bribeLineCV, *senatorLineLength, *senatorLineLock, *senatorLineCV;
 } ApplicationClerk;
 
 typedef struct PictureClerk {
-	char *index = "PictureClerkIndex";
-	char *indexLock = "PictureClerkIndexLock";
-	char *customerID = "PictureClerkCustomerID";
-	char *state = "PictureClerkState";
-	char *clerkLock = "PictureClerkLock";
-	char *clerkCV = "PictureClerkCV";
-	char *breakCV = "PictureClerkBreakCV";
-	char *money = "PictureClerkMoney";
-	char *moneyLock = "PictureClerkMoneyLock";
-	char *lineLength = "PictureClerkLineLength";
-	char *lineLock = "PictureClerkLineLength";
-	char *lineCV = "PictureClerkLineCV";
-	char *bribeLineLength = "PictureClerkBribeLineLength";
-	char *bribeLineLock = "PictureClerkBribeLineLock";
-	char *bribeLineCV = "PictureClerkBribeLineCV";
-	char *senatorLineLength = "PictureClerkSenatorLineLength";
-	char *senatorLineLock = "PictureClerkSenatorLineLock";
-	char *senatorLineCV = "PictureClerkSenatorLineCV";	
+	char *index, *indexLock, *customerID, *state, *clerkLock, *clerkCV, *breakCV, *money, *moneyLock, *lineLength, *lineLock, *lineCV, *bribeLineLength,
+			*bribeLineLock, *bribeLineCV, *senatorLineLength, *senatorLineLock, *senatorLineCV;
 } PictureClerk;
 
 typedef struct PassportClerk {
-	char *index = "PassportClerkIndex";
-	char *indexLock = "PassportClerkIndexLock";
-	char *customerID = "PassportClerkCustomerID";
-	char *state = "PassportClerkState";
-	char *clerkLock = "PassportClerkLock";
-	char *clerkCV = "PassportClerkCV";
-	char *breakCV = "PassportClerkBreakCV";
-	char *money = "PassportClerkMoney";
-	char *moneyLock = "PassportClerkMoneyLock";
-	char *lineLength = "PassportClerkLineLength";
-	char *lineLock = "PassportClerkLineLength";
-	char *lineCV = "PassportClerkLineCV";
-	char *bribeLineLength = "PassportClerkBribeLineLength";
-	char *bribeLineLock = "PassportClerkBribeLineLock";
-	char *bribeLineCV = "PassportClerkBribeLineCV";
-	char *senatorLineLength = "PassportClerkSenatorLineLength";
-	char *senatorLineLock = "PassportClerkSenatorLineLock";
-	char *senatorLineCV = "PassportClerkSenatorLineCV";	
+	char *index, *indexLock, *customerID, *state, *clerkLock, *clerkCV, *breakCV, *money, *moneyLock, *lineLength, *lineLock, *lineCV, *bribeLineLength,
+			*bribeLineLock, *bribeLineCV, *senatorLineLength, *senatorLineLock, *senatorLineCV;
 } PassportClerk;
 
 typedef struct Cashier {
-	char *index = "CashierIndex";
-	char *indexLock = "CashierIndexLock";
-	char *customerID = "CashierCustomerID";
-	char *state = "CashierState";
-	char *clerkLock = "CashierLock";
-	char *clerkCV = "CashierCV";
-	char *breakCV = "CashierBreakCV";
-	char *money = "CashierMoney";
-	char *moneyLock = "CashierMoneyLock";
-	char *lineLength = "CashierLineLength";
-	char *lineLock = "CashierLineLength";
-	char *lineCV = "CashierLineCV";
-	char *bribeLineLength = "CashierBribeLineLength";
-	char *bribeLineLock = "CashierBribeLineLock";
-	char *bribeLineCV = "CashierBribeLineCV";
-	char *senatorLineLength = "CashierSenatorLineLength";
-	char *senatorLineLock = "CashierSenatorLineLock";
-	char *senatorLineCV = "CashierSenatorLineCV";	
+	char *index, *indexLock, *customerID, *state, *clerkLock, *clerkCV, *breakCV, *money, *moneyLock, *lineLength, *lineLock, *lineCV, *bribeLineLength,
+			*bribeLineLock, *bribeLineCV, *senatorLineLength, *senatorLineLock, *senatorLineCV;
 } Cashier;
 
 Customer customer;
@@ -134,6 +60,22 @@ PassportClerk passportClerk;
 Cashier cashier;
 
 void initCustomer(int ssn, bool isSen) {
+	customer.index = "CustomerIndex";
+	customer.indexLock = "CustomerIndexLock";
+	customer.money = "CustomerMoney";
+	customer.clerkID = "CustomerClerkID";
+	customer.didBribe = "CustomerDidBribe";		
+	customer.isSenator = "CustomerIsSenator";
+	customer.seenApp = "CustomerSeenApp";
+	customer.hasApp = "CustomerHasApp";
+	customer.seenPic = "CustomerSeenPic";
+	customer.likedPic = "CustomerLikedPic";
+	customer.hasPic = "CustomerHasPic";
+	customer.hasPaidForPassport = "CustomerHasPaid";
+	customer.certifiedByPassportClerk = "CustomerCertified";
+	customer.hasPassport = "CustomerHasPassport";
+	customer.leftOffice = "CustomerLeftOffice";
+
     CreateMV(customer.isSenator, ssn);
 	CreateMV(customer.clerkID, ssn);
     CreateMV(customer.money, ssn);
@@ -145,16 +87,35 @@ void initCustomer(int ssn, bool isSen) {
     CreateMV(customer.seenApp, ssn);
     CreateMV(customer.seenPic, ssn);
     CreateMV(customer.likedPic, ssn);
-    CreateMV(customer.hasPaid, ssn);
+    CreateMV(customer.hasPaidForPassport, ssn);
     CreateMV(customer.leftOffice, ssn);
     
     SetMV(customer.isSenator, ssn, isSen);
     SetMV(customer.money, ssn, amounts[(int)(Rand() % 4)]);
 }
 
+
 void initClerk(ClerkType clerkType, int i) {
 	switch(clerkType) {
 		case APPLICATION_CLERK:
+			applicationClerk.index = "AppClerkIndex";
+			applicationClerk.indexLock = "AppClerkIndexLock";
+			applicationClerk.customerID = "AppClerkCustomerID";
+			applicationClerk.state = "AppClerkState";
+			applicationClerk.clerkLock = "AppClerkLock";
+			applicationClerk.clerkCV = "AppClerkCV";
+			applicationClerk.breakCV = "AppClerkBreakCV";
+			applicationClerk.money = "AppClerkMoney";
+			applicationClerk.moneyLock = "AppClerkMoneyLock";
+			applicationClerk.lineLength = "AppClerkLineLength";
+			applicationClerk.lineLock = "AppClerkLineLength";
+			applicationClerk.lineCV = "AppClerkLineCV";
+			applicationClerk.bribeLineLength = "AppClerkBribeLineLength";
+			applicationClerk.bribeLineLock = "AppClerkBribeLineLock";
+			applicationClerk.bribeLineCV = "AppClerkBribeLineCV";
+			applicationClerk.senatorLineLength = "AppClerkSenatorLineLength";
+			applicationClerk.senatorLineLock = "AppClerkSenatorLineLock";
+			applicationClerk.senatorLineCV = "AppClerkSenatorLineCV";	
 			CreateMV(applicationClerk.lineLength, i);
 			CreateMV(applicationClerk.bribeLineLength, i);
 			CreateMV(applicationClerk.senatorLineLength, i);
@@ -173,6 +134,24 @@ void initClerk(ClerkType clerkType, int i) {
 			CreateCondition(applicationClerk.breakCV, i);
 			break;
 		case PICTURE_CLERK:
+			pictureClerk.index = "PicClerkIndex";
+			pictureClerk.indexLock = "PicClerkIndexLock";
+			pictureClerk.customerID = "PicClerkCustomerID";
+			pictureClerk.state = "PicClerkState";
+			pictureClerk.clerkLock = "PicClerkLock";
+			pictureClerk.clerkCV = "PicClerkCV";
+			pictureClerk.breakCV = "PicClerkBreakCV";
+			pictureClerk.money = "PicClerkMoney";
+			pictureClerk.moneyLock = "PicClerkMoneyLock";
+			pictureClerk.lineLength = "PicClerkLineLength";
+			pictureClerk.lineLock = "PicClerkLineLength";
+			pictureClerk.lineCV = "PicClerkLineCV";
+			pictureClerk.bribeLineLength = "PicClerkBribeLineLength";
+			pictureClerk.bribeLineLock = "PicClerkBribeLineLock";
+			pictureClerk.bribeLineCV = "PicClerkBribeLineCV";
+			pictureClerk.senatorLineLength = "PicClerkSenatorLineLength";
+			pictureClerk.senatorLineLock = "PicClerkSenatorLineLock";
+			pictureClerk.senatorLineCV = "PicClerkSenatorLineCV";	
 			CreateMV(pictureClerk.lineLength, i);
 			CreateMV(pictureClerk.bribeLineLength, i);
 			CreateMV(pictureClerk.senatorLineLength, i);
@@ -191,6 +170,24 @@ void initClerk(ClerkType clerkType, int i) {
 			CreateCondition(pictureClerk.breakCV, i);
 			break;
 		case PASSPORT_CLERK:
+			passportClerk.index = "PassClerkIndex";
+			passportClerk.indexLock = "PassClerkIndexLock";
+			passportClerk.customerID = "PassClerkCustomerID";
+			passportClerk.state = "PassClerkState";
+			passportClerk.clerkLock = "PassClerkLock";
+			passportClerk.clerkCV = "PassClerkCV";
+			passportClerk.breakCV = "PassClerkBreakCV";
+			passportClerk.money = "PassClerkMoney";
+			passportClerk.moneyLock = "PassClerkMoneyLock";
+			passportClerk.lineLength = "PassClerkLineLength";
+			passportClerk.lineLock = "PassClerkLineLength";
+			passportClerk.lineCV = "PassClerkLineCV";
+			passportClerk.bribeLineLength = "PassClerkBribeLineLength";
+			passportClerk.bribeLineLock = "PassClerkBribeLineLock";
+			passportClerk.bribeLineCV = "PassClerkBribeLineCV";
+			passportClerk.senatorLineLength = "PassClerkSenatorLineLength";
+			passportClerk.senatorLineLock = "PassClerkSenatorLineLock";
+			passportClerk.senatorLineCV = "PassClerkSenatorLineCV";	
 			CreateMV(passportClerk.lineLength, i);
 			CreateMV(passportClerk.bribeLineLength, i);
 			CreateMV(passportClerk.senatorLineLength, i);
@@ -209,6 +206,24 @@ void initClerk(ClerkType clerkType, int i) {
 			CreateCondition(passportClerk.breakCV, i);
 			break;
 		case CASHIER:
+			cashier.index = "CashIndex";
+			cashier.indexLock = "CashIndexLock";
+			cashier.customerID = "CashCustomerID";
+			cashier.state = "CashState";
+			cashier.clerkLock = "CashLock";
+			cashier.clerkCV = "CashCV";
+			cashier.breakCV = "CashBreakCV";
+			cashier.money = "CashMoney";
+			cashier.moneyLock = "CashMoneyLock";
+			cashier.lineLength = "CashLineLength";
+			cashier.lineLock = "CashLineLength";
+			cashier.lineCV = "CashLineCV";
+			cashier.bribeLineLength = "CashBribeLineLength";
+			cashier.bribeLineLock = "CashBribeLineLock";
+			cashier.bribeLineCV = "CashBribeLineCV";
+			cashier.senatorLineLength = "CashSenatorLineLength";
+			cashier.senatorLineLock = "CashSenatorLineLock";
+			cashier.senatorLineCV = "CashSenatorLineCV";	
 			CreateMV(cashier.lineLength, i);
 			CreateMV(cashier.bribeLineLength, i);
 			CreateMV(cashier.senatorLineLength, i);
@@ -239,28 +254,6 @@ void Setup() {
 	numCashiers = NUM_CASHIERS;
 	numSenators = NUM_SENATORS;
 	
-	CreateMV(senatorInside, -1);
-	CreateLock(senatorInsideLock, -1);
-	CreateMV(senatorsOutside, -1);
-	CreateLock(senatorOutsideLineLock, -1);
-	CreateCondition(senatorOutsideLineCV, -1);
-	CreateMV(customersOutside, -1);
-	CreateLock(customerOutsideLineLock, -1);
-	CreateCondition(customerOutsideLineCV, -1);
-	CreateMV(timeToLeave, -1);
-	
-	CreateMV(customer.index, -1);
-	CreateMV(applicationClerk.index, -1);
-	CreateMV(pictureClerk.index, -1);
-	CreateMV(passportClerk.index, -1);
-	CreateMV(cashier.index, -1);
-	
-	CreateLock(customer.indexLock, -1);
-	CreateLock(applicationClerk.indexLock, -1);
-	CreateLock(pictureClerk.indexLock, -1);
-	CreateLock(passportClerk.indexLock, -1;
-	CreateLock(cashier.indexLock, -1);
-
 	for(k = 0; k < numApplicationClerks; k++)
 		initClerk(APPLICATION_CLERK, k);
 	
@@ -278,6 +271,28 @@ void Setup() {
 	
 	for(k = numCustomers; k < numCustomers + numSenators; k++)
 		initCustomer(k, true);
+	
+	CreateMV(senatorInside, -1);
+	CreateLock(senatorInsideLock, -1);
+	CreateMV(senatorsOutside, -1);
+	CreateLock(senatorOutsideLineLock, -1);
+	CreateCondition(senatorOutsideLineCV, -1);
+	CreateMV(customersOutside, -1);
+	CreateLock(customerOutsideLineLock, -1);
+	CreateCondition(customerOutsideLineCV, -1);
+	CreateMV(timeToLeave, -1);
+	
+	CreateMV(customer.index, -1);
+	CreateMV(applicationClerk.index, -1);
+	CreateMV(pictureClerk.index, -1);
+	CreateMV(passportClerk.index, -1);
+	CreateMV(cashier.index, -1);
+
+	CreateLock(customer.indexLock, -1);
+	CreateLock(applicationClerk.indexLock, -1);
+	CreateLock(pictureClerk.indexLock, -1);
+	CreateLock(passportClerk.indexLock, -1);
+	CreateLock(cashier.indexLock, -1);
 }
 
 
