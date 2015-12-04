@@ -23,9 +23,14 @@ II. Assumptions:
        include monolithic user programs, multiple user programs on one Nachos client, and multiple
        Nachos clients. We describe our design to achieve this assumption below.
 
+       Resource names are AT MOST 32 characters long. Attempts to reference a resource with a name longer
+       than 32 characters will have indeterminate behavior, since our code will ignore all following chars.
+
     Part 2:
 
-        
+        Servers are machines 0-4. Clients are machines 5+. 
+
+        Conditions will always be on the same server as their associated Lock.
 
 III. Design:
 
@@ -38,11 +43,29 @@ III. Design:
         return address. 
 
         The mailbox id was previously the concatination of the process and thread ids, now it is the 
-        concatination of the machine, process, and thread ids, which will prevent collisions.
+        concatination of the machine, process, and thread ids, which will prevent collisions. 
+
+        Instead of clients user programs sending a key to the server to identify a resource, they now
+        send a globally unique name. This way the servers in Part 2 will not have to implement a
+        key-sharing / non-overlap scheme.
 
     Part 2:
 
-        
+        When a server cannot handle a RPC because it does not have the resource, it checks with the
+        other servers to see if they have the resource and can handle the RPC. It does this by sending
+        a message to each server in turn, using the exact same "to" mailbox that a client would use, 
+        but it sets the "from" mailbox to the negation of the client's reply-to mailbox. This indicates
+        to the receiving server that it's getting a Server-Server message, not a Client-Server message.
+
+        When getting a Server-Server message, the server performs a bit of extra work before performing
+        the standard Client-Server work (if it can). Namely, it checks if it can perform the standard
+        Client-Server work at all and notifies the server that sent the Server-Server message. To notify
+        the sending server, it replies to the apropriate machine id (captured from the post office header)
+        and the same Client-Server mailbox plus 100.
+
+        The sending server, knowing that it made a Server-Server call, is paused and listening to the
+        plus 100 mailbox for either "yes" or "no". The sending server and the receiving server will then
+        perform the apropriate functions as set out in the requirements section above.
 
 IV. Implementation:
 
