@@ -52,13 +52,15 @@ III. Design:
 	setup every lock, condition variable, monitor variable, and struct needed for each user program. Each user program
 	will first call Setup() to either create locks/cvs/mvs using names, or retrieve them if they are already created.
 
-The mailbox id was previously the concatenation of the process and thread ids, now it is the 
+	The mailbox id was previously the concatenation of the process and thread ids, now it is the 
         concatenation of the machine, process, and thread ids, which will prevent collisions. 
 
 
         Instead of clients user programs sending a key to the server to identify a resource, they now
         send a globally unique name. This way the servers in Part 2 will not have to implement a
         key-sharing / non-overlap scheme.
+
+	Passport entities are also now split up into different files (customer.c, applicationclerk.c,etc)
 
     Part 2:
 
@@ -91,6 +93,12 @@ IV. Implementation:
 	test/setup.h
 	test/customerstarter.c
 	test/clerkstarter.c
+	test/customer.c
+	test/applicationclerk.c
+	test/pictureclerk.c
+	test/passportclerk.c
+	test/cashier.c
+	test/manager.c
 
 
     Functions Added:
@@ -113,6 +121,7 @@ IV. Implementation:
 	void DestroyMV(int name, int index); - exception.cc
 	int GetMV(int name, int index); - exception.cc
 	void SetMV(int name, int index, int value); - exception.cc
+	bool SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier); - rpcserver.cc
 
 	 void Receive_CreateLock(); - rpcserver.cc
         void Receive_DestroyLock(); - rpcserver.cc
@@ -129,8 +138,6 @@ IV. Implementation:
         void Receive_DestroyMV(); - rpcserver.cc
         void Receive_GetMV(); - rpcserver.cc
         void Receive_SetMV(); - rpcserver.cc
-	void RPCServer::Receive_Broadcast() - rpcserver.cc
-	bool SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier); - rpcserver.cc
 
 
 V. Testing:
@@ -556,7 +563,17 @@ Cashier 1 is leaving the office.
 
 VI: Discussion:
 
-    
+	
+   	We were able to get the passport office to successfully run and work together with multiple clients and a single server. It 
+	definitely took a while, and became difficult to coordinate with one another because of Thanksgiving break, but.
+
+	And we were even able to get networkTests.c (test that completely tests the syscalls including signal, wait, broadcast,
+	acquire, createLock, createCV, etc. And this was able to run with multiple servers. 
+	However, it was very difficult to debug the passport office, which contains multiple entities, to figure out why it wouldn’t 
+	work with multiple servers, but other tests including networkTests.c and testMV.c did, which exhaustively test the different 
+	syscalls.
+
+	Overall, it was an exhausting, complex, but enlightening project to work on. 
 
 VII. Miscellaneous:
 
