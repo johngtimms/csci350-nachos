@@ -5,25 +5,20 @@ int i;
 
 void runPassportClerk() {
 	int wait, k, myCustomer;
-	
 	Print("Running PassportClerk: %i\n", i);
-	
 	while(true) {
-    	/*if(passportClerks[i].senatorLineLength > 0) {*/
-        if(GetMV(passportClerks[i].senatorLineLength) > 0) {
-    		Acquire(passportClerks[i].senatorLineLock);
-            Signal(passportClerks[i].senatorLineCV, passportClerks[i].senatorLineLock);     /* Signal Senator to exit line */
+        if(GetMV(passportClerk.senatorLineLength, i) > 0) {
+    		Acquire(passportClerk.senatorLineLock, i);
+            Signal(passportClerk.senatorLineCV, i, passportClerk.senatorLineLock, i);     /* Signal Senator to exit line */
             Print("PassportClerk %i has signalled a Senator to come to their counter\n", i);
-            Acquire(passportClerks[i].clerkLock); 
-            Release(passportClerks[i].senatorLineLock);
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Senator to hand over picture and application */
-            /*myCustomer = passportClerks[i].customerID;*/
-            myCustomer = GetMV(passportClerks[i].customerID);
+            Acquire(passportClerk.clerkLock, i); 
+            Release(passportClerk.senatorLineLock, i);
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);      /* Wait for Senator to hand over picture and application */
+            myCustomer = GetMV(passportClerk.customerID, i);
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Senator %i\n", myCustomer);
-            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
-            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
+            if(GetMV(customer.hasApp, myCustomer) && GetMV(customer.hasPic, myCustomer)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -31,34 +26,28 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Senator %i's passport documentation\n", myCustomer);
-                /*customers[myCustomer].certifiedByPassportClerk = true;*/
-                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
+                SetMV(customer.certifiedByPassportClerk, myCustomer, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Senator %i does not have both their application and picture completed\n", myCustomer);
             }
-            Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Senator a passport */
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Senator to accept passport */
-            /*passportClerks[i].customerID = -1;*/
-            SetMV(passportClerks[i].customerID, -1);
-            Release(passportClerks[i].clerkLock);
-            /*passportClerks[i].state = FREE;*/
-            SetMV(passportClerks[i].state, FREE);
-        /*} else if(passportClerks[i].bribeLineLength > 0) {*/
-    	} else if(GetMV(passportClerks[i].bribeLineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
-            Acquire(passportClerks[i].bribeLineLock);
-            Signal(passportClerks[i].bribeLineCV, passportClerks[i].bribeLineLock);     /* Signal Customer to exit line */
+            Signal(passportClerk.clerkCV, i, passportClerk.clerkLock, i);    /* Give Senator a passport */
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);      /* Wait for Senator to accept passport */
+            SetMV(passportClerk.customerID, i, -1);
+            Release(passportClerk.clerkLock, i);
+            SetMV(passportClerk.state, i, FREE);
+    	} else if(GetMV(passportClerk.bribeLineLength, i) > 0 && !GetMV(senatorInside, -1) && !GetMV(senatorsOutside, -1)) {
+            Acquire(passportClerk.bribeLineLock, i);
+            Signal(passportClerk.bribeLineCV, i, passportClerk.bribeLineLock, i);     /* Signal Customer to exit line */
             Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);
-            Acquire(passportClerks[i].clerkLock); 
-            Release(passportClerks[i].bribeLineLock);
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);       /* Wait for Customer to hand over picture and application */
-            /*myCustomer = passportClerks[i].customerID;*/  
-            myCustomer = GetMV(passportClerks[i].customerID);  
+            Acquire(passportClerk.clerkLock, i); 
+            Release(passportClerk.bribeLineLock, i);
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);       /* Wait for Customer to hand over picture and application */
+            myCustomer = GetMV(passportClerk.customerID, i);  
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
-            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
+            if(GetMV(customer.hasApp, myCustomer) && GetMV(customer.hasPic, myCustomer)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -66,34 +55,28 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Customer %i's passport documentation\n", myCustomer);
-                /*customers[myCustomer].certifiedByPassportClerk = true;*/
-                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
+                SetMV(customer.certifiedByPassportClerk, myCustomer, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i does not have both their application and picture completed\n", myCustomer);
             }
-            Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Customer a passport */
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to accept passport */
-            /*passportClerks[i].customerID = -1;*/ 
-            SetMV(passportClerks[i].customerID, -1);
-            Release(passportClerks[i].clerkLock);
-            /*passportClerks[i].state = FREE;*/
-            SetMV(passportClerks[i].state, FREE);
-        /*} else if(passportClerks[i].lineLength > 0) {*/
-        } else if(GetMV(passportClerks[i].lineLength) > 0 && !GetMV(senatorInside) && !GetMV(senatorsOutside)) {
-            Acquire(passportClerks[i].lineLock);
-            Signal(passportClerks[i].lineCV, passportClerks[i].lineLock);     /* Signal Customer to exit line */
+            Signal(passportClerk.clerkCV, i, passportClerk.clerkLock, i);    /* Give Customer a passport */
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);      /* Wait for Customer to accept passport */
+            SetMV(passportClerk.customerID, i, -1);
+            Release(passportClerk.clerkLock, i);
+            SetMV(passportClerk.state, i, FREE);
+        } else if(GetMV(passportClerk.lineLength, i) > 0 && !GetMV(senatorInside, -1) && !GetMV(senatorsOutside, -1)) {
+            Acquire(passportClerk.lineLock, i);
+            Signal(passportClerk.lineCV, i, passportClerk.lineLock, i);     /* Signal Customer to exit line */
             Print("PassportClerk %i has signalled a Customer to come to their counter\n", i);
-            Acquire(passportClerks[i].clerkLock); 
-            Release(passportClerks[i].lineLock);
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to hand over picture and application */
-            /*myCustomer = passportClerks[i].customerID;*/
-            myCustomer = GetMV(passportClerks[i].customerID);  
+            Acquire(passportClerk.clerkLock, i); 
+            Release(passportClerk.lineLock, i);
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);      /* Wait for Customer to hand over picture and application */
+            myCustomer = GetMV(passportClerk.customerID, i);  
             Print("PassportClerk %i ", i);
             Print("has recieved SSN %i ", myCustomer);
             Print("from Customer %i\n", myCustomer);
-            /*if(customers[myCustomer].hasApp && customers[myCustomer].hasPic) {*/
-            if(GetMV(customers[myCustomer].hasApp) && GetMV(customers[myCustomer].hasPic)) {
+            if(GetMV(customer.hasApp, myCustomer) && GetMV(customer.hasPic, myCustomer)) {
                 Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i has both their application and picture completed\n", myCustomer);
             	wait = Rand() % ((100 - 20) + 1) + 20; 
@@ -101,30 +84,25 @@ void runPassportClerk() {
                     Yield();
 				Print("PassportClerk %i has recorded ", i);
             	Print("Customer %i's passport documentation\n", myCustomer);
-                /*customers[myCustomer].certifiedByPassportClerk = true;*/
-                SetMV(customers[myCustomer].certifiedByPassportClerk, true);
+                SetMV(customer.certifiedByPassportClerk, myCustomer, true);
             } else {
             	Print("PassportClerk %i has determined that ", i);
             	Print("Customer %i does not have both their application and picture completed\n", myCustomer);
             }
-            Signal(passportClerks[i].clerkCV, passportClerks[i].clerkLock);    /* Give Customer a passport */
-            Wait(passportClerks[i].clerkCV, passportClerks[i].clerkLock);      /* Wait for Customer to accept passport */
-            /*passportClerks[i].customerID = -1;*/
-            SetMV(passportClerks[i].customerID, -1);
-            Release(passportClerks[i].clerkLock);
-            /*passportClerks[i].state = FREE;*/
-            SetMV(passportClerks[i].state, FREE);
+            Signal(passportClerk.clerkCV, i, passportClerk.clerkLock, i);    /* Give Customer a passport */
+            Wait(passportClerk.clerkCV, i, passportClerk.clerkLock, i);      /* Wait for Customer to accept passport */
+            SetMV(passportClerk.customerID, i, -1);
+            Release(passportClerk.clerkLock, i);
+            SetMV(passportClerk.state, i, FREE);
         } else {
-            Acquire(passportClerks[i].clerkLock);
-            /*passportClerks[i].state = BREAK;*/
-            SetMV(passportClerks[i].state, BREAK);
+            Acquire(passportClerk.clerkLock, i);
+            SetMV(passportClerk.state, i, BREAK);
             Print("PassportClerk %i is going on break\n", i);
-            Wait(passportClerks[i].breakCV, passportClerks[i].clerkLock);
+            Wait(passportClerk.breakCV, i, passportClerk.clerkLock, i);
             Print("PassportClerk %i is coming off break\n", i);
-            Release(passportClerks[i].clerkLock);
-            /*passportClerks[i].state = FREE;*/
-            SetMV(passportClerks[i].state, FREE);
-            if(GetMV(timeToLeave)) {
+            Release(passportClerk.clerkLock, i);
+            SetMV(passportClerks.state, i, FREE);
+            if(GetMV(timeToLeave, -1)) {
                 Print("PassportClerk %i is leaving the office.\n",i);
                 Exit(0);
             }
@@ -135,11 +113,10 @@ void runPassportClerk() {
 int main() {
 	Setup();
 
-	Acquire(passportClerkIndexLock);
-	i = GetMV(nextAvailablePassportClerkIndex);
-    SetMV(nextAvailablePassportClerkIndex, i + 1);
-	Release(passportClerkIndexLock);
-    /*initClerk(PASSPORT_CLERK, i);*/
+	Acquire(passportClerk.indexLock, -1);
+	i = GetMV(passportClerk.index, -1);
+    SetMV(passportClerk.index, -1, i + 1);
+	Release(passportClerk.indexLock, -1);
 	runPassportClerk();
     
 	Exit(0);
