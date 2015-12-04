@@ -52,8 +52,8 @@ III. Design:
 	setup every lock, condition variable, monitor variable, and struct needed for each user program. Each user program
 	will first call Setup() to either create locks/cvs/mvs using names, or retrieve them if they are already created.
 
-The mailbox id was previously the concatination of the process and thread ids, now it is the 
-        concatination of the machine, process, and thread ids, which will prevent collisions. 
+The mailbox id was previously the concatenation of the process and thread ids, now it is the 
+        concatenation of the machine, process, and thread ids, which will prevent collisions. 
 
 
         Instead of clients user programs sending a key to the server to identify a resource, they now
@@ -93,13 +93,44 @@ IV. Implementation:
 	test/clerkstarter.c
 
 
-    Data Structures Added:
-
-
     Functions Added:
+	Setup() in Setup.h - Initializes all the structs of customers/clerks needed, as well as creating all needed locks,
+	condition variables, and monitor variables. And stores the names of all of the locks/cvs/mvs in the struct, so that
+	user programs can easily access the locks by name.
 
 
     Functions Modified:
+	void CreateLock(int name, int index);  - exception.cc
+	void DestroyLock(int name, int index); - exception.cc
+	void Acquire(int name, int index); - exception.cc
+	void Release(int name, int index); - exception.cc
+	void CreateCondition(int name, int index); - exception.cc
+	void DestroyCondition(int key, int index); - exception.cc
+	void Wait(int conditionKey, int conditionIndex, int lockKey, int lockIndex); - exception.cc
+	void Signal(int conditionKey, int conditionIndex, int lockKey, int lockIndex); - exception.cc
+	void Broadcast(int conditionKey, int conditionIndex, int lockKey, int lockIndex); - exception.cc
+	void CreateMV(int name, int index); - exception.cc
+	void DestroyMV(int name, int index); - exception.cc
+	int GetMV(int name, int index); - exception.cc
+	void SetMV(int name, int index, int value); - exception.cc
+
+	 void Receive_CreateLock(); - rpcserver.cc
+        void Receive_DestroyLock(); - rpcserver.cc
+        void Receive_Acquire(); - rpcserver.cc
+        void Receive_Release(); - rpcserver.cc
+        void Receive_CreateCondition(); - rpcserver.cc
+        void Receive_DestroyCondition(); - rpcserver.cc
+        void Receive_Wait(); - rpcserver.cc
+        void Receive_Signal(); - rpcserver.cc
+        void Receive_Broadcast(); - rpcserver.cc
+        void Receive_NetPrint(); - rpcserver.cc
+        void Receive_NetHalt(); - rpcserver.cc
+        void Receive_CreateMV(); - rpcserver.cc
+        void Receive_DestroyMV(); - rpcserver.cc
+        void Receive_GetMV(); - rpcserver.cc
+        void Receive_SetMV(); - rpcserver.cc
+	void RPCServer::Receive_Broadcast() - rpcserver.cc
+	bool SendQuery(int mailboxTo, int mailboxFrom, std::string query, char *identifier); - rpcserver.cc
 
 
 V. Testing:
@@ -489,11 +520,38 @@ Cashier 1 is leaving the office.
 =================================================
 
 
-
-
-
     
         Part 2:
+		To test multiple servers (up to 5), create servers using this:
+		(-m flag defines machine #, -ns flag defines number of servers that will be used)
+		nachos --server -m 0 -ns 5
+		nachos --server -m 1 -ns 2
+		nachos --server -m 2 -ns 2
+		nachos --server -m 3 -ns 2
+		nachos --server -m 4 -ns 2
+		And test using client:
+		nachos -x ../test/networkTests -m 5 -ns 5  
+		Expected output: 
+		Network Tests
+        		NetPrint test (1/1): Check server console for "Hello World!"
+      			CreateLock test (1/1): Two locks created
+      		        Release test (1/2): Check server console for "WARN: Release ..."
+       			Acquire test (1/1): Lock acquired
+        		Release test (2/2): Lock released
+        		DestroyLock test (1/1): Destroyed two locks
+        		CreateCondition test (1/1): One condition created
+        		Wait test (1/2): Wait DID release the lock
+        		Signal test (1/2): Finished signaling
+        		Signal test (2/2): Signal DID release the lock
+        		Wait test (2/2): Finished waiting
+        		Broadcast test (1/5): Acquired lock to prove waits DID release
+        		Broadcast test (?/5): Finished broadcasting
+        		Broadcast test (5/5): Broadcast DID release the lock
+        		Broadcast test (?/5): Finished waiting
+        		DestroyCondition test (1/1): Destroyed one condition
+        		Broadcast test (?/5): Finished waiting
+        		NetHalt test (1/1): Check that server shuts down
+	
 
 
 VI: Discussion:
