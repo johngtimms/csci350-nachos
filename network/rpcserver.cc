@@ -1412,7 +1412,7 @@ NetworkLock::NetworkLock(std::string _name) {
 }
 
 NetworkLock::~NetworkLock() {
-    delete name;
+    //delete name;
     delete queue;
 }
 
@@ -1527,7 +1527,7 @@ NetworkCondition::NetworkCondition(std::string _name) {
 NetworkCondition::~NetworkCondition() {
     delete conditionLock;
     delete queue;
-    delete name;
+    //delete name;
 }
 
 /*
@@ -1702,8 +1702,9 @@ NetworkMV::NetworkMV(char* _name) {
 */
 NetworkMV::NetworkMV(std::string _name) {
     value = 0;
-    name = new char[strlen(_name)+1]; //deep copy
-    strcpy(name, _name); //deep copy*/
+    name = _name;
+    //name = new char[strlen(_name)+1]; //deep copy
+    //strcpy(name, _name); //deep copy*/
 }
 
 /*
