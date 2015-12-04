@@ -265,6 +265,60 @@ void RPCServer::Receive_Release() {
     }
 }
 
+void RPCServer::Receive_ServerLockSubordinate() {
+    PacketHeader inPktHdr;
+    MailHeader inMailHdr;
+    char recv[MaxMailSize];
+    char conf[MaxMailSize];
+    char test[MaxMailSize]; strcpy(test, "yes");
+
+    for (;;) {
+        // Wait for a mailbox message
+        postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, recv); 
+
+        // Read the message
+        int mailbox = inMailHdr.from;                           // The mailbox that's touching the Condition, that *SHOULD* be holding the lock
+        std::string lockName(recv);                             // The lock name we hope is on this server
+        int serverMachine = inPktHdr.from;                      // The server that has the Condition
+        int serverMailbox = MailboxServerLockSubordinate + 100; // The mailbox that will be used to talk back to the server
+
+        // Acquire the NetworkLockTable lock
+        networkLockTable->tableLock->Acquire();
+
+        // Check for the lock on this server
+        NetworkLock *lock = networkLockTable->locks[lockName];
+
+        // Check if we have the lock
+        if ( lock != NULL ) {
+            // We do, check that the mailbox owns the lock
+            bool hasAcquired = lock->HasAcquired(mailbox);
+
+            if (hasAcquired) {
+                // It does, tell the server with Wait/Signal/Broadcast to go ahead
+                SendResponse(serverMailbox, -1, serverMachine);
+            } else {
+                // It does not, tell the server
+                SendResponse(serverMailbox, -2, serverMachine);
+            }
+
+            // Wait for the server to tell us it's done
+            postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, conf); 
+
+            // Double-check this worked
+            if ( strcmp(test,conf) != 0 ) {
+                printf("ERROR: Subordinate failure. Nachos halting.\n");
+                interrupt->Halt();
+            }
+        } else {
+            // Tell the server we do not have the lock
+            SendResponse(serverMailbox, -2, serverMachine);
+        }
+
+        // Release the LockTable lock
+        networkLockTable->tableLock->Release();
+    }
+}
+
 void RPCServer::Receive_CreateCondition() {
     PacketHeader inPktHdr;
     MailHeader inMailHdr;
@@ -428,9 +482,11 @@ void RPCServer::Receive_Wait() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    SendResponse(-mailbox, -2);
-                    interrupt->Halt();
+                    // SendQuery to find the server that has it
+
+                    // printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                    // SendResponse(-mailbox, -2);
+                    // interrupt->Halt();
                 }
 
                 condition->Wait(-mailbox, lock);
