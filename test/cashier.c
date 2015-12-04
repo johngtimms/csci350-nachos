@@ -190,12 +190,14 @@ void runCashier() {
 }
 
 int main() {
-    setup();
+    Setup();
+
 	Acquire(cashierIndexLock);
 	i = GetMV(nextAvailableCashierIndex);
     SetMV(nextAvailableCashierIndex, i + 1);
 	Release(cashierIndexLock);
-    /*initClerk(CASHIER, i);*/
+    
 	runCashier();
-	
+
+    Exit(0);
 }

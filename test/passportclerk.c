@@ -133,7 +133,7 @@ void runPassportClerk() {
 }
 
 int main() {
-	setup();
+	Setup();
 
 	Acquire(passportClerkIndexLock);
 	i = GetMV(nextAvailablePassportClerkIndex);

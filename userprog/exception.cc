@@ -1,18 +1,18 @@
 // exception.cc
-//  Entry point into the Nachos kernel from user programs.
-//  There are two kinds of things that can cause control to
-//  transfer back to here from user code:
+//	Entry point into the Nachos kernel from user programs.
+//	There are two kinds of things that can cause control to
+//	transfer back to here from user code:
 //
-//  syscall -- The user code explicitly requests to call a procedure
-//  in the Nachos kernel.  Right now, the only function we support is
-//  "Halt".
+//	syscall -- The user code explicitly requests to call a procedure
+//	in the Nachos kernel.  Right now, the only function we support is
+//	"Halt".
 //
-//  exceptions -- The user code does something that the CPU can't handle.
-//  For instance, accessing memory that doesn't exist, arithmetic errors,
-//  etc.
+//	exceptions -- The user code does something that the CPU can't handle.
+//	For instance, accessing memory that doesn't exist, arithmetic errors,
+//	etc.
 //
-//  Interrupts (which can also cause control to transfer from user
-//  code into the Nachos kernel) are handled elsewhere.
+//	Interrupts (which can also cause control to transfer from user
+//	code into the Nachos kernel) are handled elsewhere.
 //
 // For now, this only handles the Halt() system call.
 // Everything else core dumps.
@@ -46,6 +46,26 @@ void Write_Syscall(unsigned int vaddr, int len, int id);
 int Read_Syscall(unsigned int vaddr, int len, int id);
 void Close_Syscall(int fd);
 
+char* concatenate(char str[], int len, int num) {
+    len = len - 1; /*sizeof() returns 1 more then actual size*/
+    /*char numstr = (char)(((int) '0') + num);*/
+    printf("String passed in with length %i is %s\n",len,str);
+    /*int len = sizeof(str); this is calculating length wrong, so instead we're passing in the length as paramter*/
+    /*str[len] = numstr;
+     str[len + 1] = '\0';*/
+    
+    /* hundreds place */
+    str[len] = '0' + num / 100;
+    /* tens place */
+    str[len + 1] = '0' + (num % 100) / 10;
+    /* one's place */
+    str[len + 2] = '0' + num % 10;
+    /* null terminator */
+    str[len + 3] = '\0';
+    printf("Converted string is %s\n",str);
+    return str;
+}
+
 // Ensures that the forked thread begins execution at the correct position.
 void ForkUserThread(int functionPtr) {
     forkLock->Acquire();
@@ -63,14 +83,14 @@ void ForkUserThread(int functionPtr) {
 
 void Fork_Syscall(int functionPtr) {
     DEBUG('t', "In Fork_Syscall\n");
-
+    
     Thread *thread = new Thread("forked thread");
-
+    
     // Give the thread an ID (needed for networking)
     threadIndexLock->Acquire();
     thread->setID(++threadIndex);
     threadIndexLock->Release();
-
+    
     // Finish creatng thread
     thread->space = currentThread->space;
     thread->space->CreateStack(thread);
@@ -96,6 +116,9 @@ void Exit_Syscall(int status) {
         // delete kernelLockTable & kernelCVTable
         DEBUG('t', "Exit_Syscall Case 1 (Last thread in nachos called Exit)\n");
         //printf("machine->ReadRegister(4) =  %d\n", machine->ReadRegister(4));
+        printf("=================================================\n");
+        printf("========FINISHED SIMULATING PASSPORT OFFICE======\n");
+        printf("=================================================\n");
         printf("Terminating Nachos\n");
         interrupt->Halt();
     }
@@ -150,10 +173,11 @@ int Exec_Syscall(unsigned int vaddr, int len) {
         cout << "Unable to open file: " << buf << endl;
         return -1;
     }
+    
     // Create an AddrSpace (Process) for new file
     AddrSpace *space = new AddrSpace(executable);
     // Create "main" Thread of new process
-    Thread *thread = new Thread("0"); // Name the first thread in the new process 0 (needed for networking)
+    Thread *thread = new Thread(buf); // Name the first thread in the new process 0 (needed for networking)
     
     threadIndexLock->Acquire();
     thread->setID(++threadIndex);
@@ -336,6 +360,7 @@ void Print_Syscall(int text, int num) {
     }
     buf[100] = '\0';
     printf(buf, num);
+    delete[] buf;
 }
 
 int Rand_Syscall() {
@@ -363,7 +388,6 @@ char* argumentReader(unsigned int vaddr, char *identifier) {
         return NULL;
     }
     name[32] = '\0';
-
     return name;
 }
 
@@ -374,45 +398,45 @@ int genericFunction(char *message, char *identifier, int action) {
     char send[MaxMailSize];
     char recv[MaxMailSize];
     char test[MaxMailSize]; strcpy(test, "yes");
-
+    
     // Form the request message
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-
+    
     DEBUG('l', "Generic Function (start) - message \'%s\' identifier \'%s\' action \'%d\' process %d thread %d machine %d mailbox %d\n", message, identifier, action, processID, threadID, machineName, mailbox);
-
+    
     // Because the server mailbox defines the action, the message is all that must be sent
     sprintf(send, "%s", message);
-
+    
     DEBUG('r', "0 - %s\n", identifier);
-
+    
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = action;
     outMailHdr.from = mailbox; // need a reply, send my mailbox
     outMailHdr.length = strlen(send) + 1;
-
+    
     DEBUG('r', "1 - %s\n", identifier);
-
+    
     // Send the request message
     bool success = postOffice->Send(outPktHdr, outMailHdr, send);
-
+    
     DEBUG('r', "2 - %s\n", identifier);
-
+    
     // Check that the send worked
     if ( !success )
         printf("WARN: %s failed. Server misconfigured.\n", identifier);
-
+    
     DEBUG('r', "3 - %s\n", identifier);
-
+    
     // Get the response back
     postOffice->Receive(mailbox, &inPktHdr, &inMailHdr, recv);
-
+    
     DEBUG('l', "Generic Function (end) - recv \'%s\' message \'%s\' identifier \'%s\' action \'%d\' process %d thread %d machine %d mailbox %d\n", recv, message, identifier, action, processID, threadID, machineName, mailbox);
-
+    
     DEBUG('r', "4 - %s\n", identifier);
-
+    
     // GetMV is a special case- it's the only RPC we support that returns a value other than "yes"
     if ( action == MailboxGetMV ) {
         int value = atoi(recv);
@@ -422,106 +446,175 @@ int genericFunction(char *message, char *identifier, int action) {
         if ( strcmp(test,recv) != 0 )
             printf("WARN: %s failed. Recieved bad server message.\n", identifier);
     }
-
+    
     return 0;
 }
 
 // Sends a request to the server with the name of a new lock to create
-// If the lock already exists, the server will still complete the request successfully 
-void CreateLock_Syscall(unsigned int _lockName) {
-    char *lockName = argumentReader(_lockName, "CreateLock");
+// If the lock already exists, the server will still complete the request successfully
+void CreateLock_Syscall(unsigned int _lockName, int index) {
+    char *lockName = argumentReader(_lockName, index, "CreateLock");
+    
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+    
     genericFunction(lockName, "CreateLock", MailboxCreateLock);
 }
 
 // Sends a request to the server with the name of a lock to destroy
-void DestroyLock_Syscall(unsigned int _lockName) {
+void DestroyLock_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "DestroyLock");
+    
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+    
     genericFunction(lockName, "DestroyLock", MailboxDestroyLock);
 }
 
-void Acquire_Syscall(unsigned int _lockName) {
+void Acquire_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "Acquire");
+    
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+    
     genericFunction(lockName, "Acquire", MailboxAcquire);
 }
 
-void Release_Syscall(unsigned int _lockName) {
+void Release_Syscall(unsigned int _lockName, int index) {
     char *lockName = argumentReader(_lockName, "Release");
+    
+    // Append index of lock to its name if need be
+    if(index > -1)
+        sprintf(lockName, "%s%i", lockName, index);
+    
     genericFunction(lockName, "Release", MailboxRelease);
 }
 
-void CreateCondition_Syscall(unsigned int _conditionName) {
+void CreateCondition_Syscall(unsigned int _conditionName, int index) {
     char *conditionName = argumentReader(_conditionName, "CreateCondition");
+    
+    // Append index of condition to its name if need be
+    if(index > -1)
+        sprintf(conditionName, "%s%i", conditionName, index);
+    
     genericFunction(conditionName, "CreateCondition", MailboxCreateCondition);
 }
 
-void DestroyCondition_Syscall(unsigned int _conditionName) {
+void DestroyCondition_Syscall(unsigned int _conditionName, int index) {
     char *conditionName = argumentReader(_conditionName, "DestroyCondition");
+    
+    // Append index of condition to its name if need be
+    if(index > -1)
+        sprintf(conditionName, "%s%i", conditionName, index);
+    
     genericFunction(conditionName, "DestroyCondition", MailboxDestroyCondition);
 }
 
-void Wait_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Wait_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Wait");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+    
     char *lockName = argumentReader(_lockName, "Wait");
-
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
+    
     // Wait is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
-
+    
     genericFunction(send, "Wait", MailboxWait);
     genericFunction(lockName, "Acquire (after Wait)", MailboxAcquire);
 }
 
-void Signal_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Signal_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Signal");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+    
     char *lockName = argumentReader(_lockName, "Signal");
-
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
+    
     // Signal is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
-
+    
     genericFunction(send, "Signal", MailboxSignal);
-    genericFunction(lockName, "Release (after Signal)", MailboxRelease);
+    // genericFunction(lockName, "Release (after Signal)", MailboxRelease);
 }
 
-void Broadcast_Syscall(unsigned int _conditionName, unsigned int _lockName) {
+void Broadcast_Syscall(unsigned int _conditionName, int conditionIndex, unsigned int _lockName, int lockIndex) {
     char *conditionName = argumentReader(_conditionName, "Broadcast");
+    // Append index of condition to its name if need be
+    if(conditionIndex > -1)
+        sprintf(conditionName, "%s%i", conditionName, conditionIndex);
+    
     char *lockName = argumentReader(_lockName, "Broadcast");
-
+    // Append index of lock to its name if need be
+    if(lockIndex > -1)
+        sprintf(lockName, "%s%i", lockName, lockIndex);
+    
     // Signal is special, it needs to send the condition and lock names together
     char send[MaxMailSize];
     sprintf(send, "%s,%s", conditionName, lockName);
-
+    
     genericFunction(send, "Broadcast", MailboxBroadcast);
-
+    
     // After broadcasting, need to release the lock so the waiting thread can acquire
-    genericFunction(lockName, "Release (after Broadcast)", MailboxRelease);
+    // genericFunction(lockName, "Release (after Broadcast)", MailboxRelease);
 }
 
-void CreateMV_Syscall(unsigned int _mvName) {
+void CreateMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "CreateMV");
+    
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+    
     genericFunction(mvName, "CreateMV", MailboxCreateMV);
 }
 
-void DestroyMV_Syscall(unsigned int _mvName) {
+void DestroyMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "DestroyMV");
+    
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+    
     genericFunction(mvName, "DestroyMV", MailboxDestroyMV);
 }
 
-int GetMV_Syscall(unsigned int _mvName) {
+int GetMV_Syscall(unsigned int _mvName, int index) {
     char *mvName = argumentReader(_mvName, "GetMV");
+    
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+    
     int value = genericFunction(mvName, "GetMV", MailboxGetMV);
-
+    
     return value;
 }
 
-void SetMV_Syscall(unsigned int _mvName, int _mvValue) {
+void SetMV_Syscall(unsigned int _mvName, int index, int mvValue) {
     char *mvName = argumentReader(_mvName, "SetMV");
-    int mvValue = _mvValue;
-
+    
+    // Append index of MV to its name if need be
+    if(index > -1)
+        sprintf(mvName, "%s%i", mvName, index);
+    
     // SetMV is special, it needs to send the MV name and value together
     char send[MaxMailSize];
     sprintf(send, "%s,%d", mvName, mvValue);
-
+    
     genericFunction(send, "SetMV", MailboxSetMV);
 }
 
@@ -532,7 +625,7 @@ void NetPrint_Syscall(int text, int num) {
     char *buf = new char[100 + 1];
     copyin(text, 100, buf);
     buf[100] = '\0';
-
+    
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
@@ -540,7 +633,7 @@ void NetPrint_Syscall(int text, int num) {
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetPrint;
-    outMailHdr.from = mailbox; 
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(buf) + 1;
     
     // Make sure the message is not too long
@@ -570,11 +663,11 @@ void NetHalt_Syscall() {
     int processID = currentThread->space->spaceID;
     int threadID = currentThread->getID();
     int mailbox = RPCServer::ClientMailbox(machineName, processID, threadID);
-
+    
     // Construct packet header, mail header for the message
     outPktHdr.to = getDestination();
     outMailHdr.to = MailboxNetHalt;
-    outMailHdr.from = mailbox; 
+    outMailHdr.from = mailbox;
     outMailHdr.length = strlen(buf) + 1;
     
     // Send the message
@@ -587,12 +680,11 @@ void NetHalt_Syscall() {
     
     delete[] buf;
 }
-
 #endif
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
-    int rv = 0;     // the return value from a syscall
+    int rv = 0; 	// the return value from a syscall
     if(which == SyscallException) {
         switch (type) {
             default:
@@ -684,26 +776,26 @@ void ExceptionHandler(ExceptionType which) {
                 DEBUG('a', "Random number syscall.\n");
                 rv = Rand_Syscall();
                 break;
-            #ifdef NETWORK
-                case SC_NetPrint:
-                    NetPrint_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-                    break;
-                case SC_NetHalt:
-                    NetHalt_Syscall();
-                    break;
-                case SC_CreateMV:
-                    CreateMV_Syscall(machine->ReadRegister(4));
-                    break;
-                case SC_DestroyMV:
-                    DestroyMV_Syscall(machine->ReadRegister(4));
-                    break;
-                case SC_GetMV:
-                    rv = GetMV_Syscall(machine->ReadRegister(4));
-                    break;
-                case SC_SetMV:
-                    SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-                    break;
-            #endif
+#ifdef NETWORK
+            case SC_NetPrint:
+                NetPrint_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                break;
+            case SC_NetHalt:
+                NetHalt_Syscall();
+                break;
+            case SC_CreateMV:
+                CreateMV_Syscall(machine->ReadRegister(4));
+                break;
+            case SC_DestroyMV:
+                DestroyMV_Syscall(machine->ReadRegister(4));
+                break;
+            case SC_GetMV:
+                rv = GetMV_Syscall(machine->ReadRegister(4));
+                break;
+            case SC_SetMV:
+                SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+                break;
+#endif
         }
         // Put in the return value and increment the PC
         machine->WriteRegister(2, rv);
@@ -726,7 +818,7 @@ int copyin(unsigned int vaddr, int len, char *buf) {
     // Return the number of bytes so read, or -1 if an error occors.
     // Errors can generally mean a bad virtual address was passed in.
     bool result;
-    int n = 0;          // The number of bytes copied in
+    int n = 0;			// The number of bytes copied in
     int *paddr = new int;
     
     while ( n >= 0 && n < len) {
@@ -752,7 +844,7 @@ int copyout(unsigned int vaddr, int len, char *buf) {
     // occors.  Errors can generally mean a bad virtual address was
     // passed in.
     bool result;
-    int n = 0;          // The number of bytes copied in
+    int n = 0;			// The number of bytes copied in
     while ( n >= 0 && n < len) {
         // Note that we check every byte's address
         result = machine->WriteMem( vaddr, 1, (int)(buf[n++]) );
@@ -770,7 +862,7 @@ void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
     // vaddr.  The file name is at most MAXFILENAME chars long.  No
     // way to return errors, though...
-    char *buf = new char[len+1];    // Kernel buffer to put the name in
+    char *buf = new char[len+1];	// Kernel buffer to put the name in
     
     if (!buf)
         return;
@@ -791,9 +883,9 @@ int Open_Syscall(unsigned int vaddr, int len) {
     // the file is opened successfully, it is put in the address
     // space's file table and an id returned that can find the file
     // later.  If there are any errors, -1 is returned.
-    char *buf = new char[len+1];    // Kernel buffer to put the name in
-    OpenFile *f;            // The new open file
-    int id;             // The openfile id
+    char *buf = new char[len+1];	// Kernel buffer to put the name in
+    OpenFile *f;			// The new open file
+    int id;				// The openfile id
     
     if(!buf) {
         printf("%s","Can't allocate kernel buffer in Open\n");
@@ -826,10 +918,10 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
     // console exists, create one. For disk files, the file is looked
     // up in the current address space's open file table and used as
     // the target of the write.
-    char *buf;      // Kernel buffer for output
-    OpenFile *f;    // Open file for output
+    char *buf;		// Kernel buffer for output
+    OpenFile *f;	// Open file for output
     
-    if(id == ConsoleInput) 
+    if(id == ConsoleInput)
         return;
     if(!(buf = new char[len])) {
         printf("%s","Error allocating kernel buffer for write!\n");
@@ -863,10 +955,10 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
     // a Write arrives for the synchronized Console, and no such
     // console exists, create one.    We reuse len as the number of bytes
     // read, which is an unnessecary savings of space.
-    char *buf;      // Kernel buffer for input
-    OpenFile *f;    // Open file for output
+    char *buf;		// Kernel buffer for input
+    OpenFile *f;	// Open file for output
     
-    if(id == ConsoleOutput) 
+    if(id == ConsoleOutput)
         return -1;
     if(!(buf = new char[len])) {
         printf("%s","Error allocating kernel buffer in Read\n");

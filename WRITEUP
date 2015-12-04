@@ -23,6 +23,10 @@ II. Assumptions:
        include monolithic user programs, multiple user programs on one Nachos client, and multiple
        Nachos clients. We describe our design to achieve this assumption below.
 
+       Resource names are AT MOST 32 characters long. Attempts to reference a resource with a name longer
+       than 32 characters will have indeterminate behavior, since our code will ignore all following chars.
+
+
     Part 2:
 
         Servers are machines 0-4. Clients are machines 5+. 
@@ -39,7 +43,9 @@ III. Design:
         machine can interact with a resource. As before, threads make RPCs with a unique mailbox as their
         return address. 
 
-        The mailbox id was previously the concatination of the process and thread ids, now it is the concatination of the machine, process, and thread ids, which will prevent collisions.
+The mailbox id was previously the concatination of the process and thread ids, now it is the 
+        concatination of the machine, process, and thread ids, which will prevent collisions. 
+
 
         Instead of clients user programs sending a key to the server to identify a resource, they now
         send a globally unique name. This way the servers in Part 2 will not have to implement a

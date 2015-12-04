@@ -91,7 +91,7 @@ class NetworkCondition {
         void Wait(int mailbox, NetworkLock *lock);
         void Signal(int mailbox, NetworkLock *lock, bool messageCaller = true);
         void Broadcast(int mailbox, NetworkLock *lock);
-        
+        std::string getName() { return name; }
     private:
         std::string name;
         NetworkLock *conditionLock;
@@ -104,7 +104,7 @@ class NetworkMV {
         ~NetworkMV();
         int getMV();
         void setMV(int _value);
-       
+        std::string getName() { return name; }
     private:
         std::string name;
         int value;

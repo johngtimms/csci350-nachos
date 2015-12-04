@@ -6,11 +6,7 @@ bool didntGoInLineBecauseOfSenator = false;
 
 bool enterApplicationLine(int clerkID) {
 	int length;
-	/* Stand in line */
-	/*Print("Customer %i about to stand in application clerk line\n", ssn); */
-	/*if(applicationClerks[clerkID].state != FREE) {*/
-	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /*don't go in line if there is a senator present, unless you are a senator /*
-		/*if(customers[ssn].isSenator) {*/
+	if(!GetMV(senatorInside) || GetMV(customers[ssn].isSenator)) { /* don't go in line if there is a senator present, unless you are a senator */
 		if(GetMV(customers[ssn].isSenator)) {	
 			Acquire(applicationClerks[clerkID].senatorLineLock);
 			/*applicationClerks[clerkID].senatorLineLength++;*/
@@ -843,8 +839,7 @@ void runCustomer() {
 }
 
 int main() {
-
-    setup();
+    Setup();
     
     Acquire(customerIndexLock);
     ssn = GetMV(nextAvailableCustomerIndex);
