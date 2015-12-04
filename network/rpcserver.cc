@@ -270,7 +270,7 @@ void RPCServer::Receive_ServerLockSubordinate() {
     MailHeader inMailHdr;
     char recv[MaxMailSize];
     char conf[MaxMailSize];
-    char test[MaxMailSize]; strcpy(test, "yes");
+    char test[MaxMailSize]; strcpy(test, "sub"); // Special message (other than "yes") to prevent confusion
 
     for (;;) {
         // Wait for a mailbox message
@@ -281,6 +281,12 @@ void RPCServer::Receive_ServerLockSubordinate() {
         std::string lockName(recv);                             // The lock name we hope is on this server
         int serverMachine = inPktHdr.from;                      // The server that has the Condition
         int serverMailbox = MailboxServerLockSubordinate + 100; // The mailbox that will be used to talk back to the server
+
+        // Make sure we haven't accidentally interrupted a confirmation to another subordinate
+        if ( strcmp(test,recv) == 0 ) {
+            SendResponse(serverMailbox, -2, serverMachine);
+            continue;
+        }
 
         // Acquire the NetworkLockTable lock
         networkLockTable->tableLock->Acquire();
@@ -473,6 +479,8 @@ void RPCServer::Receive_Wait() {
             int serverMachine = inPktHdr.from;
             int serverMailbox = MailboxWait + 100;
 
+            bool subordinateActive = false;
+
             if ( condition != NULL ) {
                 DEBUG('r', "Receive_Wait (remote) - %d waiting on %s with %s\n", mailbox, conditionName.c_str(), lockName.c_str());
                 SendResponse(serverMailbox, -1, serverMachine);     // Tell the querying server we have it
@@ -482,17 +490,27 @@ void RPCServer::Receive_Wait() {
                 networkLockTable->tableLock->Acquire();
 
                 if (lock == NULL) {
-                    // SendQuery to find the server that has it
+                    subordinateActive = true;
 
-                    // printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
-                    // SendResponse(-mailbox, -2);
-                    // interrupt->Halt();
+                    // SendQuery to find the server that has it
+                    bool result = SendQuery(MailboxServerLockSubordinate, mailbox, lockName, "Wait (subordinate)");
+
+                    if (!result) {
+                        printf("ERROR: Receive_Wait (remote) failed. Terminating Nachos. No such lock - mailbox %d name %s\n", -mailbox, lockName.c_str());
+                        SendResponse(-mailbox, -2);
+                        interrupt->Halt();          
+                    }
                 }
 
                 condition->Wait(-mailbox, lock);
 
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
+
+                // Tell the subordinate we're done with the lock
+                if (subordinateActive) {
+                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Wait (subordinate done)"); // Sending a bogus mailbox
+                }
 
                 // Success response to the original client is sent from Wait()
                 continue;
