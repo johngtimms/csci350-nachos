@@ -30,7 +30,33 @@
 # NACHOS
 swtch.s
 nachos
-threads/Makefile
-userprog/Makefile
-vm/Makefile
 *core
+*swapfile
+
+# NACHOS USER PROGRAMS
+*.coff
+test/halt
+test/matmult
+test/sort
+test/testfiles
+test/test1
+test/test2
+test/test3
+test/test4
+test/test5
+test/test6
+test/test7a
+test/test7b
+test/tester
+test/tester2
+test/testexec
+test/passportOffice
+test/assignmentThreeTests
+test/networkTests
+test/testMV
+test/testdpvm
+
+# MISC
+*.txt
+*.DS_Store
+
