@@ -284,6 +284,7 @@ void RPCServer::Receive_ServerLockSubordinate() {
 
         // Make sure we haven't accidentally interrupted a confirmation to another subordinate
         if ( strcmp(test,recv) == 0 ) {
+            DEBUG('r', "Receive_ServerLockSubordinate (intercepted) - Server %d is asking for %s on behalf of %d\n", serverMachine, lockName.c_str(), mailbox);
             SendResponse(serverMailbox, -2, serverMachine);
             continue;
         }
@@ -300,22 +301,29 @@ void RPCServer::Receive_ServerLockSubordinate() {
             bool hasAcquired = lock->HasAcquired(mailbox);
 
             if (hasAcquired) {
+                DEBUG('r', "Receive_ServerLockSubordinate (have it) - Server %d is asking for %s on behalf of %d\n", serverMachine, lockName.c_str(), mailbox);
                 // It does, tell the server with Wait/Signal/Broadcast to go ahead
                 SendResponse(serverMailbox, -1, serverMachine);
             } else {
+                DEBUG('r', "Receive_ServerLockSubordinate (have it, cheat) - Server %d is asking for %s on behalf of %d\n", serverMachine, lockName.c_str(), mailbox);
                 // It does not, tell the server
                 SendResponse(serverMailbox, -2, serverMachine);
             }
 
-            // Wait for the server to tell us it's done
-            postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, conf); 
+            // // Wait for the server to tell us it's done
+            // postOffice->Receive(MailboxServerLockSubordinate, &inPktHdr, &inMailHdr, conf); 
 
-            // Double-check this worked
-            if ( strcmp(test,conf) != 0 ) {
-                printf("ERROR: Subordinate failure. Nachos halting.\n");
-                interrupt->Halt();
-            }
+            // DEBUG('r', "Receive_ServerLockSubordinate (server finished) - Server %d is asking for %s on behalf of %d\n", serverMachine, lockName.c_str(), mailbox);
+                            
+            // SendResponse(115, -1, inPktHdr.from);     // this should be the mailbox it's wanting
+
+            // // Double-check this worked
+            // if ( strcmp(test,conf) != 0 ) {
+            //     printf("ERROR: Subordinate failure. Nachos halting.\n");
+            //     interrupt->Halt();
+            // }
         } else {
+            DEBUG('r', "Receive_ServerLockSubordinate (don't have it) - Server %d is asking for %s on behalf of %d\n", serverMachine, lockName.c_str(), mailbox);
             // Tell the server we do not have the lock
             SendResponse(serverMailbox, -2, serverMachine);
         }
@@ -500,6 +508,10 @@ void RPCServer::Receive_Wait() {
                         SendResponse(-mailbox, -2);
                         interrupt->Halt();          
                     }
+
+                    // Dummy lock to satisfy Wait()
+                    lock = new NetworkLock(lockName);
+                    lock->Acquire(-mailbox, false);
                 }
 
                 condition->Wait(-mailbox, lock);
@@ -507,10 +519,10 @@ void RPCServer::Receive_Wait() {
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
 
-                // Tell the subordinate we're done with the lock
-                if (subordinateActive) {
-                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Wait (subordinate done)"); // Sending a bogus mailbox
-                }
+                // // Tell the subordinate we're done with the lock
+                // if (subordinateActive) {
+                //     SendQuery(MailboxServerLockSubordinate, -1, "sub", "Wait (subordinate done)"); // Sending a bogus mailbox
+                // }
 
                 // Success response to the original client is sent from Wait()
                 continue;
@@ -544,6 +556,7 @@ void RPCServer::Receive_Wait() {
             continue;
         } else {
             // We DO NOT have it, we have to check with other servers
+            DEBUG('r', "Receive_Wait (checking remotes) - %d waiting on %s with %s\n", mailbox, conditionName.c_str(), lockName.c_str());
             bool result = SendQuery(MailboxWait, mailbox, together, "Wait");
             if (result)
                 continue; // One of the other servers had it, we can finish
@@ -601,6 +614,10 @@ void RPCServer::Receive_Signal() {
                         SendResponse(-mailbox, -2);
                         interrupt->Halt();
                     }
+
+                    // Dummy lock to satisfy Signal()
+                    lock = new NetworkLock(lockName);
+                    lock->Acquire(-mailbox, false);
                 }
 
                 condition->Signal(-mailbox, lock);
@@ -608,10 +625,10 @@ void RPCServer::Receive_Signal() {
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
 
-                // Tell the subordinate we're done with the lock
-                if (subordinateActive) {
-                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Signal (subordinate done"); // Sending a bogus mailbox
-                }
+                // // Tell the subordinate we're done with the lock
+                // if (subordinateActive) {
+                //     SendQuery(MailboxServerLockSubordinate, -1, "sub", "Signal (subordinate done"); // Sending a bogus mailbox
+                // }
 
                 // Success response to the original client is sent from Signal()
                 continue;
@@ -702,6 +719,10 @@ void RPCServer::Receive_Broadcast() {
                         SendResponse(-mailbox, -2);
                         interrupt->Halt();          
                     }
+
+                    // Dummy lock to satisfy Broadcast()
+                    lock = new NetworkLock(lockName);
+                    lock->Acquire(-mailbox, false);
                 }
 
                 condition->Broadcast(-mailbox, lock);
@@ -709,10 +730,10 @@ void RPCServer::Receive_Broadcast() {
                 networkConditionTable->tableLock->Release();
                 networkLockTable->tableLock->Release();
 
-                // Tell the subordinate we're done with the lock
-                if (subordinateActive) {
-                    SendQuery(MailboxServerLockSubordinate, -1, "sub", "Broadcast (subordinate done)"); // Sending a bogus mailbox
-                }
+                // // Tell the subordinate we're done with the lock
+                // if (subordinateActive) {
+                //     SendQuery(MailboxServerLockSubordinate, -1, "sub", "Broadcast (subordinate done)"); // Sending a bogus mailbox
+                // }
 
                 // Success response to the original client is sent from Broadcast()
                 continue;
@@ -1288,13 +1309,14 @@ NetworkLock::~NetworkLock() {
     delete queue;
 }
 
-void NetworkLock::Acquire(int _mailbox) {
+void NetworkLock::Acquire(int _mailbox, bool messageCaller) {
     // Do the regular Lock::Acquire stuff
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     if (mailbox == -1) {                                // lock is available
         mailbox = _mailbox;
         DEBUG('r', "Acquire - %d getting %s (no delay)\n", mailbox, name.c_str());
-        RPCServer::SendResponse(mailbox, -1);           // notify the thread calling Acquire() (just like Release() would do)
+        if (messageCaller)                              // prevent messaging the subordinate
+            RPCServer::SendResponse(mailbox, -1);       // notify the thread calling Acquire() (just like Release() would do)
     } else if (mailbox != _mailbox) {                   // lock is busy
         queue->Append((void *) _mailbox);               // add mailbox to the wait queue
         DEBUG('r', "Acquire - %d wants %s but %d has it (delaying)\n", _mailbox, name.c_str(), mailbox);

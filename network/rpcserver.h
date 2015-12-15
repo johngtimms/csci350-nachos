@@ -75,7 +75,7 @@ class NetworkLock {
     public:
         NetworkLock(std::string _name);
         ~NetworkLock();
-        void Acquire(int _mailbox);
+        void Acquire(int _mailbox, bool messageCaller = true);
         void Release(int _mailbox, bool messageCaller = true);
         bool HasAcquired(int _mailbox);
         std::string getName() { return name; }
